@@ -15,9 +15,11 @@ function App() {
   const [view, setView] = useState('landing'); // Pilihan: 'landing', 'login', 'admin'
 
   useEffect(() => {
-    fetch("http://localhost:3000")
-      .then(res => res.text())
-      .then(data => console.log(data));
+    fetch("http://localhost:3000/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });    
   }, []);
 
   return (
