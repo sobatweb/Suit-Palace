@@ -76,7 +76,7 @@ const CalendarView = ({
               return (
                 <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-95px p-2 border-[0.5px] border-gray-50 cursor-pointer transition-all ${selectedDay === day ? 'bg-slate-100/50 ring-2 ring-inset ring-slate-200' : 'hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-13">
-                    <span className={`text-[12px] font-black ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white px-1.5 py-0.5 rounded' : 'text-gray-500'}`}>{day}</span>
+                    <span className={`text-[12px] font-black ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white px-1.5 rounded' : 'text-gray-500'}`}>{day}</span>
                     <div className="flex gap-0.5">
                       {dayMarks.map((m, idx) => <div key={idx} className="w-1.5 h-1.5 rounded-full" style={{ background: m.color }} />)}
                       {dayNotes.length > 0 && <FileText size={8} className="text-amber-500" />}
