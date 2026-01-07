@@ -13,37 +13,21 @@ import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
 
 const AdminDashboard = () => {
-  // --- DATABASE STATE (Data tetap sama persis) ---
+  // --- DATABASE STATE ---
   const [db, setDb] = useState({
-    admins: [{ id_admin: 1, username: 'admin_master' }],
-    customers: [
-      { id_customer: 1, customer_name: 'Budi Santoso', customer_phone: '0812345678', bank_account: 'BCA 12345', discount: 0 },
-      { id_customer: 2, customer_name: 'Siti Aminah', customer_phone: '087712345', bank_account: 'Mandiri 998', discount: 10.00 }
-    ],
-    packages: [
-      { id_package: 1, package_name: 'Wedding Premium', package_price: 750000, duration_day: 3, deposit: 100000, penalty_fee: 50000 },
-      { id_package: 2, package_name: 'Pre-Wedding', package_price: 500000, duration_day: 2, deposit: 100000, penalty_fee: 30000 }
-    ],
-    jas: [{ id_jas: 1, name_jas: 'Slim Fit Charcoal', size_jas: 'L', color_jas: 'Abu Tua', stock_jas: 4, condition_jas: 'Baik' }],
-    kemeja: [{ id_kemeja: 1, name_kemeja: 'White Poplin', size_kemeja: 'L', color_kemeja: 'Putih', stock_kemeja: 10, condition_kemeja: 'Baru' }],
-    celana: [{ id_celana: 1, name_celana: 'Formal Black', size_celana: 'L', color_celana: 'Hitam', stock_celana: 8, condition_celana: 'Baik' }],
-    changshan: [{ id_changshan: 1, name_changshan: 'Red Dragon Gold', size_changshan: 'XL', color_changshan: 'Merah', stock_changshan: 2, condition_changshan: 'Sangat Baik' }],
-    dasi: [{ id_dasi: 1, kode_dasi: 'D-01', color_dasi: 'Navy', stock_dasi: 5, description_dasi: 'Silk Navy' }],
-    booked: [
-      { id_booked: 1, id_jas: 1, id_kemeja: 1, id_celana: 1, id_changshan: null, id_dasi: 1 },
-      { id_booked: 2, id_jas: null, id_kemeja: null, id_celana: null, id_changshan: 1, id_dasi: null }
-    ],
-    order_items: [
-      {
-        id_order: 1, id_customer: 1, id_package: 1, id_booked: 1,
-        start_dates: '2026-01-03', end_dates: '2026-01-05',
-        total_price: 850000, amount_paid: 400000,
-        status_rent: 'Overdue', status_order: 'Belum Selesai', description: 'Acara Hotel Mulia'
-      }
-    ],
+    admins: [],
+    customers: [],
+    packages: [],
+    jas: [],
+    kemeja: [],
+    celana: [],
+    changshan: [],
+    dasi: [],
+    booked: [],
+    order_items: [],
     history_orders: [],
-    notes: [{ id_note: 1, title: 'Info Cuci', content: 'Jas putih harus dry clean', date: '2026-01-06' }],
-    marks: [{ id_mark: 1, date: '2026-01-06', note: 'Libur Nasional', color: '#e11d48' }]
+    notes: [],
+    marks: []
   });
 
   // --- UI STATE ---
@@ -51,66 +35,128 @@ const AdminDashboard = () => {
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
   const [selectedDay, setSelectedDay] = useState(3);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [modalType, setModalType] = useState(null); 
+  const [modalType, setModalType] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
-  
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
-  const handleSaveItem = (e) => {
+  // Fetch initial data
+  const fetchData = async () => {
+    try {
+      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes] = await Promise.all([
+        fetch('/api/dashboard').then(res => res.json()),
+        fetch('/api/customers').then(res => res.json()),
+        fetch('/api/inventory/jas').then(res => res.json()),
+        fetch('/api/inventory/kemeja').then(res => res.json()),
+        fetch('/api/inventory/celana').then(res => res.json()),
+        fetch('/api/inventory/changshan').then(res => res.json()),
+        fetch('/api/inventory/dasi').then(res => res.json()),
+        fetch('/api/inventory/packages').then(res => res.json()),
+        fetch('/api/transaction/orders').then(res => res.json())
+      ]);
+
+      setDb(prev => ({
+        ...prev,
+        history_orders: dashboardRes.history || [],
+        marks: dashboardRes.marks || [],
+        notes: dashboardRes.notes || [],
+        customers: customersRes || [],
+        jas: jasRes || [],
+        kemeja: kemejaRes || [],
+        celana: celanaRes || [],
+        changshan: changshanRes || [],
+        dasi: dasiRes || [],
+        packages: packagesRes || [],
+        order_items: ordersRes || []
+      }));
+    } catch (error) {
+      console.error("Failed to fetch data", error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSaveItem = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const data = Object.fromEntries(fd.entries());
     const table = editingItem?.fromTable || activeTab;
-    const idField = Object.keys(db[table][0] || {})[0] || 'id';
+    const idField = Object.keys(db[table][0] || {})[0] || `id_${table}`; // Heuristic
 
-    if (editingItem) {
-      setDb(prev => ({
-        ...prev,
-        [table]: prev[table].map(item => Number(item[idField]) === Number(editingItem[idField]) ? { ...item, ...data } : item)
-      }));
-    } else {
-      setDb(prev => ({
-        ...prev,
-        [table]: [...prev[table], { [idField]: Date.now(), ...data }]
-      }));
+    try {
+      if (editingItem && editingItem[idField]) {
+        // Update
+        await fetch(`/api/inventory/${table}/${editingItem[idField]}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        // Create
+        await fetch(`/api/inventory/${table}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+      await fetchData(); // Reload all data for simplicity
+    } catch (error) {
+      console.error("Save failed", error);
+      alert("Failed to save");
     }
+
     setModalType(null);
     setEditingItem(null);
   };
 
-  const handleSaveMarkNote = (table, newData) => {
-    setDb(prev => ({ 
-      ...prev, 
-      [table]: [...(prev[table] || []), newData] 
-    }));
+  const handleSaveMarkNote = async (table, newData) => {
+    // Determine endpoint based on table
+    const endpoint = table === 'marks' ? '/api/dashboard/marks' : '/api/dashboard/notes';
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newData)
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Save Mark/Note failed", error);
+    }
   };
 
-  const executeFinish = (orderId, condition, penalty) => {
-    const order = db.order_items.find(o => o.id_order === orderId);
-    if (!order) return;
-
-    const omsetOrder = Number(order.total_price) + Number(penalty);
-    const newHistory = {
-      id_history: Date.now(),
-      id_order: order.id_order,
-      omset_order: omsetOrder,
-      condition_return: condition
-    };
-
-    setDb(prev => ({
-      ...prev,
-      history_orders: [...prev.history_orders, newHistory],
-      order_items: prev.order_items.filter(o => o.id_order !== orderId)
-    }));
-    setFinishOrderData(null);
+  const executeFinish = async (orderId, condition, penalty) => {
+    try {
+      await fetch(`/api/transaction/orders/${orderId}/finish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          penalty_paid: penalty,
+          description_rent: condition
+        })
+      });
+      fetchData();
+      setFinishOrderData(null);
+    } catch (error) {
+      console.error("Finish order failed", error);
+    }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     const { table, idField, id } = deleteConfirm;
-    setDb(prev => ({ ...prev, [table]: prev[table].filter(item => item[idField] !== id) }));
+    try {
+      // Determine endpoint. Special case for customers?
+      let url = `/api/inventory/${table}/${id}`;
+      if (table === 'customers') url = `/api/customers/${id}`;
+
+      await fetch(url, { method: 'DELETE' });
+      fetchData();
+    } catch (error) {
+      console.error("Delete failed", error);
+    }
     setDeleteConfirm(null);
   };
 
@@ -125,25 +171,25 @@ const AdminDashboard = () => {
             <h2 className="text-2xl font-black uppercase italic tracking-tighter">{activeTab.replace('_', ' ')}</h2>
           </div>
           {activeTab !== 'calendar' && (
-            <button onClick={() => {setEditingItem(null); setModalType('form_db');}} className="px-6 py-3 bg-[#1A120B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:bg-black">
-              <Plus size={14}/> Add New
+            <button onClick={() => { setEditingItem(null); setModalType('form_db'); }} className="px-6 py-3 bg-[#1A120B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:bg-black">
+              <Plus size={14} /> Add New
             </button>
           )}
         </header>
 
         {activeTab === 'calendar' ? (
-          <CalendarView 
-            db={db} 
-            viewDate={viewDate} 
-            setViewDate={setViewDate} 
-            selectedDay={selectedDay} 
-            setSelectedDay={setSelectedDay} 
-            selectedFullDate={selectedFullDate} 
+          <CalendarView
+            db={db}
+            viewDate={viewDate}
+            setViewDate={setViewDate}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            selectedFullDate={selectedFullDate}
             setModalType={setModalType}
-            setEditingItem={setEditingItem} 
+            setEditingItem={setEditingItem}
             setDeleteConfirm={setDeleteConfirm}
             setFinishOrderData={setFinishOrderData}
-            
+
           />
         ) : (
           <InventoryTable activeTab={activeTab} data={db[activeTab]} setEditingItem={setEditingItem} setModalType={setModalType} setDeleteConfirm={setDeleteConfirm} />

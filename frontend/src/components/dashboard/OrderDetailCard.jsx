@@ -2,23 +2,28 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { User, CalendarDays, X, CheckCircle } from 'lucide-react';
 
-const OrderDetailCard = ({ 
-  db, 
-  selectedFullDate, 
-  setEditingItem, 
-  setModalType, 
-  setDeleteConfirm, 
-  getStatusColor, 
+const OrderDetailCard = ({
+  db,
+  selectedFullDate,
+  setEditingItem,
+  setModalType,
+  setDeleteConfirm,
+  getStatusColor,
   setFinishOrderData // Gunakan prop ini, bukan handleFinishOrder
 }) => {
-  const filteredOrders = db.order_items.filter(o => selectedFullDate >= o.start_dates && selectedFullDate <= o.end_dates);
+  const filteredOrders = db.order_items.filter(o =>
+    selectedFullDate >= o.start_dates &&
+    selectedFullDate <= o.end_dates &&
+    o.status_rent !== 'Dikembalikan' &&
+    o.status_order !== 'Sudah Selesai'
+  );
 
   return (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide">
       {/* SECTION MARKS & NOTES */}
       <div className="flex flex-wrap gap-2 mb-2">
         {db.marks.filter(m => m.date === selectedFullDate).map(m => (
-          <div key={m.id_mark} className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border shadow-sm" style={{borderColor: m.color}}>
+          <div key={m.id_mark} className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border shadow-sm" style={{ borderColor: m.color }}>
             <span className="text-[9px] font-black uppercase">{m.note}</span>
             <X size={10} className="cursor-pointer text-gray-300 hover:text-rose-500" onClick={() => setDeleteConfirm({ table: 'marks', idField: 'id_mark', id: m.id_mark })} />
           </div>
@@ -38,7 +43,7 @@ const OrderDetailCard = ({
         filteredOrders.map(order => {
           const cust = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
           const pkg = db.packages.find(p => Number(p.id_package) === Number(order.id_package));
-          
+
           const hargaPaket = Number(order.total_price);
           const deposit = Number(pkg?.deposit || 0);
           const totalTagihan = hargaPaket + deposit;
@@ -49,16 +54,16 @@ const OrderDetailCard = ({
               <div className={`absolute top-0 right-0 px-4 py-1 text-[8px] font-black text-white rounded-bl-xl ${getStatusColor(order.status_rent)}`}>
                 {order.status_rent}
               </div>
-              
+
               <div className="space-y-3 mt-4">
                 <div className="flex items-center gap-3">
-                  <User size={14} className="text-gray-400"/>
+                  <User size={14} className="text-gray-400" />
                   <div className="text-[11px] font-black uppercase tracking-tighter">
                     {cust?.customer_name} <span className="text-gray-300 ml-1">({cust?.customer_phone})</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <CalendarDays size={14} className="text-gray-400"/>
+                  <CalendarDays size={14} className="text-gray-400" />
                   <div className="text-[10px] font-bold text-[#8D775F]">{order.start_dates} s/d {order.end_dates}</div>
                 </div>
               </div>
@@ -77,17 +82,17 @@ const OrderDetailCard = ({
 
               {/* AKSI */}
               <div className="flex gap-2">
-                <button 
-                  onClick={() => {setEditingItem({...order, fromTable: 'order_items'}); setModalType('form_db');}} 
+                <button
+                  onClick={() => { setEditingItem({ ...order, fromTable: 'order_items' }); setModalType('form_db'); }}
                   className="flex-1 py-3 bg-gray-100 rounded-xl text-[9px] font-black uppercase hover:bg-gray-200 transition-all"
                 >
                   Edit
                 </button>
-                <button 
+                <button
                   onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
                   className="flex-1 py-3 bg-[#1A120B] text-white rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg"
                 >
-                  <CheckCircle size={12}/> Selesai
+                  <CheckCircle size={12} /> Selesai
                 </button>
               </div>
             </motion.div>

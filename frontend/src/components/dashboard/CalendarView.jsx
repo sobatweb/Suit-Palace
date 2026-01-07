@@ -3,15 +3,15 @@ import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import DailyStock from './DailyStock';
 import OrderDetailCard from './OrderDetailCard';
 
-const CalendarView = ({ 
-  db, 
-  viewDate, 
-  setViewDate, 
-  selectedDay, 
-  setSelectedDay, 
-  selectedFullDate, 
-  setModalType, 
-  setEditingItem, 
+const CalendarView = ({
+  db,
+  viewDate,
+  setViewDate,
+  selectedDay,
+  setSelectedDay,
+  selectedFullDate,
+  setModalType,
+  setEditingItem,
   setDeleteConfirm,
   setFinishOrderData // Menerima prop dari AdminDashboard
 }) => {
@@ -23,8 +23,8 @@ const CalendarView = ({
   const getStatusColor = (status) => {
     switch (status) {
       case 'Overdue': return 'bg-red-500';
-      case 'Persiapan': return 'bg-yellow-400';
-      case 'Booking': return 'bg-green-500';
+      case 'Diambil': return 'bg-yellow-400';
+      case 'Booked': return 'bg-green-500';
       case 'Dikembalikan': return 'bg-blue-500';
       default: return 'bg-gray-400';
     }
@@ -36,9 +36,9 @@ const CalendarView = ({
         {/* KALENDER */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-6 px-2">
-            <button onClick={() => setViewDate(new Date(currentYear, currentMonth - 1, 1))} className="p-2 hover:bg-gray-50 rounded-full transition-all"><ChevronLeft size={20}/></button>
+            <button onClick={() => setViewDate(new Date(currentYear, currentMonth - 1, 1))} className="p-2 hover:bg-gray-50 rounded-full transition-all"><ChevronLeft size={20} /></button>
             <h3 className="font-black uppercase text-sm tracking-widest">{viewDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h3>
-            <button onClick={() => setViewDate(new Date(currentYear, currentMonth + 1, 1))} className="p-2 hover:bg-gray-50 rounded-full transition-all"><ChevronRight size={20}/></button>
+            <button onClick={() => setViewDate(new Date(currentYear, currentMonth + 1, 1))} className="p-2 hover:bg-gray-50 rounded-full transition-all"><ChevronRight size={20} /></button>
           </div>
 
           <div className="grid grid-cols-7 border rounded-2xl overflow-hidden shadow-inner bg-white">
@@ -49,7 +49,12 @@ const CalendarView = ({
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const dayOrders = db.order_items.filter(o => dateStr >= o.start_dates && dateStr <= o.end_dates);
+              const dayOrders = db.order_items.filter(o =>
+                dateStr >= o.start_dates &&
+                dateStr <= o.end_dates &&
+                o.status_rent !== 'Dikembalikan' &&
+                o.status_order !== 'Sudah Selesai'
+              );
               const dayMarks = db.marks.filter(m => m.date === dateStr);
               const dayNotes = db.notes.filter(n => n.date === dateStr);
 
@@ -89,14 +94,14 @@ const CalendarView = ({
         </div>
 
         {/* ORDER DETAIL CARD */}
-        <OrderDetailCard 
-        db={db} 
-        selectedFullDate={selectedFullDate} 
-        setEditingItem={setEditingItem} 
-        setModalType={setModalType} 
-        setDeleteConfirm={setDeleteConfirm}
-        getStatusColor={getStatusColor}
-        setFinishOrderData={setFinishOrderData} // Meneruskan state pengontrol modal
+        <OrderDetailCard
+          db={db}
+          selectedFullDate={selectedFullDate}
+          setEditingItem={setEditingItem}
+          setModalType={setModalType}
+          setDeleteConfirm={setDeleteConfirm}
+          getStatusColor={getStatusColor}
+          setFinishOrderData={setFinishOrderData} // Meneruskan state pengontrol modal
         />
       </div>
     </div>
