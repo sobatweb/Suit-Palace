@@ -59,11 +59,11 @@ const OrderDetailCard = ({
                 <div className="flex items-center gap-3">
                   <User size={14} className="text-gray-400" />
                   <div className="text-[11px] font-black uppercase tracking-tighter">
-                    {cust?.customer_name} <span className="text-gray-300 ml-1">({cust?.customer_phone})</span>
+                    {cust?.customer_name} <span className="text-gray-700 ml-1">({cust?.customer_phone})</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <CalendarDays size={14} className="text-gray-400" />
+                  <CalendarDays size={14} className="text-gray-500" />
                   <div className="text-[10px] font-bold text-[#8D775F]">{order.start_dates} s/d {order.end_dates}</div>
                 </div>
               </div>

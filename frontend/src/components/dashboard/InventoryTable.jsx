@@ -12,11 +12,11 @@ const InventoryTable = ({ activeTab, data, setEditingItem, setModalType, setDele
     <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
       <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
         <div className="relative">
-          <Search className="absolute left-3 top-3 text-gray-300" size={14}/>
+          <Search className="absolute left-3 top-3 text-black" size={14}/>
           <input 
             type="text" 
             placeholder={`Cari di ${activeTab}...`} 
-            className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-xs font-bold outline-none w-64 shadow-sm" 
+            className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-s text-black outline-none w-64 shadow-sm" 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
         </div>
@@ -27,13 +27,13 @@ const InventoryTable = ({ activeTab, data, setEditingItem, setModalType, setDele
       </div>
       <div className="overflow-x-auto w-full">
         <table className="w-full text-left min-w-[1200px]">
-          <thead className="bg-white text-[9px] font-black uppercase text-gray-400 tracking-widest border-b">
+          <thead className="bg-white text-[11px] font-black uppercase text-black tracking-widest border-b">
             <tr>
               {data.length > 0 && Object.keys(data[0]).map(key => <th key={key} className="px-6 py-5 whitespace-nowrap">{key.replace('_', ' ')}</th>)}
               <th className="px-6 py-5 text-right sticky right-0 bg-white">Aksi</th>
             </tr>
           </thead>
-          <tbody className="text-[10px] font-bold text-gray-600">
+          <tbody className="text-[12px] font-bold text-black">
             {filteredData.map((item, idx) => {
               const idField = Object.keys(item)[0];
               return (
