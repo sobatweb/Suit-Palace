@@ -3,6 +3,7 @@ import { Database, Search } from 'lucide-react';
 
 const DailyStock = ({ db, selectedFullDate }) => {
   const [stockSearch, setStockSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   // Helper to format date from YYYY-MM-DD to DD Month YYYY
   const formatDate = (dateStr) => {
@@ -20,6 +21,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
     let results = [];
 
     categories.forEach(cat => {
+      if (categoryFilter !== 'all' && cat !== categoryFilter) return;
       db[cat].forEach(item => {
         // Ambil ID field sesuai kategori (contoh: id_jas)
         const idField = cat === 'dasi' ? 'id_dasi' : `id_${cat}`;
@@ -50,22 +52,36 @@ const DailyStock = ({ db, selectedFullDate }) => {
     });
 
     return results.filter(r => r.name.toLowerCase().includes(stockSearch.toLowerCase()));
-  }, [db, selectedFullDate, stockSearch]);
+  }, [db, selectedFullDate, stockSearch, categoryFilter]);
 
   return (
     <div className="bg-white p-6 rounded-2rem border shadow-sm">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 gap-2 flex-wrap">
         <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
           <Database size={14}/> Sisa Stok: {formatDate(selectedFullDate)}
         </h4>
-        <div className="relative rounded-xl shadow-inner">
-          <Search className="absolute left-3 top-2.5 text-gray-500" size={14} />
-          <input 
-            type="text" 
-            placeholder="Cari produk..." 
-            className="pl-10 pr-4 py-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-[#8D775F] w-68 shadow-inner" 
-            onChange={(e)=>setStockSearch(e.target.value)} 
-          />
+        <div className="flex items-center gap-2">
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="py-2 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8D775F]"
+          >
+            <option value="all">Semua Kategori</option>
+            <option value="jas">Jas</option>
+            <option value="kemeja">Kemeja</option>
+            <option value="celana">Celana</option>
+            <option value="changshan">Changshan</option>
+            <option value="dasi">Dasi</option>
+          </select>
+          <div className="relative rounded-xl shadow-inner">
+            <Search className="absolute left-3 top-2.5 text-gray-500" size={14} />
+            <input 
+              type="text" 
+              placeholder="Cari produk..." 
+              className="pl-10 pr-4 py-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-[#8D775F] w-68 shadow-inner" 
+              onChange={(e)=>setStockSearch(e.target.value)} 
+            />
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
