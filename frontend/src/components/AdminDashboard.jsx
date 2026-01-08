@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { useNavigate } from "react-router-dom";
-import LogoutConfirmModal from "../components/modals/LogoutConfirmModal";
-
+import { useNavigate } from 'react-router-dom';
 
 // Import Komponen yang sudah dipecah
 import Sidebar from '../components/dashboard/Sidebar';
@@ -16,6 +14,8 @@ import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+
   // --- DATABASE STATE ---
   const [db, setDb] = useState({
     admins: [],
@@ -33,8 +33,6 @@ const AdminDashboard = () => {
     marks: []
   });
 
-  const navigate = useNavigate();
-
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState('calendar');
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
@@ -44,42 +42,62 @@ const AdminDashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
+  // Helper to get headers with Auth
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
 
   // Fetch initial data
   const fetchData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const headers = { 'Authorization': `Bearer ${token}` };
+
     try {
-      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes] = await Promise.all([
-        fetch('/api/dashboard').then(res => res.json()),
-        fetch('/api/customers').then(res => res.json()),
-        fetch('/api/inventory/jas').then(res => res.json()),
-        fetch('/api/inventory/kemeja').then(res => res.json()),
-        fetch('/api/inventory/celana').then(res => res.json()),
-        fetch('/api/inventory/changshan').then(res => res.json()),
-        fetch('/api/inventory/dasi').then(res => res.json()),
-        fetch('/api/inventory/packages').then(res => res.json()),
-        fetch('/api/transaction/orders').then(res => res.json())
+      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes] = await Promise.all([
+        fetch('/api/dashboard', { headers }).then(res => res.json()),
+        fetch('/api/customers', { headers }).then(res => res.json()),
+        fetch('/api/inventory/jas', { headers }).then(res => res.json()),
+        fetch('/api/inventory/kemeja', { headers }).then(res => res.json()),
+        fetch('/api/inventory/celana', { headers }).then(res => res.json()),
+        fetch('/api/inventory/changshan', { headers }).then(res => res.json()),
+        fetch('/api/inventory/dasi', { headers }).then(res => res.json()),
+        fetch('/api/inventory/packages', { headers }).then(res => res.json()),
+        fetch('/api/transaction/orders', { headers }).then(res => res.json()),
+        fetch('/api/inventory/booked', { headers }).then(res => res.json())
       ]);
 
       setDb(prev => ({
         ...prev,
-        history_orders: dashboardRes.history || [],
-        marks: dashboardRes.marks || [],
-        notes: dashboardRes.notes || [],
-        customers: customersRes || [],
-        jas: jasRes || [],
-        kemeja: kemejaRes || [],
-        celana: celanaRes || [],
-        changshan: changshanRes || [],
-        dasi: dasiRes || [],
-        packages: packagesRes || [],
-        order_items: ordersRes || []
+        history_orders: Array.isArray(dashboardRes?.history) ? dashboardRes.history : [],
+        marks: Array.isArray(dashboardRes?.marks) ? dashboardRes.marks : [],
+        notes: Array.isArray(dashboardRes?.notes) ? dashboardRes.notes : [],
+        customers: Array.isArray(customersRes) ? customersRes : [],
+        jas: Array.isArray(jasRes) ? jasRes : [],
+        kemeja: Array.isArray(kemejaRes) ? kemejaRes : [],
+        celana: Array.isArray(celanaRes) ? celanaRes : [],
+        changshan: Array.isArray(changshanRes) ? changshanRes : [],
+        dasi: Array.isArray(dasiRes) ? dasiRes : [],
+        packages: Array.isArray(packagesRes) ? packagesRes : [],
+        order_items: Array.isArray(ordersRes) ? ordersRes : [],
+        booked: Array.isArray(bookedRes) ? bookedRes : []
       }));
     } catch (error) {
       console.error("Failed to fetch data", error);
+      if (error.message.includes('401')) {
+        navigate('/login');
+      }
     }
   };
 
@@ -88,35 +106,35 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSaveItem = async (items) => {
-  try {
-    const table = editingItem?.fromTable || activeTab;
-    
-    // items adalah array yang dikirim dari FormModal
-    for (const item of items) {
-      const isEdit = !!editingItem;
-      const method = isEdit ? 'PUT' : 'POST';
-      
-      // Ambil ID jika sedang edit
-      const id = isEdit ? editingItem[Object.keys(editingItem)[0]] : '';
-      const url = isEdit 
-        ? `/api/inventory/${table}/${id}`
-        : `/api/inventory/${table}`;
+    try {
+      const table = editingItem?.fromTable || activeTab;
 
-      await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item),
-      });
+      // items adalah array yang dikirim dari FormModal
+      for (const item of items) {
+        const isEdit = !!editingItem;
+        const method = isEdit ? 'PUT' : 'POST';
+
+        // Ambil ID jika sedang edit
+        const id = isEdit ? editingItem[Object.keys(editingItem)[0]] : '';
+        const url = isEdit
+          ? `/api/inventory/${table}/${id}`
+          : `/api/inventory/${table}`;
+
+        await fetch(url, {
+          method,
+          headers: getAuthHeaders(),
+          body: JSON.stringify(item),
+        });
+      }
+
+      fetchData(); // Refresh data
+      setModalType(null);
+      setEditingItem(null);
+    } catch (error) {
+      console.error("Gagal menyimpan data:", error);
+      alert("Terjadi kesalahan saat menyimpan data.");
     }
-
-    fetchData(); // Refresh data
-    setModalType(null);
-    setEditingItem(null);
-  } catch (error) {
-    console.error("Gagal menyimpan data:", error);
-    alert("Terjadi kesalahan saat menyimpan data.");
-  }
-};
+  };
 
   const handleSaveMarkNote = async (table, newData) => {
     // Determine endpoint based on table
@@ -124,7 +142,7 @@ const AdminDashboard = () => {
     try {
       await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(newData)
       });
       fetchData();
@@ -137,7 +155,7 @@ const AdminDashboard = () => {
     try {
       await fetch(`/api/transaction/orders/${orderId}/finish`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           penalty_paid: penalty,
           description_rent: condition
@@ -157,7 +175,10 @@ const AdminDashboard = () => {
       let url = `/api/inventory/${table}/${id}`;
       if (table === 'customers') url = `/api/customers/${id}`;
 
-      await fetch(url, { method: 'DELETE' });
+      await fetch(url, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
       fetchData();
     } catch (error) {
       console.error("Delete failed", error);
@@ -165,21 +186,15 @@ const AdminDashboard = () => {
     setDeleteConfirm(null);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login", { replace: true });
-  };  
-
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-[#1A120B]">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         // Kita memfilter key yang tidak ingin ditampilkan di menu navigasi
-        dbKeys={Object.keys(db).filter(key => !['admins', 'booked', 'marks','customers'].includes(key))} 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-        onLogoutClick={() => setShowLogoutConfirm(true)}
+        dbKeys={Object.keys(db).filter(key => !['admins', 'booked', 'marks', 'customers'].includes(key))}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
 
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 overflow-x-hidden">
@@ -210,15 +225,15 @@ const AdminDashboard = () => {
 
           />
         ) : (
-        <InventoryTable 
-          activeTab={activeTab} 
-          data={db[activeTab]} 
-          db={db} //
-          setEditingItem={setEditingItem} 
-          setModalType={setModalType} 
-          setDeleteConfirm={setDeleteConfirm} 
-        />
-                )}
+          <InventoryTable
+            activeTab={activeTab}
+            data={db[activeTab]}
+            db={db} //
+            setEditingItem={setEditingItem}
+            setModalType={setModalType}
+            setDeleteConfirm={setDeleteConfirm}
+          />
+        )}
       </main>
 
       <AnimatePresence>
@@ -227,7 +242,6 @@ const AdminDashboard = () => {
         {modalType === 'note' && <NoteModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(n) => handleSaveMarkNote('notes', n)} />}
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
         {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
-        {showLogoutConfirm && ( <LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
       </AnimatePresence>
     </div>
   );
