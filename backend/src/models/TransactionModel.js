@@ -49,13 +49,54 @@ class TransactionModel {
     }
 
     static async updateOrder(id, data) {
-        // Dynamic update
-        const keys = Object.keys(data);
-        const values = Object.values(data);
-        const setClause = keys.map(key => `${key} = ?`).join(', ');
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
 
-        const [result] = await db.query(`UPDATE order_items SET ${setClause} WHERE id_order = ?`, [...values, id]);
-        return result.affectedRows;
+            // Separate booking data if present
+            const bookingData = {};
+            const orderData = {};
+
+            const bookingFields = ['id_jas', 'id_kemeja', 'id_celana', 'id_changshan', 'id_dasi'];
+
+            Object.keys(data).forEach(key => {
+                if (bookingFields.includes(key)) {
+                    bookingData[key] = data[key];
+                } else if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'id_order') {
+                    // Filter out synthetic display fields and the ID itself
+                    orderData[key] = data[key];
+                }
+            });
+
+            // 1. Update order_items
+            if (Object.keys(orderData).length > 0) {
+                const keys = Object.keys(orderData);
+                const values = Object.values(orderData);
+                const setClause = keys.map(key => `${key} = ?`).join(', ');
+                await connection.query(`UPDATE order_items SET ${setClause} WHERE id_order = ?`, [...values, id]);
+            }
+
+            // 2. Update booked (if booking items were passed)
+            if (Object.keys(bookingData).length > 0) {
+                // Get id_booked from order
+                const [orderRows] = await connection.query('SELECT id_booked FROM order_items WHERE id_order = ?', [id]);
+                if (orderRows.length > 0) {
+                    const id_booked = orderRows[0].id_booked;
+                    const keys = Object.keys(bookingData);
+                    const values = Object.values(bookingData);
+                    const setClause = keys.map(key => `${key} = ?`).join(', ');
+                    await connection.query(`UPDATE booked SET ${setClause} WHERE id_booked = ?`, [...values, id_booked]);
+                }
+            }
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     // Special method for "Finish Order" which might involve penalties and status changes
@@ -73,6 +114,35 @@ class TransactionModel {
             [penalty_paid, description_rent, id]
         );
         return result.affectedRows;
+    }
+
+    static async deleteOrder(id) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // 1. Get id_booked first
+            const [rows] = await connection.query('SELECT id_booked FROM order_items WHERE id_order = ?', [id]);
+            if (rows.length > 0) {
+                const id_booked = rows[0].id_booked;
+
+                // 2. Delete order_items
+                await connection.query('DELETE FROM order_items WHERE id_order = ?', [id]);
+
+                // 3. Delete booked
+                if (id_booked) {
+                    await connection.query('DELETE FROM booked WHERE id_booked = ?', [id_booked]);
+                }
+            }
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 }
 

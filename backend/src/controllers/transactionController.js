@@ -38,3 +38,11 @@ exports.finishOrder = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+exports.deleteOrder = async (req, res) => {
+    try {
+        await TransactionModel.deleteOrder(req.params.id);
+        res.json({ message: 'Order deleted' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

@@ -15,7 +15,7 @@ import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
 
 const AdminDashboard = () => {
-  
+
 
   // --- DATABASE STATE ---
   const [db, setDb] = useState({
@@ -118,17 +118,64 @@ const AdminDashboard = () => {
         const isEdit = !!editingItem;
         const method = isEdit ? 'PUT' : 'POST';
 
-        // Ambil ID jika sedang edit
-        const id = isEdit ? editingItem[Object.keys(editingItem)[0]] : '';
-        const url = isEdit
-          ? `/api/inventory/${table}/${id}`
-          : `/api/inventory/${table}`;
+        let url = '';
+        let body = item;
 
-        await fetch(url, {
+        if (table === 'order_items') {
+          const id = isEdit ? editingItem.id_order : '';
+          url = isEdit ? `/api/transaction/orders/${id}` : `/api/transaction/orders`;
+
+          if (!isEdit) {
+            const { customer_name, customer_phone, bank_account, ...rest } = item;
+            body = {
+              orderData: { ...rest },
+              bookingData: { ...rest }
+            };
+          } else {
+            // For Edit, strip synthetic fields
+            const cleanedBody = {};
+            Object.keys(item).forEach(key => {
+              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order') {
+                cleanedBody[key] = item[key];
+              }
+            });
+            body = cleanedBody;
+          }
+        } else if (table === 'customers') {
+          const id = isEdit ? editingItem.id_customer : '';
+          url = isEdit ? `/api/customers/${id}` : `/api/customers`;
+
+          // Strip fromTable
+          const { fromTable, id_customer, ...rest } = item;
+          body = rest;
+        } else {
+          // Inventory tables (jas, kemeja, etc.)
+          const idField = editingItem ? Object.keys(editingItem)[0] : '';
+          const id = isEdit ? editingItem[idField] : '';
+          url = isEdit
+            ? `/api/inventory/${table}/${id}`
+            : `/api/inventory/${table}`;
+
+          // Strip fromTable and the primary key ID field
+          const cleanedBody = {};
+          Object.keys(item).forEach(key => {
+            if (key !== 'fromTable' && key !== idField) {
+              cleanedBody[key] = item[key];
+            }
+          });
+          body = cleanedBody;
+        }
+
+        const response = await fetch(url, {
           method,
           headers: getAuthHeaders(),
-          body: JSON.stringify(item),
+          body: JSON.stringify(body),
         });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || 'Failed to save item');
+        }
       }
 
       fetchData(); // Refresh data
@@ -136,7 +183,7 @@ const AdminDashboard = () => {
       setEditingItem(null);
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
-      alert("Terjadi kesalahan saat menyimpan data.");
+      alert(`Terjadi kesalahan saat menyimpan data: ${error.message}`);
     }
   };
 
@@ -185,7 +232,9 @@ const AdminDashboard = () => {
     const { table, id } = deleteConfirm;
     try {
       let url = `/api/inventory/${table}/${id}`;
-      if (table === 'customers') {
+      if (table === 'order_items') {
+        url = `/api/transaction/orders/${id}`;
+      } else if (table === 'customers') {
         url = `/api/customers/${id}`;
       } else if (table === 'marks' || table === 'notes') {
         url = `/api/dashboard/${table}/${id}`;

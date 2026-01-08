@@ -16,7 +16,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   // State Rows (Berbagi untuk Order maupun Master)
   const [rows, setRows] = useState(() => {
     if (editingItem) return [editingItem];
-    return [{}]; 
+    return [{}];
   });
 
   const addRow = () => setRows([...rows, {}]);
@@ -30,7 +30,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
       const pkgId = field === 'id_package' ? value : newRows[index].id_package;
       const startDate = field === 'start_dates' ? value : newRows[index].start_dates;
       const pkg = db.packages.find(p => String(p.id_package) === String(pkgId));
-      
+
       if (pkg && startDate) {
         const start = new Date(startDate);
         start.setDate(start.getDate() + parseInt(pkg.duration_day));
@@ -44,38 +44,38 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
-        
+
         {/* HEADER */}
         <div className="flex justify-between items-center p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
           <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">
-            {editingItem ? `Edit ${table}` : isOrderTable ? 'Input Order Baru' : `Tambah ${table}`}
+            {editingItem ? `Edit Data ${table.replace('_', ' ')}` : isOrderTable ? 'Input Order Baru' : `Tambah ${table.replace('_', ' ')}`}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20}/></button>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20} /></button>
         </div>
 
         <form className="flex-1 overflow-y-auto p-6 space-y-6 custom-scroll">
-          
+
           {isOrderTable && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6 border-b border-slate-100">
               <div className="space-y-1">
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nama Customer</label>
                 <div className="relative">
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input required type="text" placeholder="Ketik Nama..." value={customerInfo.customer_name} onChange={(e) => setCustomerInfo({...customerInfo, customer_name: e.target.value})} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input required type="text" placeholder="Ketik Nama..." value={customerInfo.customer_name} onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nomor Telepon</label>
                 <div className="relative">
                   <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input required type="text" placeholder="08..." value={customerInfo.customer_phone} onChange={(e) => setCustomerInfo({...customerInfo, customer_phone: e.target.value})} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input required type="text" placeholder="08..." value={customerInfo.customer_phone} onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Rekening</label>
                 <div className="relative">
                   <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder="BCA - xxxxx" value={customerInfo.bank_account} onChange={(e) => setCustomerInfo({...customerInfo, bank_account: e.target.value})} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input type="text" placeholder="BCA - xxxxx" value={customerInfo.bank_account} onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
                 </div>
               </div>
             </div>
@@ -88,7 +88,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
               </h4>
               {isOrderTable && !editingItem && (
                 <button type="button" onClick={addRow} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-[12px] font-black uppercase hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100">
-                  <Plus size={14}/> Tambah Paket
+                  <Plus size={14} /> Tambah Paket
                 </button>
               )}
             </div>
@@ -97,10 +97,10 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
               <div key={index} className={isOrderTable ? "p-6 rounded-[2rem] border-2 border-slate-100 bg-white relative" : "p-6 rounded-[2rem] border-2 border-slate-50 bg-slate-50/30 relative"}>
                 {rows.length > 1 && (
                   <button type="button" onClick={() => removeRow(index)} className="absolute -right-2 -top-2 p-2 bg-white text-rose-500 rounded-full shadow-md border border-slate-100 hover:bg-rose-50 transition-all">
-                    <Trash2 size={16}/>
+                    <Trash2 size={16} />
                   </button>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {isOrderTable ? (
                     <>
@@ -159,14 +159,14 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
           {!isOrderTable && !editingItem && (
             <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
-              <Plus size={16}/> Input Data Baru Lainnya
+              <Plus size={16} /> Input Data Baru Lainnya
             </button>
           )}
         </form>
 
         <div className="p-6 bg-white border-t border-slate-100 flex gap-4">
           <button type="button" onClick={onClose} className="px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl text-[11px] font-black uppercase hover:bg-slate-200 transition-all">Cancel</button>
-          <button type="button" onClick={() => onSave(isOrderTable ? rows.map(r => ({...r, ...customerInfo})) : rows)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
+          <button type="button" onClick={() => onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
             {isOrderTable ? 'Simpan Transaksi Order' : 'Simpan Data'}
           </button>
         </div>
