@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { useNavigate } from "react-router-dom"; 
-import { useLocation } from "react-router-dom";
 
 // Import Komponen yang sudah dipecah
 import Sidebar from '../components/dashboard/Sidebar';
@@ -13,7 +11,6 @@ import MarkModal from '../components/modals/MarkModal';
 import NoteModal from '../components/modals/NoteModal';
 import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
-import LogoutConfirmModal from "../components/modals/LogoutConfirmModal";
 
 const AdminDashboard = () => {
   // --- DATABASE STATE ---
@@ -33,8 +30,6 @@ const AdminDashboard = () => {
     marks: []
   });
 
-  const navigate = useNavigate();
-
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState('calendar');
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
@@ -44,7 +39,6 @@ const AdminDashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
@@ -86,38 +80,36 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const handleSaveItem = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const data = Object.fromEntries(fd.entries());
+  const handleSaveItem = async (items) => {
+  try {
     const table = editingItem?.fromTable || activeTab;
-    const idField = Object.keys(db[table][0] || {})[0] || `id_${table}`; // Heuristic
+    
+    // items adalah array yang dikirim dari FormModal
+    for (const item of items) {
+      const isEdit = !!editingItem;
+      const method = isEdit ? 'PUT' : 'POST';
+      
+      // Ambil ID jika sedang edit
+      const id = isEdit ? editingItem[Object.keys(editingItem)[0]] : '';
+      const url = isEdit 
+        ? `/api/inventory/${table}/${id}`
+        : `/api/inventory/${table}`;
 
-    try {
-      if (editingItem && editingItem[idField]) {
-        // Update
-        await fetch(`/api/inventory/${table}/${editingItem[idField]}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } else {
-        // Create
-        await fetch(`/api/inventory/${table}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      }
-      await fetchData(); // Reload all data for simplicity
-    } catch (error) {
-      console.error("Save failed", error);
-      alert("Failed to save");
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      });
     }
 
+    fetchData(); // Refresh data
     setModalType(null);
     setEditingItem(null);
-  };
+  } catch (error) {
+    console.error("Gagal menyimpan data:", error);
+    alert("Terjadi kesalahan saat menyimpan data.");
+  }
+};
 
   const handleSaveMarkNote = async (table, newData) => {
     // Determine endpoint based on table
@@ -166,17 +158,18 @@ const AdminDashboard = () => {
     setDeleteConfirm(null);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/", { replace: true });
-  };
-
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-[#1A120B]">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} dbKeys={Object.keys(db)} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} onLogoutClick={() => setShowLogoutConfirm(true)} onOpenRegister={() => setShowRegisterModal(true)}/>
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        // Kita memfilter key yang tidak ingin ditampilkan di menu navigasi
+        dbKeys={Object.keys(db).filter(key => !['admins', 'booked', 'marks','customers'].includes(key))} 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen} 
+      />
 
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 overflow-x-hidden">
-
         <header className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <Menu className="lg:hidden cursor-pointer" onClick={() => setIsSidebarOpen(true)} />
@@ -204,8 +197,15 @@ const AdminDashboard = () => {
 
           />
         ) : (
-          <InventoryTable activeTab={activeTab} data={db[activeTab]} setEditingItem={setEditingItem} setModalType={setModalType} setDeleteConfirm={setDeleteConfirm} />
-        )}
+        <InventoryTable 
+          activeTab={activeTab} 
+          data={db[activeTab]} 
+          db={db} //
+          setEditingItem={setEditingItem} 
+          setModalType={setModalType} 
+          setDeleteConfirm={setDeleteConfirm} 
+        />
+                )}
       </main>
 
       <AnimatePresence>
@@ -214,7 +214,6 @@ const AdminDashboard = () => {
         {modalType === 'note' && <NoteModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(n) => handleSaveMarkNote('notes', n)} />}
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
         {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
-        {showLogoutConfirm && ( <LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
       </AnimatePresence>
     </div>
   );

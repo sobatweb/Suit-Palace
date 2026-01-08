@@ -12,16 +12,15 @@ const OrderDetailCard = ({
   setFinishOrderData // Gunakan prop ini, bukan handleFinishOrder
 }) => {
   const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return '';
-    const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-    const [year, month, day] = cleanDate.split('-');
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return `${Number(day)} ${monthNames[Number(month) - 1]} ${year}`;
-  };
-  
+  if (!dateStr) return '';
+  const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const date = new Date(cleanDate);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
   const filteredOrders = db.order_items.filter(o =>
     selectedFullDate >= o.start_dates &&
     selectedFullDate <= o.end_dates &&
