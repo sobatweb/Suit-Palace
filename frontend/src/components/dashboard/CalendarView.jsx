@@ -72,7 +72,8 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               });
 
               return (
-                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] ...`}>
+                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-[0.5px] border-gray-100 relative cursor-pointer hover:bg-gray-50 transition-all ${selectedFullDate === dateStr ? 'bg-amber-50/50' : ''}`}
+  >
                 <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
                   {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
                   <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white' : isToday ? 'bg-amber-200 text-amber-700' : 'text-gray-900'}`}>
@@ -80,14 +81,28 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
                   </span>
                   
                   {/* Icon PIN juga menggunakan isToday */}
-                  {(db.marks || []).some(m => m.date && m.date.startsWith(dateStr)) && (
-                    <div className="absolute top-1 left-1 z-20">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" fill={isToday ? '#f59e42' : '#e11d48'} />
-                        <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="white" />
-                      </svg>
-                    </div>
-                  )}
+                 {/* PIN MARK LOGIC */}
+{(() => {
+  const activeMark = (db.marks || []).find(m => {
+    const rawDate = m.date || m.date_mark;
+    return rawDate && rawDate.split('T')[0] === dateStr;
+  });
+
+  if (activeMark) {
+    return (
+      <div className="absolute top-1 left-1" style={{ zIndex: 40 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <circle 
+            cx="12" cy="12" r="10" 
+            fill={activeMark.color_mark || (isToday ? '#f59e42' : '#e11d48')} 
+          />
+          <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="white" />
+        </svg>
+      </div>
+    );
+  }
+  return null;
+})()}
                 </div>
 
                   {/* Ikon Note di Kalender */}
@@ -176,15 +191,22 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
         <div className="bg-white p-5 rounded-[2rem] border border-gray-800 shadow-sm">
           <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest text-gray-400">Marks - {new Date(selectedFullDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
           <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-            {(db.marks || []).filter(m => m.date && m.date.startsWith(selectedFullDate)).map(m => (
-              <div key={m.id_marks} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ background: m.color_mark }} />
-                  <p className="text-[11px] font-bold text-gray-800">{m.note_mark}</p>
-                </div>
-                <X size={14} className="cursor-pointer text-gray-300 hover:text-red-500" onClick={() => onDeleteMarkNote('marks', m.id_marks)} />
-              </div>
-            ))}
+            {(db.marks || []).filter(m => {
+  const rawDate = m.date || m.date_mark;
+  return rawDate && rawDate.split('T')[0] === selectedFullDate;
+}).map(m => (
+  <div key={m.id_marks || m.id_mark} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+    <div className="flex items-center gap-2">
+      <div className="w-2.5 h-2.5 rounded-full" style={{ background: m.color_mark || '#e11d48' }} />
+      <p className="text-[11px] font-bold text-gray-800">{m.note_mark || m.note}</p>
+    </div>
+    <X 
+      size={14} 
+      className="cursor-pointer text-gray-300 hover:text-red-500 transition-colors" 
+      onClick={() => onDeleteMarkNote('marks', m.id_marks || m.id_mark)} 
+    />
+  </div>
+))}
           </div>
         </div>
 
