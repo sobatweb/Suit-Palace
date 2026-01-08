@@ -40,6 +40,8 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { username, password } = req.body || {};
 
+  console.log("LOGIN BODY:", req.body);
+
   if (!username || !password) {
     return res.status(400).json({ message: "username & password required" });
   }
@@ -50,6 +52,8 @@ exports.login = async (req, res) => {
       [username]
     );
 
+    console.log("DB RESULT:", rows);
+
     if (rows.length === 0) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -58,9 +62,12 @@ exports.login = async (req, res) => {
 
     // Compare password
     const isMatch = await bcrypt.compare(password, admin.password_hash);
+    console.log("PASSWORD MATCH:", isMatch);
+
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    
 
     // Generate JWT
     const token = jwt.sign(
@@ -71,6 +78,7 @@ exports.login = async (req, res) => {
 
     res.json({ token });
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -9,39 +11,75 @@ import Footer from './components/Footer';
 // import Chatbot from './components/Chatbots';
 import AdminDashboard from './components/AdminDashboard';
 import Login from './components/Login'; 
+import Register from "./components/Register";
+
+/* =========================
+   GUARD (SAMA DENGAN useEffect view)
+========================= */
+const RequireAuth = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" replace />;
+};
+
+function LandingPage({ onAdminClick }) {
+  return (
+    <>
+      <Navbar />
+      <Hero />
+      <About />
+      <Services />
+      <Contact />
+      <Footer onAdminClick={onAdminClick} />
+    </>
+  );
+}
 
 function App() {
-  // State untuk mengatur alur halaman (Flow)
-  const [view, setView] = useState('landing'); // Pilihan: 'landing', 'login', 'admin'
+  const navigate = useNavigate();
+
+  const handleLoginSuccess = () => {
+    navigate("/adminMaster");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="bg-white text-slate-900 scroll-smooth">
-      {/* TAMPILAN LANDING PAGE UTAMA */}
-      {view === 'landing' && (
-        <>
-          <Navbar />
-          <Hero />
-          <About />
-          <Services />
-          {/* <Gallery /> */}
-          <Contact />
-          <Footer onAdminClick={() => setView('login')} />
-          {/* <Chatbot /> */}
-        </>
-      )}
-
-      {/* TAMPILAN HALAMAN LOGIN */}
-      {view === 'login' && (
-        <Login 
-          onLogin={() => setView('admin')} 
-          onBack={() => setView('landing')} 
+      <Routes>
+        {/* LANDING */}
+        <Route path="/" 
+          element={<LandingPage onAdminClick={() => navigate("/login")} />} 
         />
-      )}
 
-      {/* TAMPILAN DASHBOARD ADMIN */}
-      {view === 'admin' && (
-        <AdminDashboard onBack={() => setView('landing')} />
-      )}
+        {/* LOGIN */}
+        <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
+
+        {/* ADMIN DASHBOARD */}
+        <Route
+          path="/adminMaster"
+          element={
+            <RequireAuth>
+              <AdminDashboard />
+            </RequireAuth>
+          }
+        />
+
+        {/* REGISTER ADMIN (PAGE SENDIRI) */}
+        <Route
+          path="/adminMaster/register"
+          element={
+            <RequireAuth>
+              <Register />
+            </RequireAuth>
+          }
+        />
+
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

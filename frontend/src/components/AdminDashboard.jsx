@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Menu, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { useNavigate } from "react-router-dom"; 
+import { useLocation } from "react-router-dom";
 
 // Import Komponen yang sudah dipecah
 import Sidebar from '../components/dashboard/Sidebar';
@@ -11,6 +13,7 @@ import MarkModal from '../components/modals/MarkModal';
 import NoteModal from '../components/modals/NoteModal';
 import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
+import LogoutConfirmModal from "../components/modals/LogoutConfirmModal";
 
 const AdminDashboard = () => {
   // --- DATABASE STATE ---
@@ -30,6 +33,8 @@ const AdminDashboard = () => {
     marks: []
   });
 
+  const navigate = useNavigate();
+
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState('calendar');
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
@@ -39,6 +44,7 @@ const AdminDashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
@@ -160,11 +166,17 @@ const AdminDashboard = () => {
     setDeleteConfirm(null);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/", { replace: true });
+  };
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-[#1A120B]">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} dbKeys={Object.keys(db)} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} dbKeys={Object.keys(db)} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} onLogoutClick={() => setShowLogoutConfirm(true)} onOpenRegister={() => setShowRegisterModal(true)}/>
 
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 overflow-x-hidden">
+
         <header className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <Menu className="lg:hidden cursor-pointer" onClick={() => setIsSidebarOpen(true)} />
@@ -202,6 +214,7 @@ const AdminDashboard = () => {
         {modalType === 'note' && <NoteModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(n) => handleSaveMarkNote('notes', n)} />}
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
         {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
+        {showLogoutConfirm && ( <LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
       </AnimatePresence>
     </div>
   );
