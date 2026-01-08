@@ -283,58 +283,29 @@ WHERE id_order = 1;
 
 --=================================================================
 --====================INSERT DATA CONTOH===========================
--- INSERT admins
-INSERT INTO admins (username, password_hash) VALUES
-('admin123', 'admin123'),
-('admin124', 'admin124');
 -- INSERT customers
 INSERT INTO customers (customer_name, customer_phone, bank_account, discount) VALUES
 ('Budi Santoso', '081234567890', 'BCA - 12345678', 5.00),
 ('Siti Aminah', '081234567891', 'Mandiri - 87654321', 0.00),
-('Andi Wijaya', '081234567892', 'BNI - 11223344', 10.00),
-('Dewi Lestari', '081234567893', 'BCA - 55667788', 0.00),
-('Eko Prasetyo', '081234567894', 'BRI - 99001122', 0.00),
-('Rina Rose', '081234567895', 'Danamon - 33445566', 15.00),
-('Fajar Nugraha', '081234567896', 'Permata - 77889900', 0.00),
-('Gita Gutawa', '081234567897', 'BCA - 22334455', 5.00),
-('Hendra Kurniawan', '081234567898', 'Mandiri - 44556677', 0.00),
-('Indah Permata', '081234567899', 'CIMB - 66778899', 0.00);
+('Andi Wijaya', '081234567892', 'BNI - 11223344', 10.00);
+
 -- INSERT packages
 INSERT INTO packages (package_name, package_price, duration_day, deposit, penalty_fee) VALUES
 ('Silver 3 Hari', 250000, 3, 100000, 50000),
 ('Gold 5 Hari', 400000, 5, 200000, 75000),
-('Platinum 7 Hari', 550000, 7, 300000, 100000),
-('Wedding Package', 1500000, 10, 500000, 200000),
 ('Pre-Wedding Set', 800000, 4, 250000, 80000),
-('Prom Night', 300000, 2, 150000, 60000),
-('Groom Package', 2000000, 14, 1000000, 250000),
-('Basic Single', 150000, 1, 50000, 30000),
-('Business Trip', 600000, 6, 200000, 70000),
-('Luxury Changshan', 900000, 5, 300000, 100000);
+('Prom Night', 300000, 2, 150000, 60000);
+
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
-('Merah', 'Perlu dicuci ulang', '2026-01-10 10:00:00'),
-('Kuning', 'Kancing kendur', '2026-01-11 11:00:00'),
-('Hijau', 'Siap pakai', '2026-01-12 09:00:00'),
-('Biru', 'Booking VIP', '2026-01-13 14:00:00'),
-('Putih', 'Baru masuk stok', '2026-01-14 16:00:00'),
-('Hitam', 'Rusak permanen', '2026-01-15 08:30:00'),
-('Orange', 'Perbaikan kecil', '2026-01-16 13:00:00'),
-('Ungu', 'Edisi terbatas', '2026-01-17 10:00:00'),
-('Cokelat', 'Cek noda', '2026-01-18 11:45:00'),
-('Abu-abu', 'Stok gudang', '2026-01-19 15:20:00');
+('Merah', 'Perlu dicuci ulang', '2026-01-10'),
+('Kuning', 'Kancing kendur', '2026-01-11'),
+('Hijau', 'Siap pakai', '2026-01-12');
 -- INSERT notes
 INSERT INTO notes (title_note, description_note) VALUES
 ('Stok Baru', 'Penambahan 10 jas warna navy'),
-('Jadwal Laundry', 'Vendor laundry ambil hari Senin'),
-('Promo Januari', 'Diskon 10% member baru'),
-('Maintenance', 'Service AC toko jam 2 siang'),
-('Meeting Staff', 'Pembahasan target bulanan'),
-('Audit Stok', 'Pengecekan fisik barang'),
-('Event Wedding', 'Persiapan 5 set jas pengantin'),
-('Update Harga', 'Kenaikan harga deposit package silver'),
-('Info Supplier', 'Katalog kain baru sudah datang'),
-('Shift Karyawan', 'Perubahan jam kerja weekend');
+('Jadwal Laundry', 'Vendor laundry ambil hari Senin');
+
 -- INSERT jas
 INSERT INTO jas (name_jas, size_jas, color_jas, stock_jas, condition_jas) VALUES
 ('Slim Fit Tuxedo', 'M', 'Hitam', 5, 'Bagus'), ('Classic Formal', 'L', 'Navy', 3, 'Bagus'),
@@ -373,22 +344,12 @@ INSERT INTO dasi (kode_dasi, color_dasi, stock_dasi, description_dasi) VALUES
 -- INSERT booked (Menghubungkan item-item yang dipesan)
 INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi) VALUES
 (1, 1, 1, NULL, 2), (2, 2, 2, NULL, 3), (3, 3, 3, NULL, 1),
-(NULL, NULL, NULL, 1, NULL), (4, 4, 4, NULL, 5), (5, 5, 5, NULL, 6),
-(NULL, NULL, NULL, 2, NULL), (6, 6, 6, NULL, 7), (1, 9, 1, NULL, 10), (7, 7, 7, NULL, 4);
+(NULL, NULL, NULL, 1, NULL);
 -- INSERT order_items
 INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
 (1, 1, 1, '2026-01-01', '2026-01-04', 237500, 'Dikembalikan', 'Sudah Selesai'),
 (2, 2, 2, '2026-01-02', '2026-01-07', 400000, 'Diambil', 'Belum Selesai'),
-(3, 3, 3, '2026-01-05', '2026-01-12', 495000, 'Booked', 'Belum Selesai'),
-(4, 10, 4, '2026-01-06', '2026-01-11', 900000, 'Diambil', 'Belum Selesai'),
-(5, 4, 5, '2026-01-10', '2026-01-20', 1500000, 'Booked', 'Belum Selesai'),
-(6, 5, 6, '2026-01-12', '2026-01-16', 680000, 'Cancel', 'Sudah Selesai'),
-(7, 10, 7, '2026-01-15', '2026-01-20', 900000, 'Booked', 'Belum Selesai'),
-(8, 6, 8, '2026-01-18', '2026-01-20', 285000, 'Booked', 'Belum Selesai'),
-(9, 1, 9, '2026-01-20', '2026-01-23', 250000, 'Booked', 'Belum Selesai'),
-(10, 2, 10, '2026-01-22', '2026-01-27', 400000, 'Booked', 'Belum Selesai');
+(3, 3, 3, '2026-01-05', '2026-01-12', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
 INSERT INTO history_orders (id_order, omset_order, condition_return) VALUES
-(1, 237500, 'Lengkap dan bersih'),
-(6, 0, 'Dibatalkan oleh pelanggan');
--- (Catatan: Anda bisa menambah data history seiring dengan berubahnya status di order_items)
+(1, 237500, 'Lengkap dan bersih');
