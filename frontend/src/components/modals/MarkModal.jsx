@@ -5,9 +5,10 @@ import { X } from 'lucide-react';
 const MarkModal = ({ selectedFullDate, onClose, onSave }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
-    const note = e.target.note.value;
-    const color = e.target.col.value;
-    onSave({ id_mark: Date.now(), date: selectedFullDate, note, color });
+    const note_mark = e.target.note.value;
+    const color_mark = e.target.col.value;
+    const date_mark = selectedFullDate;
+    onSave({ note_mark, color_mark, date_mark });
     onClose();
   };
 

@@ -144,14 +144,18 @@ const AdminDashboard = () => {
     // Determine endpoint based on table
     const endpoint = table === 'marks' ? '/api/dashboard/marks' : '/api/dashboard/notes';
     try {
-      await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(newData)
       });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       fetchData();
     } catch (error) {
       console.error("Save Mark/Note failed", error);
+      alert('Failed to save. See console for details.');
     }
   };
 
@@ -172,22 +176,33 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteMarkNote = (table, id) => {
+    setDeleteConfirm({ table, id });
+  };
+
   const confirmDelete = async () => {
-    const { table, idField, id } = deleteConfirm;
+    if (!deleteConfirm) return;
+    const { table, id } = deleteConfirm;
     try {
-      // Determine endpoint. Special case for customers?
       let url = `/api/inventory/${table}/${id}`;
-      if (table === 'customers') url = `/api/customers/${id}`;
+      if (table === 'customers') {
+        url = `/api/customers/${id}`;
+      } else if (table === 'marks' || table === 'notes') {
+        url = `/api/dashboard/${table}/${id}`;
+      }
 
       await fetch(url, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      fetchData();
+
+      fetchData(); // Refresh data
     } catch (error) {
       console.error("Delete failed", error);
+      alert('Gagal menghapus data.');
+    } finally {
+      setDeleteConfirm(null); // Close modal
     }
-    setDeleteConfirm(null);
   };
 
   const handleLogout = () => {
@@ -232,7 +247,7 @@ const AdminDashboard = () => {
             setEditingItem={setEditingItem}
             setDeleteConfirm={setDeleteConfirm}
             setFinishOrderData={setFinishOrderData}
-
+            onDeleteMarkNote={handleDeleteMarkNote}
           />
         ) : (
           <InventoryTable

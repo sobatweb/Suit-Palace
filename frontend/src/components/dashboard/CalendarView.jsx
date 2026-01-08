@@ -10,36 +10,36 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
 
   const getStatusColor = (status, endDate) => {
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Jika sudah dikembalikan
-  if (status === 'Dikembalikan') return 'bg-blue-500'; 
-  
-  // Jika status masih Booked/Diambil tapi melewati End Date
-  if (status !== 'Dikembalikan' && today > endDate) return 'bg-rose-600'; // Merah (Overdue)
-  
-  // Status lainnya
-  switch (status) {
-    case 'Diambil': return 'bg-amber-400'; // Kuning (Persiapan/Sedang Disewa)
-    case 'Booked': return 'bg-emerald-500'; // Hijau (Booked)
-    default: return 'bg-slate-400';
-  }
-};
+    const today = new Date().toISOString().split('T')[0];
+
+    // Jika sudah dikembalikan
+    if (status === 'Dikembalikan') return 'bg-blue-500';
+
+    // Jika status masih Booked/Diambil tapi melewati End Date
+    if (status !== 'Dikembalikan' && today > endDate) return 'bg-rose-600'; // Merah (Overdue)
+
+    // Status lainnya
+    switch (status) {
+      case 'Diambil': return 'bg-amber-400'; // Kuning (Persiapan/h-3 hari)
+      case 'Booked': return 'bg-emerald-500'; // Hijau (Booked)
+      default: return 'bg-slate-400';
+    }
+  };
 
   const processedOrders = useMemo(() => {
     const orders = (db.order_items || []).filter(o => o.status_order !== 'Sudah Selesai');
     const sorted = [...orders].sort((a, b) => a.start_dates.localeCompare(b.start_dates));
-    const rows = []; 
+    const rows = [];
     sorted.forEach(order => {
       let assignedRow = 0; let foundSlot = false;
       while (!foundSlot) {
-        if (!rows[assignedRow]) { rows[assignedRow] = []; foundSlot = true; } 
+        if (!rows[assignedRow]) { rows[assignedRow] = []; foundSlot = true; }
         else {
           const hasConflict = rows[assignedRow].some(ex => (order.start_dates <= ex.end_dates && order.end_dates >= ex.start_dates));
           if (!hasConflict) foundSlot = true; else assignedRow++;
         }
       }
-      rows[assignedRow].push(order); order.visualRow = assignedRow; 
+      rows[assignedRow].push(order); order.visualRow = assignedRow;
     });
     return { sorted, totalRows: rows.length || 0 };
   }, [db.order_items]);
@@ -65,27 +65,42 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               const day = i + 1;
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const dayOrders = processedOrders.sorted.filter(o => dateStr >= o.start_dates && dateStr <= o.end_dates);
+              const todayStr = new Date().toISOString().split('T')[0];
+              const isToday = dateStr === todayStr;
 
               return (
                 <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-[0.5px] border-gray-100 cursor-pointer relative flex flex-col items-stretch ${selectedFullDate === dateStr ? 'bg-slate-100' : 'hover:bg-gray-50'}`}>
-                  <div className="p-2 flex justify-between items-start h-8 shrink-0">
-                    <span className={`text-[12px] font-black ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white px-2 py-0.5 rounded' : 'text-gray-900'}`}>{day}</span>
+                  <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
+                    <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white' : isToday ? 'bg-amber-200 text-amber-700' : 'text-gray-900'}`}>{day}</span>
                     <div className="flex gap-0.5">
-                       {(db.marks || []).filter(m => m.date === dateStr).map((m, idx) => (
-                         <div key={idx} className="w-1.5 h-1.5 rounded-full" style={{ background: m.color }} />
-                       ))}
+                      {(db.marks || []).filter(m => m.date && m.date.startsWith(dateStr)).map((m, idx) => (
+                        <div key={m.id_marks || idx} className="w-1.5 h-1.5 rounded-full" style={{ background: m.color_mark }} />
+                      ))}
                     </div>
+                    {/* PIN/ICON jika ada mark di tanggal ini, warna berbeda jika hari ini */}
+                    {(db.marks || []).some(m => m.date && m.date.startsWith(dateStr)) && (
+                      <div className="absolute top-1 left-1 z-20">
+                        {(() => {
+                          return (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+                              <circle cx="12" cy="12" r="10" fill={isToday ? '#f59e42' : '#e11d48'} />
+                              <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="white" />
+                            </svg>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
-                  
+
                   {/* Ikon Note di Kalender */}
                   {(db.notes || []).some(n => n.date === dateStr) && (
-                    <div className="absolute bottom-1 right-1 text-amber-500"><FileText size={10}/></div>
+                    <div className="absolute bottom-1 right-1 text-amber-500"><FileText size={10} /></div>
                   )}
 
                   <div className="flex-1 flex flex-col gap-1 pb-2">
                     {[...Array(Math.max(processedOrders.totalRows, 3))].map((_, rowIndex) => {
                       const order = dayOrders.find(o => o.visualRow === rowIndex);
-                      if (!order) return <div key={rowIndex} className="h-3 w-full" />; 
+                      if (!order) return <div key={rowIndex} className="h-3 w-full" />;
                       const isStart = dateStr === order.start_dates;
                       const isEnd = dateStr === order.end_dates;
                       return (
@@ -123,30 +138,20 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
 
       <div className="xl:col-span-4 space-y-4">
         <div className="flex gap-2">
-          <button onClick={() => setModalType('mark')} className="flex-1 py-4 bg-[#1A120B] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">Add Mark</button>
-          <button onClick={() => setModalType('note')} className="flex-1 py-4 bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">Add Note</button>
+          <button onClick={() => setModalType('mark')} className="flex-1 py-4 bg-[#7c7167] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">Add Mark</button>
         </div>
 
-        {/* List Detail Note & Mark agar data yang diketik muncul */}
+        {/* List Mark agar data yang diketik muncul */}
         <div className="bg-white p-5 rounded-[2rem] border border-gray-800 shadow-sm">
-          <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest text-gray-400">Notes & Marks ({new Date(selectedFullDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })})</h4>
+          <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest text-gray-400">Marks - {new Date(selectedFullDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
           <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-            {(db.notes || []).filter(n => n.date === selectedFullDate).map(n => (
-              <div key={n.id_note} className="flex justify-between items-center p-3 bg-amber-50 rounded-xl border border-amber-100">
-                <div>
-                  <p className="text-[11px] font-black text-amber-900 uppercase">{n.title}</p>
-                  <p className="text-[10px] font-bold text-amber-700">{n.content}</p>
-                </div>
-                <X size={14} className="cursor-pointer text-amber-300 hover:text-red-500" onClick={() => onDeleteMarkNote('notes', n.id_note)} />
-              </div>
-            ))}
-            {(db.marks || []).filter(m => m.date === selectedFullDate).map(m => (
-              <div key={m.id_mark} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+            {(db.marks || []).filter(m => m.date && m.date.startsWith(selectedFullDate)).map(m => (
+              <div key={m.id_marks} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ background: m.color }} />
-                  <p className="text-[11px] font-bold text-gray-800">{m.note}</p>
+                  <div className="w-2 h-2 rounded-full" style={{ background: m.color_mark }} />
+                  <p className="text-[11px] font-bold text-gray-800">{m.note_mark}</p>
                 </div>
-                <X size={14} className="cursor-pointer text-gray-300 hover:text-red-500" onClick={() => onDeleteMarkNote('marks', m.id_mark)} />
+                <X size={14} className="cursor-pointer text-gray-300 hover:text-red-500" onClick={() => onDeleteMarkNote('marks', m.id_marks)} />
               </div>
             ))}
           </div>

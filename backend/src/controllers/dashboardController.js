@@ -39,3 +39,21 @@ exports.addNote = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+exports.deleteMark = async (req, res) => {
+    try {
+        await DashboardModel.deleteMark(req.params.id);
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.deleteNote = async (req, res) => {
+    try {
+        await DashboardModel.deleteNote(req.params.id);
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}

@@ -17,6 +17,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
         const idField = cat === 'dasi' ? 'id_dasi' : `id_${cat}`;
         const nameField = cat === 'dasi' ? 'kode_dasi' : `name_${cat}`;
         const sizeValue = item.size || item[`size_${cat}`] || '-';
+        const color = item.color || item[`color_${cat}`] || '-';
         const totalStockInitial = Number(item[`stock_${cat}`]) || 0;
 
         // LOGIKA PENGURANGAN STOK OTOMATIS
@@ -33,13 +34,15 @@ const DailyStock = ({ db, selectedFullDate }) => {
 
         if (
           item[nameField]?.toLowerCase().includes(stockSearch.toLowerCase()) ||
-          sizeValue.toString().toLowerCase().includes(stockSearch.toLowerCase())
+          sizeValue.toString().toLowerCase().includes(stockSearch.toLowerCase()) ||
+          color.toLowerCase().includes(stockSearch.toLowerCase())
         ) {
           results.push({
             id: item[idField],
             name: item[nameField],
             category: cat,
             size: sizeValue,
+            color: color,
             remaining: currentRemaining
           });
         }
@@ -87,10 +90,11 @@ const DailyStock = ({ db, selectedFullDate }) => {
         {availableStock.map((s, idx) => (
           <div key={idx} className={`p-4 rounded-3xl border transition-all ${s.remaining <= 0 ? 'bg-rose-50 border-rose-100' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex justify-between items-start mb-2">
-              <span className="text-[8px] font-black text-gray-400 uppercase px-2 py-0.5 bg-white rounded-lg border">{s.category}</span>
-              <span className="text-[10px] font-black text-gray-900 bg-white border px-2 py-0.5 rounded-lg">SZ: {s.size}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase px-2 py-0.5 bg-white rounded-lg border">{s.category}</span>
+              <span className="text-[10px] font-black text-gray-900 bg-white border px-2 py-0.5 rounded-lg"> {s.size}</span>
             </div>
             <p className="text-[11px] font-black text-gray-800 leading-tight mb-3 uppercase truncate">{s.name}</p>
+            <p className="text-[10px] font-black text-gray-500 leading-tight mb-3 uppercase truncate">{s.color}</p>
             <div className="flex items-center justify-between pt-2 border-t border-gray-200">
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Ready</span>
               <span className={`text-[14px] font-black ${s.remaining <= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>

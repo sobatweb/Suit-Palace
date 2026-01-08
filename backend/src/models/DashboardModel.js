@@ -31,7 +31,8 @@ class DashboardModel {
 
     // For marks and notes (Calendar)
     static async getMarks() {
-        const [rows] = await db.query('SELECT * FROM marks');
+        // Kirim date_mark sebagai 'date' dengan format YYYY-MM-DD agar cocok dengan filter frontend
+        const [rows] = await db.query('SELECT id_marks, color_mark, note_mark, DATE(date_mark) as date FROM marks');
         return rows;
     }
 
@@ -50,6 +51,16 @@ class DashboardModel {
         const [res] = await db.query('INSERT INTO notes (title_note, description_note) VALUES (?, ?)',
             [data.title_note, data.description_note]);
         return res.insertId;
+    }
+
+    static async deleteMark(id) {
+        const [res] = await db.query('DELETE FROM marks WHERE id_marks = ?', [id]);
+        return res;
+    }
+
+    static async deleteNote(id) {
+        const [res] = await db.query('DELETE FROM notes WHERE id_note = ?', [id]);
+        return res;
     }
 }
 

@@ -21,12 +21,17 @@ const OrderDetailCard = ({
     year: 'numeric'
   });
 };
-  const filteredOrders = db.order_items.filter(o =>
-    selectedFullDate >= o.start_dates &&
-    selectedFullDate <= o.end_dates &&
-    o.status_rent !== 'Dikembalikan' &&
-    o.status_order !== 'Sudah Selesai'
-  );
+  const getDateString = (dateStr) => (dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr) : '');
+  const filteredOrders = db.order_items.filter(o => {
+    const startDate = getDateString(o.start_dates);
+    const endDate = getDateString(o.end_dates);
+    return (
+      selectedFullDate >= startDate &&
+      selectedFullDate <= endDate &&
+      o.status_rent !== 'Dikembalikan' &&
+      o.status_order !== 'Sudah Selesai'
+    );
+  });
 
   return (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide">
