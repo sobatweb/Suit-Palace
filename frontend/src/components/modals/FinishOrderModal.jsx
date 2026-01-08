@@ -25,12 +25,12 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-[9px] font-black uppercase text-gray-400 ml-1 mb-1 block">Kondisi Pengembalian</label>
-            <select name="kondisi" className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]">
-              <option>Baik / Bersih</option>
-              <option>Rusak Ringan</option>
-              <option>Rusak Berat</option>
-              <option>Perlu Laundry Khusus</option>
-            </select>
+           <input 
+                name="kondisi" 
+                type="text"
+                placeholder="Contoh: Baik, Robek di lengan, dll..."
+                className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" 
+              />
           </div>
           <div>
             <label className="text-[9px] font-black uppercase text-gray-400 ml-1 mb-1 block">Total Denda (Rp)</label>

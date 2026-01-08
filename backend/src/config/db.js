@@ -6,7 +6,8 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : '',
   database: process.env.DB_NAME || 'suitpalace_db_serpong',
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
+  dateStrings: true
 });
 
 console.log("Database Config:", {

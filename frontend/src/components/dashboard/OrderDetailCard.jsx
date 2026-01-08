@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { User, CalendarDays, X, CheckCircle } from 'lucide-react';
+const getDateString = (dateStr) => (dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr) : '');
 
 const OrderDetailCard = ({
   db,
@@ -21,7 +22,6 @@ const OrderDetailCard = ({
     year: 'numeric'
   });
 };
-  const getDateString = (dateStr) => (dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr) : '');
   const filteredOrders = db.order_items.filter(o => {
     const startDate = getDateString(o.start_dates);
     const endDate = getDateString(o.end_dates);
@@ -32,6 +32,8 @@ const OrderDetailCard = ({
       o.status_order !== 'Sudah Selesai'
     );
   });
+
+  
 
   return (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide">
@@ -66,7 +68,7 @@ const OrderDetailCard = ({
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={order.id_order} className="bg-white p-5 rounded-4xl shadow-xl border relative overflow-hidden">
-              <div className={`absolute top-0 right-0 px-4 py-1 text-[13px] font-black text-white rounded-bl-xl ${getStatusColor(order.status_rent)}`}>
+              <div className={`absolute top-0 right-0 px-4 py-1 text-[13px] font-black text-white  rounded-bl-xl ${getStatusColor(order.status_rent)}`}>
                 {order.status_rent}
               </div>
 
@@ -103,8 +105,23 @@ const OrderDetailCard = ({
 
               {/* AKSI */}
               <div className="flex gap-2">
+               
+
                 <button
-                  onClick={() => { setEditingItem({ ...order, fromTable: 'order_items' }); setModalType('form_db'); }}
+                  onClick={() => {
+                    // Cari data customer dan package terlebih dahulu untuk dikirim ke modal
+                    const currentCustomer = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
+                    
+                    setEditingItem({ 
+                      ...order, 
+                      fromTable: 'order_items',
+                      // Tambahkan field ini agar FormModal bisa langsung melakukan pre-fill
+                      customer_name: currentCustomer?.customer_name || '',
+                      customer_phone: currentCustomer?.customer_phone || '',
+                      bank_account: currentCustomer?.bank_account || ''
+                    }); 
+                    setModalType('form_db'); 
+                  }}
                   className="flex-1 py-3 bg-gray-100 rounded-xl text-[10px] font-black uppercase hover:bg-gray-200 transition-all"
                 >
                   Edit

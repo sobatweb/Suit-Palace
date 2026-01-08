@@ -5,15 +5,19 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
   const [tempDiscount, setTempDiscount] = useState(0); // State untuk menyimpan pilihan diskon sementara
-
-  // 1. Format Tanggal: "19 January 2026"
-  const formatDateFull = (dateStr) => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime()) || (typeof dateStr === 'number' && dateStr < 1000000)) return dateStr;
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  };
-
+const formatDateFull = (dateStr) => {
+  if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
+  
+  // Karena sudah datestrings:true, kita cukup split stringnya
+  const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = cleanDate.split('-'); // [YYYY, MM, DD]
+  
+  if (parts.length === 3) {
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    return `${parseInt(parts[2])} ${monthNames[parseInt(parts[1]) - 1]} ${parts[0]}`;
+  }
+  return '-';
+};
   // 2. Format Harga: Bulat tanpa .00
   const formatIDR = (amount) => {
     const value = Math.floor(Number(amount || 0));
@@ -54,7 +58,7 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
     });
   };
 
-  
+   const [priceDetails, setPriceDetails] = useState(null);
   const filteredData = getDisplayData().filter(item =>
     Object.values(item).some(v => v?.toString().toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -101,6 +105,7 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
                 <th className="px-6 py-5">Start Date</th>
                 <th className="px-6 py-5">End Date</th>
                 <th className="px-6 py-5">Actual Return</th>
+                <th className="px-6 py-5 ">Total Harga</th>
                 <th className="px-6 py-5 text-right sticky right-0 bg-white">Action</th>
               </tr>
             ) : (
@@ -131,6 +136,14 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
                     <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
                     <td className="px-6 py-4 text-gray-800">{formatDateFull(item.end_dates)}</td>
                     <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
+                    <td className="px-6 py-4">
+                      <span 
+                        onClick={() => setPriceDetails(item)}
+                        className="text-blue-600 cursor-pointer hover:underline font-black text-[12px] uppercase tracking-tighter decoration-blue-300 underline-offset-4"
+                      >
+                        Lihat Harga
+                      </span>
+                    </td>
                   </>
                 ) : (
                   Object.entries(item).map(([key, val], i) => (
@@ -154,6 +167,62 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
         </table>
       </div>
 
+    {/* MODAL DETAIL HARGA OVERLAY */}
+{priceDetails && (
+  <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
+    <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm relative shadow-2xl border-b-8 border-slate-900" onClick={e => e.stopPropagation()}>
+      <button onClick={() => setPriceDetails(null)} className="absolute top-6 right-6 text-2xl text-gray-300 hover:text-black">&times;</button>
+      
+      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8D775F] mb-6 border-b pb-2 flex items-center gap-2">
+        <Tag size={14}/> Rincian Pembayaran
+      </h4>
+
+      <div className="space-y-4">
+        {/* Nama Paket */}
+        <div className="text-center mb-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paket Terpilih</p>
+          <p className="text-lg font-black text-slate-900">{priceDetails.display_package}</p>
+        </div>
+
+        {/* Harga Sewa */}
+        <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
+          <span className="text-[9px] font-black uppercase text-gray-400">Harga Sewa</span>
+          <span className="text-sm font-black text-gray-900">
+            {formatIDR(priceDetails.total_price)}
+          </span>
+        </div>
+
+        {/* Deposit dari Tabel Paket */}
+        <div className="bg-amber-50 p-4 rounded-2xl flex justify-between items-center border border-amber-100">
+          <span className="text-[9px] font-black uppercase text-amber-600">Deposit Jaminan</span>
+          <span className="text-sm font-black text-amber-900">
+            {formatIDR(priceDetails.package_full?.deposit || 0)}
+          </span>
+        </div>
+
+        {/* Garis Total */}
+        <div className="pt-2 mt-2 border-t-2 border-dashed border-gray-100">
+          <div className="flex justify-between items-center px-1">
+            <span className="text-[11px] font-black uppercase text-slate-900">Total Dibayar</span>
+            <div className="text-right">
+              <p className="text-xl font-black text-slate-900">
+                {formatIDR(Number(priceDetails.total_price) + Number(priceDetails.package_full?.deposit || 0))}
+              </p>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setPriceDetails(null)}
+        className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+      >
+        Tutup Rincian
+      </button>
+    </div>
+  </div>
+)}
       {/* MODAL DETAIL OVERLAY */}
       {selectedInfo && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>

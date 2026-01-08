@@ -6,18 +6,37 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const table = editingItem?.fromTable || activeTab;
   const isOrderTable = table === 'order_items';
 
-  // State Header Customer (Hanya untuk Order Baru)
-  const [customerInfo, setCustomerInfo] = useState({
-    customer_name: editingItem?.customer_name || '',
-    customer_phone: editingItem?.customer_phone || '',
-    bank_account: editingItem?.bank_account || ''
-  });
+  
 
-  // State Rows (Berbagi untuk Order maupun Master)
-  const [rows, setRows] = useState(() => {
-    if (editingItem) return [editingItem];
-    return [{}];
-  });
+  // State Header Customer
+const [customerInfo, setCustomerInfo] = useState({
+  // Ambil dari editingItem jika ada, jika tidak kosongkan
+  customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
+  customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
+  bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || ''
+});
+
+// State Rows (Berbagi untuk Order maupun Master)
+const [rows, setRows] = useState(() => {
+  if (editingItem) {
+    // Buat salinan data agar tidak merubah data asli secara langsung
+    const rowData = { ...editingItem };
+
+    // Format data agar ramah input form
+    Object.keys(rowData).forEach(key => {
+      // 1. Hilangkan desimal .00 pada semua angka
+      if (typeof rowData[key] === 'number') {
+        rowData[key] = Math.round(rowData[key]);
+      }
+      // 2. Format tanggal (YYYY-MM-DD) agar muncul di input type="date"
+      if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
+        rowData[key] = rowData[key].split('T')[0];
+      }
+    });
+    return [rowData];
+  }
+  return [{}];
+});
 
   const addRow = () => setRows([...rows, {}]);
   const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
@@ -145,18 +164,51 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                       </div>
                     </>
                   ) : (
-                    Object.keys(db[table]?.[0] || {}).filter((_, i) => i !== 0).map((key) => (
-                      <div key={key} className="space-y-1">
-                        <label className="text-[12px] font-black uppercase text-slate-400 ml-1">{key.replace('_', ' ')}</label>
-                        <input required type={key.includes('stock') ? 'number' : 'text'} value={row[key] || ''} onChange={(e) => handleInputChange(index, key, e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
-                      </div>
-                    ))
+                    Object.keys(db[table]?.[0] || {})
+                      .filter((key, i) => i !== 0 && key !== 'actual_return_date')
+                      .map((key) => {
+                        // 1. Tentukan Tipe Input
+                        const isNumber = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda');
+                        const isDate = key.includes('date') || key === 'created_at';
+                        const inputType = isNumber ? 'number' : (isDate ? 'date' : 'text');
+
+                        // 2. Ambil & Bersihkan Nilai (Pre-fill logic)
+                        let displayValue = row[key] || '';
+                        
+                        // Jika tanggal, potong agar formatnya YYYY-MM-DD (Syarat input type="date")
+                        if (isDate && typeof displayValue === 'string' && displayValue.includes('T')) {
+                          displayValue = displayValue.split('T')[0];
+                        }
+                        
+                        // Jika angka, pastikan bulat (hilangkan .00)
+                        if (isNumber && displayValue !== '') {
+                          displayValue = Math.round(Number(displayValue));
+                        }
+
+                        return (
+                          <div key={key} className={key.includes('note') || key.includes('content') ? 'col-span-1 md:col-span-2' : ''}>
+                            <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block ml-1">
+                              {key.replace('_', ' ')}
+                            </label>
+                            <input 
+                              required 
+                              type={inputType}
+                              value={displayValue} 
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (isNumber) val = val === '' ? '' : Math.round(Number(val));
+                                handleInputChange(index, key, val);
+                              }} 
+                              className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-[13px] font-black text-slate-900 outline-none focus:border-slate-900 shadow-sm" 
+                            />
+                          </div>
+                        );
+                      })
                   )}
                 </div>
               </div>
             ))}
           </div>
-
           {!isOrderTable && !editingItem && (
             <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
               <Plus size={16} /> Input Data Baru Lainnya
