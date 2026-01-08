@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Menu, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { useNavigate } from "react-router-dom";
+import LogoutConfirmModal from "../components/modals/LogoutConfirmModal";
+
 
 // Import Komponen yang sudah dipecah
 import Sidebar from '../components/dashboard/Sidebar';
@@ -30,6 +33,8 @@ const AdminDashboard = () => {
     marks: []
   });
 
+  const navigate = useNavigate();
+
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState('calendar');
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
@@ -39,8 +44,10 @@ const AdminDashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+
 
   // Fetch initial data
   const fetchData = async () => {
@@ -158,6 +165,11 @@ const AdminDashboard = () => {
     setDeleteConfirm(null);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  };  
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-[#1A120B]">
       <Sidebar 
@@ -167,6 +179,7 @@ const AdminDashboard = () => {
         dbKeys={Object.keys(db).filter(key => !['admins', 'booked', 'marks','customers'].includes(key))} 
         isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} 
+        onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 overflow-x-hidden">
@@ -214,6 +227,7 @@ const AdminDashboard = () => {
         {modalType === 'note' && <NoteModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(n) => handleSaveMarkNote('notes', n)} />}
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
         {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
+        {showLogoutConfirm && ( <LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
       </AnimatePresence>
     </div>
   );
