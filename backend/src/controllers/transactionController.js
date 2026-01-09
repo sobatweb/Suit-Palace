@@ -31,8 +31,8 @@ exports.updateOrder = async (req, res) => {
 
 exports.finishOrder = async (req, res) => {
     try {
-        const { penalty_paid, description_rent } = req.body;
-        await TransactionModel.finishOrder(req.params.id, penalty_paid, description_rent);
+        const { condition_return } = req.body;
+        await TransactionModel.finishOrder(req.params.id, condition_return);
         res.json({ message: 'Order finished' });
     } catch (error) {
         res.status(500).json({ message: error.message });
