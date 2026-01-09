@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 class DashboardModel {
     static async getHistoryView() {
-        const [rows] = await db.query('SELECT * FROM history_view ORDER BY id_history DESC');
+        const [rows] = await db.query('SELECT * FROM history_orders ORDER BY id_history DESC');
         return rows;
     }
 

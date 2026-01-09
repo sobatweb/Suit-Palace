@@ -6,6 +6,8 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const table = editingItem?.fromTable || activeTab;
   const isOrderTable = table === 'order_items';
 
+  const today = new Date().toISOString().split('T')[0];
+
   
 
   // State Header Customer
@@ -75,12 +77,20 @@ const [rows, setRows] = useState(() => {
         <form className="flex-1 overflow-y-auto p-6 space-y-6 custom-scroll">
 
           {isOrderTable && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6 border-b border-slate-100">
+            <div className={`grid grid-cols-1 ${editingItem ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 pb-6 border-b border-slate-100`}>
               <div className="space-y-1">
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nama Customer</label>
                 <div className="relative">
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input required type="text" placeholder="Ketik Nama..." value={customerInfo.customer_name} onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input 
+                    readOnly={!!editingItem}
+                    required 
+                    type="text" 
+                    placeholder="Ketik Nama..." 
+                    value={customerInfo.customer_name} 
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} 
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                  />
                 </div>
               </div>
               <div className="space-y-1">
@@ -97,6 +107,21 @@ const [rows, setRows] = useState(() => {
                   <input type="text" placeholder="BCA - xxxxx" value={customerInfo.bank_account} onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
                 </div>
               </div>
+              {editingItem && (
+                <div className="space-y-1">
+                  <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Status Rent</label>
+                  <select 
+                    value={rows[0].status_rent || 'Booked'} 
+                    onChange={(e) => handleInputChange(0, 'status_rent', e.target.value)}
+                    className="w-full px-4 py-3 bg-amber-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
+                  >
+                    <option value="Booked">Booked</option>
+                    <option value="Diambil">Diambil</option>
+                    <option value="Dikembalikan">Dikembalikan</option>
+                    <option value="Cancel">Cancel</option>
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -123,40 +148,55 @@ const [rows, setRows] = useState(() => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {isOrderTable ? (
                     <>
-                      <div className="space-y-1">
-                        <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Pilih Paket</label>
-                        <select required value={row.id_package || ''} onChange={(e) => handleInputChange(index, 'id_package', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black">
-                          <option value="">-- Pilih Paket --</option>
-                          {db.packages.map(p => <option key={p.id_package} value={p.id_package}>{p.package_name}</option>)}
-                        </select>
-                      </div>
+                      {!editingItem && (
+                        <div className="space-y-1">
+                          <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Pilih Paket</label>
+                          <select required value={row.id_package || ''} onChange={(e) => handleInputChange(index, 'id_package', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black">
+                            <option value="">-- Pilih Paket --</option>
+                            {db.packages.map(p => <option key={p.id_package} value={p.id_package}>{p.package_name}</option>)}
+                          </select>
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Tanggal Mulai</label>
-                        <input type="date" value={row.start_dates || ''} onChange={(e) => handleInputChange(index, 'start_dates', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" />
+                        <input type="date" min={today} value={row.start_dates || ''} onChange={(e) => handleInputChange(index, 'start_dates', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Tanggal Selesai (Auto)</label>
                         <input readOnly type="date" value={row.end_dates || ''} className="w-full px-4 py-3 bg-slate-100 border border-slate-900 rounded-2xl text-sm font-bold text-slate-400" />
                       </div>
+                      {editingItem && (
+                        <div className="space-y-1">
+                          <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Total Dibayar (Amount Paid)</label>
+                          <input 
+                            type="number" 
+                            value={row.amount_paid || 0} 
+                            onChange={(e) => handleInputChange(index, 'amount_paid', e.target.value)} 
+                            className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" 
+                          />
+                        </div>
+                      )}
                       {/* Grid Item Barang */}
-                      <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
-                        {['jas', 'kemeja', 'celana', 'dasi', 'changshan'].map(prod => (
-                          <div key={prod} className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{prod}</label>
-                            <select value={row[`id_${prod}`] || ''} onChange={(e) => handleInputChange(index, `id_${prod}`, e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-900 rounded-xl text-[11px] font-bold focus:border-black">
-                              <option value="">Kosong</option>
-                              {db[prod]?.map(p => (
-                                <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>{p[`name_${prod}`] || p[`kode_${prod}`]} ({p[`size_${prod}`]})</option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
+                      {!editingItem && (
+                        <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                          {['jas', 'kemeja', 'celana', 'dasi', 'changshan'].map(prod => (
+                            <div key={prod} className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{prod}</label>
+                              <select value={row[`id_${prod}`] || ''} onChange={(e) => handleInputChange(index, `id_${prod}`, e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-900 rounded-xl text-[11px] font-bold focus:border-black">
+                                <option value="">Kosong</option>
+                                {db[prod]?.map(p => (
+                                  <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>{p[`name_${prod}`] || p[`kode_${prod}`]} ({p[`size_${prod}`]})</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {/* Description input */}
                       <div className="col-span-1 md:col-span-3 mt-2">
                         <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Deskripsi Order</label>
                         <textarea
-                          value={row.description_rent || ''}
+                          value={row.description_rent || row.description || ''}
                           onChange={e => handleInputChange(index, 'description_rent', e.target.value)}
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold min-h-[60px] focus:border-black"
                           placeholder="Catatan/deskripsi tambahan untuk order ini..."
@@ -193,6 +233,7 @@ const [rows, setRows] = useState(() => {
                             <input 
                               required 
                               type={inputType}
+                              min={isDate ? today : undefined}
                               value={displayValue} 
                               onChange={(e) => {
                                 let val = e.target.value;

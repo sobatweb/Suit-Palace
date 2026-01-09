@@ -28,7 +28,6 @@ const OrderDetailCard = ({
     return (
       selectedFullDate >= startDate &&
       selectedFullDate <= endDate &&
-      o.status_rent !== 'Dikembalikan' &&
       o.status_order !== 'Sudah Selesai'
     );
   });
@@ -61,10 +60,46 @@ const OrderDetailCard = ({
           const cust = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
           const pkg = db.packages.find(p => Number(p.id_package) === Number(order.id_package));
 
+          // Hitung Penalty Fee: Gunakan actual_return_date jika sudah kembali, jika belum gunakan hari ini
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const calculationDate = (order.status_rent === 'Dikembalikan' && order.actual_return_date)
+            ? new Date(getDateString(order.actual_return_date))
+            : today;
+
+          const endDate = new Date(getDateString(order.end_dates));
+          endDate.setHours(0, 0, 0, 0);
+          
+          let penaltyFee = 0;
+          let daysLate = 0;
+          
+          if (calculationDate > endDate) {
+            daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+            penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+          }
+
           const hargaPaket = Math.round(Number(order.total_price));
           const deposit = Math.round(Number(pkg?.deposit || 0));
-          const totalTagihan = hargaPaket + deposit;
+          const totalTagihan = hargaPaket + deposit + penaltyFee;
           const sisaBayar = totalTagihan - Math.round(Number(order.amount_paid));
+
+          // Ambil daftar item yang di-book
+          const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(order.id_booked)) || {};
+          const bookedItemsList = [];
+          ['jas', 'kemeja', 'celana', 'changshan', 'dasi'].forEach(cat => {
+            const productId = bookingRow[`id_${cat}`];
+            if (productId) {
+              const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
+              if (prod) {
+                bookedItemsList.push({
+                  category: cat.toUpperCase(),
+                  name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+                  size: prod[`size_${cat}`] || '-'
+                });
+              }
+            }
+          });
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={order.id_order} className="bg-white p-5 rounded-4xl shadow-xl border relative overflow-hidden">
@@ -95,12 +130,38 @@ const OrderDetailCard = ({
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-2 my-4 font-bold border border-gray-100 shadow-inner">
                 <div className="flex justify-between"><span>Harga Paket</span><span>Rp {hargaPaket.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between"><span>Deposit (Jaminan)</span><span>Rp {deposit.toLocaleString('id-ID')}</span></div>
+                {penaltyFee > 0 && (
+                  <div className="flex justify-between text-rose-600">
+                    <span>Penalty Fee ({daysLate} Hari)</span>
+                    <span>+ Rp {penaltyFee.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Bayar</span><span>Rp {totalTagihan.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between text-emerald-600"><span>Sudah Dibayar</span><span>- Rp {Math.round(Number(order.amount_paid)).toLocaleString('id-ID')}</span></div>
                 <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${sisaBayar > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
                   <span>{sisaBayar > 0 ? 'Sisa Tagihan' : 'Lunas'}</span>
                   <span>Rp {sisaBayar.toLocaleString('id-ID')}</span>
                 </div>
+              </div>
+
+              {/* Booked Items & Description */}
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+                <div className="text-[10px] font-black uppercase text-gray-400 mb-2">Item Terpesan:</div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {bookedItemsList.map((item, i) => (
+                    <span key={i} className="px-2 py-1 bg-slate-100 rounded-lg text-[9px] font-bold uppercase">
+                      {item.category}: {item.name} ({item.size})
+                    </span>
+                  ))}
+                  {bookedItemsList.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
+                </div>
+                
+                {order.description_rent && (
+                  <>
+                    <div className="text-[10px] font-black uppercase text-gray-400 mb-1">Deskripsi:</div>
+                    <p className="text-[11px] text-gray-600 italic leading-relaxed">{order.description_rent}</p>
+                  </>
+                )}
               </div>
 
               {/* AKSI */}

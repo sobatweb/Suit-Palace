@@ -33,7 +33,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
         const hasThisItem = Number(idInOrder) === Number(item[idField]);
 
         // 3. Pastikan pesanan masih aktif (belum dikembalikan)
-        const isActive = order.status_rent !== 'Dikembalikan' && order.status_order !== 'Sudah Selesai';
+        const isActive = (order.status_rent === 'Booked' || order.status_rent === 'Diambil') && order.status_order !== 'Sudah Selesai';
 
         return isDateOverlap && hasThisItem && isActive;
       }).length;

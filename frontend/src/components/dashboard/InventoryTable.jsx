@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box } from 'lucide-react';
+import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle } from 'lucide-react';
 
-const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, setDeleteConfirm }) => {
+const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
   const [tempDiscount, setTempDiscount] = useState(0); // State untuk menyimpan pilihan diskon sementara
@@ -68,7 +68,10 @@ const formatDateFull = (dateStr) => {
     try {
       const response = await fetch(`/api/customers/${selectedInfo.data.id_customer}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ ...selectedInfo.data, discount: tempDiscount })
       });
       if(response.ok) {
@@ -129,7 +132,7 @@ const formatDateFull = (dateStr) => {
                       {item.display_package}
                     </td>
                     <td className="px-6 py-4">
-                      <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
+                      <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.description_rent })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
                         <ShoppingBag size={12}/> Detail
                       </button>
                     </td>
@@ -148,7 +151,7 @@ const formatDateFull = (dateStr) => {
                 ) : (
                   Object.entries(item).map(([key, val], i) => (
                     <td key={i} className="px-6 py-4">
-                      {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda')
+                      {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
                         ? formatIDR(val) 
                         : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration') 
                         ? formatDateFull(val) : val?.toString() || '-'}
@@ -158,7 +161,11 @@ const formatDateFull = (dateStr) => {
                 <td className="px-6 py-4 text-right sticky right-0 bg-white/90 border-l">
                   <div className="flex justify-end gap-3">
                     <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => {setEditingItem({...item, fromTable: activeTab}); setModalType('form_db');}} />
-                    <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
+                    {activeTab === 'order_items' ? (
+                      <CheckCircle size={16} className="text-emerald-500 hover:text-emerald-700 cursor-pointer" onClick={() => setFinishOrderData(item)} title="Konfirmasi Pesanan" />
+                    ) : (
+                      <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
+                    )}
                   </div>
                 </td>
               </tr>
@@ -249,6 +256,10 @@ const formatDateFull = (dateStr) => {
                   </div>
                   <a href={`https://wa.me/${selectedInfo.data.customer_phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200"><MessageCircle size={18}/></a>
                 </div>
+                <div className="bg-rose-50 p-4 rounded-2xl">
+                  <p className="text-[9px] text-rose-600 uppercase tracking-tighter">Total Denda Terakumulasi</p>
+                  <p className="text-sm font-black text-rose-900">{formatIDR(selectedInfo.data.penalty_fee)}</p>
+                </div>
                 <div>
                    <label className="text-[9px] font-black uppercase text-amber-600 mb-2 block ml-1">Set Discount</label>
                    <select 
@@ -297,16 +308,27 @@ const formatDateFull = (dateStr) => {
 
             {/* DETAIL BOOKED ITEMS */}
             {selectedInfo.type === 'items' && (
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scroll">
-                {selectedInfo.data.length > 0 ? selectedInfo.data.map((p, i) => (
-                  <div key={i} className="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
-                    <div>
-                      <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">{p.name}</p>
-                      <p className="text-[9px] text-gray-400 font-black uppercase">{p.category} • {p.color}</p>
+              <div className="space-y-4">
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scroll">
+                  {selectedInfo.data.length > 0 ? selectedInfo.data.map((p, i) => (
+                    <div key={i} className="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
+                      <div>
+                        <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">{p.name}</p>
+                        <p className="text-[9px] text-gray-400 font-black uppercase">{p.category} • {p.color}</p>
+                      </div>
+                      <span className="text-[10px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE {p.size}</span>
                     </div>
-                    <span className="text-[10px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE {p.size}</span>
+                  )) : <p className="text-center text-xs text-gray-400 py-10 font-bold uppercase italic tracking-widest">Tidak ada item terpilih</p>}
+                </div>
+
+                {selectedInfo.description && (
+                  <div className="pt-4 border-t border-dashed border-gray-200">
+                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Deskripsi Order:</p>
+                    <p className="text-[11px] text-gray-600 italic leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      {selectedInfo.description}
+                    </p>
                   </div>
-                )) : <p className="text-center text-xs text-gray-400 py-10 font-bold uppercase italic tracking-widest">Tidak ada item terpilih</p>}
+                )}
               </div>
             )}
           </div>

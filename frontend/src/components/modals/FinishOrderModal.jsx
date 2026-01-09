@@ -5,9 +5,8 @@ import { CheckCircle, X } from 'lucide-react';
 const FinishOrderModal = ({ order, onClose, onConfirm }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
-    const denda = e.target.denda.value || 0;
     const kondisi = e.target.kondisi.value;
-    onConfirm(order.id_order, kondisi, denda);
+    onConfirm(order.id_order, kondisi);
   };
 
   return (
@@ -31,10 +30,6 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
                 placeholder="Contoh: Baik, Robek di lengan, dll..."
                 className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" 
               />
-          </div>
-          <div>
-            <label className="text-[9px] font-black uppercase text-gray-400 ml-1 mb-1 block">Total Denda (Rp)</label>
-            <input name="denda" type="number" defaultValue="0" className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" />
           </div>
           <button type="submit" className="w-full py-4 bg-[#1A120B] text-white rounded-[1.5rem] text-[10px] font-black uppercase shadow-xl mt-2 transition-all hover:bg-black">
             Konfirmasi & Masuk History

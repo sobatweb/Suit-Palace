@@ -84,7 +84,7 @@ const AdminDashboard = () => {
 
       setDb(prev => ({
         ...prev,
-        history_orders: Array.isArray(dashboardRes?.history) ? dashboardRes.history : [],
+        history_orders: Array.isArray(dashboardRes?.history_orders) ? dashboardRes.history_orders : (Array.isArray(dashboardRes?.history) ? dashboardRes.history : []),
         marks: Array.isArray(dashboardRes?.marks) ? dashboardRes.marks : [],
         notes: Array.isArray(dashboardRes?.notes) ? dashboardRes.notes : [],
         customers: Array.isArray(customersRes) ? customersRes : [],
@@ -112,10 +112,33 @@ const AdminDashboard = () => {
   const handleSaveItem = async (items) => {
     try {
       const table = editingItem?.fromTable || activeTab;
+      const isEdit = !!editingItem;
+
+      let customerId = null;
+
+      // Jika membuat order baru, simpan data customer terlebih dahulu ke tabel customers
+      if (table === 'order_items' && !isEdit && items.length > 0) {
+        const customerResponse = await fetch('/api/customers', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            customer_name: items[0].customer_name,
+            customer_phone: items[0].customer_phone,
+            bank_account: items[0].bank_account
+          }),
+        });
+
+        if (!customerResponse.ok) {
+          const errData = await customerResponse.json();
+          throw new Error(errData.message || 'Gagal menyimpan data customer');
+        }
+
+        const customerData = await customerResponse.json();
+        customerId = customerData.id_customer || customerData.id;
+      }
 
       // items adalah array yang dikirim dari FormModal
       for (const item of items) {
-        const isEdit = !!editingItem;
         const method = isEdit ? 'PUT' : 'POST';
 
         let url = '';
@@ -128,10 +151,24 @@ const AdminDashboard = () => {
           if (!isEdit) {
             const { customer_name, customer_phone, bank_account, ...rest } = item;
             body = {
-              orderData: { ...rest },
+              orderData: { ...rest, id_customer: customerId },
               bookingData: { ...rest }
             };
           } else {
+            // Update Customer Info first if it's an order edit
+            const customerId = editingItem.id_customer;
+            if (customerId) {
+              await fetch(`/api/customers/${customerId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                  customer_name: item.customer_name,
+                  customer_phone: item.customer_phone,
+                  bank_account: item.bank_account
+                })
+              });
+            }
+
             // For Edit, strip synthetic fields
             const cleanedBody = {};
             Object.keys(item).forEach(key => {
@@ -197,25 +234,46 @@ const AdminDashboard = () => {
         body: JSON.stringify(newData)
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        console.error("Server error details:", errData);
+        throw new Error(errData.message || `HTTP error! status: ${response.status}`);
       }
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error("Save Mark/Note failed", error);
       alert('Failed to save. See console for details.');
     }
   };
 
-  const executeFinish = async (orderId, condition, penalty) => {
+  const executeFinish = async (orderId, condition) => {
     try {
+      // 1. Selesaikan pesanan (memicu trigger history di database)
       await fetch(`/api/transaction/orders/${orderId}/finish`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          penalty_paid: penalty,
           description_rent: condition
         })
       });
+
+      // 2. Cari id_customer untuk pembersihan otomatis
+      const orderData = db.order_items.find(o => String(o.id_order) === String(orderId));
+      const customerId = orderData?.id_customer;
+
+      // 3. Hapus order_items secara otomatis
+      await fetch(`/api/transaction/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      // 4. Hapus customer secara otomatis
+      if (customerId) {
+        await fetch(`/api/customers/${customerId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+      }
+
       fetchData();
       setFinishOrderData(null);
     } catch (error) {
@@ -231,19 +289,37 @@ const AdminDashboard = () => {
     if (!deleteConfirm) return;
     const { table, id } = deleteConfirm;
     try {
-      let url = `/api/inventory/${table}/${id}`;
       if (table === 'order_items') {
-        url = `/api/transaction/orders/${id}`;
-      } else if (table === 'customers') {
-        url = `/api/customers/${id}`;
-      } else if (table === 'marks' || table === 'notes') {
-        url = `/api/dashboard/${table}/${id}`;
-      }
+        // Cari id_customer dari data order sebelum dihapus
+        const orderToDelete = db.order_items.find(o => String(o.id_order) === String(id));
+        const customerId = orderToDelete?.id_customer;
 
-      await fetch(url, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+        // 1. Hapus Order terlebih dahulu (karena adanya relasi Foreign Key)
+        await fetch(`/api/transaction/orders/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+
+        // 2. Hapus Customer yang terkait jika ditemukan
+        if (customerId) {
+          await fetch(`/api/customers/${customerId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
+        }
+      } else {
+        let url = `/api/inventory/${table}/${id}`;
+        if (table === 'customers') {
+          url = `/api/customers/${id}`;
+        } else if (table === 'marks' || table === 'notes') {
+          url = `/api/dashboard/${table}/${id}`;
+        }
+
+        await fetch(url, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+      }
 
       fetchData(); // Refresh data
     } catch (error) {
@@ -306,6 +382,7 @@ const AdminDashboard = () => {
             setEditingItem={setEditingItem}
             setModalType={setModalType}
             setDeleteConfirm={setDeleteConfirm}
+            setFinishOrderData={setFinishOrderData}
           />
         )}
       </main>

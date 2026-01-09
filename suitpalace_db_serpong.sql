@@ -12,7 +12,8 @@ CREATE TABLE customers (
     customer_name VARCHAR(100) NOT NULL,
     customer_phone VARCHAR(15) UNIQUE NOT NULL,
     bank_account VARCHAR(100),
-    discount DECIMAL(5,2) DEFAULT 0 -- NANTI DIKALI DENGAN PACKAGE PRICE(packages) UNTUK DISCOUNT
+    discount DECIMAL(5,2) DEFAULT 0, -- NANTI DIKALI DENGAN PACKAGE PRICE(packages) UNTUK DISCOUNT
+    penalty_fee DECIMAL(10,2) DEFAULT 0
 );
 CREATE TABLE packages (
     id_package INT PRIMARY KEY AUTO_INCREMENT,
@@ -114,10 +115,12 @@ CREATE TABLE order_items(
 
 CREATE TABLE history_orders(
     id_history INT PRIMARY KEY AUTO_INCREMENT,
-    id_order INT,
+    customer_name VARCHAR(100),
+    package_name VARCHAR(100),
     omset_order DECIMAL(10,2),
-    condition_return VARCHAR(100),
-    FOREIGN KEY (id_order) REFERENCES order_items(id_order)
+    denda_paid DECIMAL(10,2) DEFAULT 0, 
+    return_date DATETIME,              
+    condition_return VARCHAR(100)
 );
 
 
@@ -169,48 +172,40 @@ AFTER UPDATE ON order_items
 FOR EACH ROW
 BEGIN
     IF NEW.status_order = 'Sudah Selesai' AND OLD.status_order = 'Belum Selesai' THEN
-        -- Ambil nilai deposit dari master package untuk dikurangi dari total_price
+        -- 1. Ambil Nama Customer & Nama Paket untuk disimpan permanen
+        SET @cust_name = (SELECT customer_name FROM customers WHERE id_customer = NEW.id_customer);
+        SET @pkg_name = (SELECT package_name FROM packages WHERE id_package = NEW.id_package);
+        
+        -- 2. Ambil nilai deposit untuk hitung omset bersih
         SET @deposit_amount = (SELECT deposit FROM packages WHERE id_package = NEW.id_package);
         
-        -- Hitung Omset: (Harga yang dibayar termasuk deposit - deposit) + denda
+        -- 3. Hitung Omset Bersih
         SET @omset_bersih = (NEW.total_price - @deposit_amount) + NEW.penalty_paid;
 
-        INSERT INTO history_orders (id_order, omset_order, condition_return)
-        VALUES (NEW.id_order, @omset_bersih, NEW.description_rent);
+        -- 4. Masukkan semua data ke history (tanpa relasi ID)
+        INSERT INTO history_orders (
+            customer_name, 
+            package_name, 
+            omset_order, 
+            denda_paid, 
+            return_date, 
+            condition_return
+        )
+        VALUES (
+            @cust_name, 
+            @pkg_name, 
+            @omset_bersih, 
+            NEW.penalty_paid, 
+            NEW.actual_return_date, 
+            NEW.description_rent
+        );
     END IF;
 END //
 DELIMITER ;
 
 
--- -- Misal: Customer telat/rusak barang, kena denda 50.000
--- UPDATE order_items 
--- SET 
---     actual_return_date = NOW(), 
---     status_rent = 'Dikembalikan',
---     penalty_paid = 50000, -- Mencatat denda
---     status_order = 'Sudah Selesai', -- Ini akan memicu trigger history_orders
---     description_rent = 'Jas kembali telat 1 hari, kancing lepas 1.'
--- WHERE id_order = 1;
-
-
-
-
--- =====================================================
--- ===================CREATE VIEWS======================
--- 1. View History Lengkap
-CREATE VIEW history_view AS
-SELECT 
-    h.id_history,
-    c.customer_name,
-    p.package_name,
-    h.omset_order AS pendapatan_bersih, -- Ini yang sudah dipotong deposit
-    o.penalty_paid AS denda_diterima,
-    o.actual_return_date,
-    h.condition_return
-FROM history_orders h
-JOIN order_items o ON h.id_order = o.id_order
-JOIN customers c ON o.id_customer = c.id_customer
-JOIN packages p ON o.id_package = p.id_package;
+-- ======================================================
+-- =====================VIEWS============================
 
 -- 2. View Detail Barang yang di-book Customer
 CREATE VIEW customer_order AS
@@ -298,9 +293,9 @@ INSERT INTO packages (package_name, package_price, duration_day, deposit, penalt
 
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
-('Merah', 'Perlu dicuci ulang', '2026-01-10'),
-('Kuning', 'Kancing kendur', '2026-01-11'),
-('Hijau', 'Siap pakai', '2026-01-12');
+('#1de25f', 'Perlu dicuci ulang', '2026-01-10'),
+('#1d79e2ff', 'Kancing kendur', '2026-01-11'),
+('#35a85bff', 'Siap pakai', '2026-01-12');
 -- INSERT notes
 INSERT INTO notes (title_note, description_note) VALUES
 ('Stok Baru', 'Penambahan 10 jas warna navy'),
@@ -351,5 +346,5 @@ INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_da
 (2, 2, 2, '2026-01-02', '2026-01-07', 400000, 'Diambil', 'Belum Selesai'),
 (3, 3, 3, '2026-01-05', '2026-01-12', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
-INSERT INTO history_orders (id_order, omset_order, condition_return) VALUES
-(1, 237500, 'Lengkap dan bersih');
+INSERT INTO history_orders (customer_name, package_name, omset_order, condition_return) VALUES
+('John Doe', 'Paket Premium', 237500, 'Lengkap dan bersih');

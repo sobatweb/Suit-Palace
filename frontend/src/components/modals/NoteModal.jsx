@@ -12,10 +12,9 @@ const NoteModal = ({ selectedFullDate, onClose, onSave }) => {
 
     // Kirim objek lengkap agar database tidak menerima '-'
     onSave({ 
-      id_note: Date.now(), 
-      date: selectedFullDate, 
-      title: title,
-      content: content || title // Jika deskripsi kosong, isi dengan judul
+      date_note: selectedFullDate, 
+      title_note: title,
+      description_note: content || title
     });
     onClose();
   };
