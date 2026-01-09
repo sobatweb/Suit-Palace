@@ -34,7 +34,7 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
             setIsOpen(false);
             navigate("/adminMaster/register");
           }}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-all"
         >
           <UserPlus size={14} />
           Register Admin
@@ -43,7 +43,7 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
         {/* LOGOUT */}
         <button
           onClick={onLogoutClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[8px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
         >
           <LogOut size={14} />
           Logout
