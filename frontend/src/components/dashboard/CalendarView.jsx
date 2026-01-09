@@ -4,41 +4,41 @@ import DailyStock from './DailyStock';
 import OrderDetailCard from './OrderDetailCard';
 
 const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, selectedFullDate, setModalType, setEditingItem, setDeleteConfirm, setFinishOrderData, onDeleteMarkNote }) => {
- const currentMonth = viewDate.getMonth();
+  const currentMonth = viewDate.getMonth();
   const currentYear = viewDate.getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const todayStr = new Date().toISOString().split('T')[0];
 
   const getStatusColor = (status, endDate) => {
-  const today = new Date().toISOString().split('T')[0];
-  
-  if (status === 'Dikembalikan') return 'bg-blue-500'; 
-  
-  // Logika Overdue (Merah)
-  if (status !== 'Dikembalikan' && endDate && today > endDate) return 'bg-rose-600'; 
-  
-  switch (status) {
-    case 'Diambil': return 'bg-amber-400'; 
-    case 'Booked': return 'bg-emerald-500'; 
-    default: return 'bg-slate-400';
-  }
-};
+    const today = new Date().toISOString().split('T')[0];
+
+    if (status === 'Dikembalikan') return 'bg-blue-500';
+
+    // Logika Overdue (Merah)
+    if (status !== 'Dikembalikan' && endDate && today > endDate) return 'bg-rose-600';
+
+    switch (status) {
+      case 'Diambil': return 'bg-amber-400';
+      case 'Booked': return 'bg-emerald-500';
+      default: return 'bg-slate-400';
+    }
+  };
 
   const processedOrders = useMemo(() => {
     const orders = (db.order_items || []).filter(o => o.status_order !== 'Sudah Selesai');
     const sorted = [...orders].sort((a, b) => a.start_dates.localeCompare(b.start_dates));
-    const rows = []; 
+    const rows = [];
     sorted.forEach(order => {
       let assignedRow = 0; let foundSlot = false;
       while (!foundSlot) {
-        if (!rows[assignedRow]) { rows[assignedRow] = []; foundSlot = true; } 
+        if (!rows[assignedRow]) { rows[assignedRow] = []; foundSlot = true; }
         else {
           const hasConflict = rows[assignedRow].some(ex => (order.start_dates <= ex.end_dates && order.end_dates >= ex.start_dates));
           if (!hasConflict) foundSlot = true; else assignedRow++;
         }
       }
-      rows[assignedRow].push(order); order.visualRow = assignedRow; 
+      rows[assignedRow].push(order); order.visualRow = assignedRow;
     });
     return { sorted, totalRows: rows.length || 0 };
   }, [db.order_items]);
@@ -59,13 +59,13 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => (
               <div key={d} className="bg-gray-200 py-3 text-center text-[12px] font-black uppercase border-b">{d}</div>
             ))}
-           {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-[120px] border-[0.5px] border-gray-100" />)}
+            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-[120px] border-[0.5px] border-gray-100" />)}
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
-             
+
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-               const isToday = dateStr === todayStr;
-             const dayOrders = processedOrders.sorted.filter(o => {
+              const isToday = dateStr === todayStr;
+              const dayOrders = processedOrders.sorted.filter(o => {
                 const start = o.start_dates.split('T')[0];
                 const end = o.end_dates.split('T')[0];
                 return dateStr >= start && dateStr <= end;
@@ -73,90 +73,90 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
 
               return (
                 <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-[0.5px] border-gray-100 relative cursor-pointer hover:bg-gray-50 transition-all ${selectedFullDate === dateStr ? 'bg-amber-50/50' : ''}`}
-  >
-                <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
-                  {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
-                  <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white' : isToday ? 'bg-amber-200 text-amber-700' : 'text-gray-900'}`}>
-                    {day}
-                  </span>
-                  
-                  {/* Icon PIN juga menggunakan isToday */}
-                 {/* PIN MARK LOGIC */}
-{(() => {
-  const activeMark = (db.marks || []).find(m => {
-    const rawDate = m.date || m.date_mark;
-    return rawDate && rawDate.split('T')[0] === dateStr;
-  });
+                >
+                  <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
+                    {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
+                    <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white' : isToday ? 'bg-amber-200 text-amber-700' : 'text-gray-900'}`}>
+                      {day}
+                    </span>
 
-  if (activeMark) {
-    return (
-      <div className="absolute top-1 left-1" style={{ zIndex: 40 }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <circle 
-            cx="12" cy="12" r="10" 
-            fill={activeMark.color_mark || (isToday ? '#f59e42' : '#e11d48')} 
-          />
-          <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="white" />
-        </svg>
-      </div>
-    );
-  }
-  return null;
-})()}
-                </div>
+                    {/* Icon PIN juga menggunakan isToday */}
+                    {/* PIN MARK LOGIC */}
+                    {(() => {
+                      const activeMark = (db.marks || []).find(m => {
+                        const rawDate = m.date || m.date_mark;
+                        return rawDate && rawDate.split('T')[0] === dateStr;
+                      });
+
+                      if (activeMark) {
+                        return (
+                          <div className="absolute top-1 left-1" style={{ zIndex: 40 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <circle
+                                cx="12" cy="12" r="10"
+                                fill={activeMark.color_mark || (isToday ? '#f59e42' : '#e11d48')}
+                              />
+                              <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="white" />
+                            </svg>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
 
                   {/* Ikon Note di Kalender */}
                   {(db.notes || []).some(n => n.date === dateStr) && (
                     <div className="absolute bottom-1 right-1 text-amber-500"><FileText size={10} /></div>
                   )}
 
-                 <div className="flex-1 flex flex-col gap-1 pb-2">
-        {[...Array(Math.max(processedOrders.totalRows, 3))].map((_, rowIndex) => {
-          const order = dayOrders.find(o => o.visualRow === rowIndex);
-          
-          if (!order) return <div key={rowIndex} className="h-2.5 w-full" />; 
-          
-          // PERBAIKAN: Ambil hanya tanggal saja agar perbandingan akurat
-          const orderStart = order.start_dates.split('T')[0];
-          const orderEnd = order.end_dates.split('T')[0];
-          
-          const isStart = dateStr === orderStart;
-          const isEnd = dateStr === orderEnd;
+                  <div className="flex-1 flex flex-col gap-1 pb-2">
+                    {[...Array(Math.max(processedOrders.totalRows, 3))].map((_, rowIndex) => {
+                      const order = dayOrders.find(o => o.visualRow === rowIndex);
 
-          return (
-            <div 
-              key={rowIndex} 
-              className={`h-2.5 w-full ${getStatusColor(order.status_rent, order.end_dates)} relative flex items-center shrink-0 transition-all duration-300`} 
-              style={{ 
-                // 1. EFEK LENGKUNG (CAPSULE)
-                // Menggunakan 999px memastikan ujung benar-benar bulat sempurna
-                borderTopLeftRadius: isStart ? '999px' : '0', 
-                borderBottomLeftRadius: isStart ? '999px' : '0', 
-                borderTopRightRadius: isEnd ? '999px' : '0', 
-                borderBottomRightRadius: isEnd ? '999px' : '0', 
-                
-                // 2. LOGIKA KONEKSI (MENYAMBUNG TANPA CELAH)
-                marginLeft: isStart ? '4px' : '0', 
-                marginRight: isEnd ? '4px' : '0',
-                
-                // Lebar dilebihkan 1-2px agar garis menyeberang border kotak kalender
-                width: isStart || isEnd ? 'calc(100% - 4px)' : 'calc(100% + 2px)',
-                left: !isStart ? '-1px' : '0',
+                      if (!order) return <div key={rowIndex} className="h-2.5 w-full" />;
 
-                zIndex: isStart ? 20 : 10 
-              }}
-            >
-              {/* 3. MENAMPILKAN ID HANYA DI START */}
-              {isStart && (
-                <span className="text-[7px] font-black text-white ml-2.5 uppercase truncate pointer-events-none drop-shadow-md">
-                  #{order.id_order}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-     </div>
+                      // PERBAIKAN: Ambil hanya tanggal saja agar perbandingan akurat
+                      const orderStart = order.start_dates.split('T')[0];
+                      const orderEnd = order.end_dates.split('T')[0];
+
+                      const isStart = dateStr === orderStart;
+                      const isEnd = dateStr === orderEnd;
+
+                      return (
+                        <div
+                          key={rowIndex}
+                          className={`h-2.5 w-full ${getStatusColor(order.status_rent, order.end_dates)} relative flex items-center shrink-0 transition-all duration-300`}
+                          style={{
+                            // 1. EFEK LENGKUNG (CAPSULE)
+                            // Menggunakan 999px memastikan ujung benar-benar bulat sempurna
+                            borderTopLeftRadius: isStart ? '999px' : '0',
+                            borderBottomLeftRadius: isStart ? '999px' : '0',
+                            borderTopRightRadius: isEnd ? '999px' : '0',
+                            borderBottomRightRadius: isEnd ? '999px' : '0',
+
+                            // 2. LOGIKA KONEKSI (MENYAMBUNG TANPA CELAH)
+                            marginLeft: isStart ? '4px' : '0',
+                            marginRight: isEnd ? '4px' : '0',
+
+                            // Lebar dilebihkan 1-2px agar garis menyeberang border kotak kalender
+                            width: isStart || isEnd ? 'calc(100% - 4px)' : 'calc(100% + 2px)',
+                            left: !isStart ? '-1px' : '0',
+
+                            zIndex: isStart ? 20 : 10
+                          }}
+                        >
+                          {/* 3. MENAMPILKAN ID HANYA DI START */}
+                          {isStart && (
+                            <span className="text-[7px] font-black text-white ml-2.5 uppercase truncate pointer-events-none drop-shadow-md">
+                              {db.customers?.find(c => Number(c.id_customer) === Number(order.id_customer))?.customer_name || `#${order.id_order}`}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -192,21 +192,21 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
           <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest text-gray-400">Marks - {new Date(selectedFullDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
           <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
             {(db.marks || []).filter(m => {
-  const rawDate = m.date || m.date_mark;
-  return rawDate && rawDate.split('T')[0] === selectedFullDate;
-}).map(m => (
-  <div key={m.id_marks || m.id_mark} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-    <div className="flex items-center gap-2">
-      <div className="w-2.5 h-2.5 rounded-full" style={{ background: m.color_mark || '#e11d48' }} />
-      <p className="text-[11px] font-bold text-gray-800">{m.note_mark || m.note}</p>
-    </div>
-    <X 
-      size={14} 
-      className="cursor-pointer text-gray-300 hover:text-red-500 transition-colors" 
-      onClick={() => onDeleteMarkNote('marks', m.id_marks || m.id_mark)} 
-    />
-  </div>
-))}
+              const rawDate = m.date || m.date_mark;
+              return rawDate && rawDate.split('T')[0] === selectedFullDate;
+            }).map(m => (
+              <div key={m.id_marks || m.id_mark} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: m.color_mark || '#e11d48' }} />
+                  <p className="text-[11px] font-bold text-gray-800">{m.note_mark || m.note}</p>
+                </div>
+                <X
+                  size={14}
+                  className="cursor-pointer text-gray-300 hover:text-red-500 transition-colors"
+                  onClick={() => onDeleteMarkNote('marks', m.id_marks || m.id_mark)}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
