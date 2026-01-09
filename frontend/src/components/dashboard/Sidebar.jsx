@@ -6,7 +6,7 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
   const navigate = useNavigate();
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-[100] w-64 bg-[#1A120B] text-white p-6 transition-transform lg:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-100 w-64 bg-[#1A120B] text-white p-6 transition-transform lg:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl font-black italic uppercase select-none">
           S

@@ -4,7 +4,7 @@ import { LogOut } from "lucide-react";
 
 const LogoutConfirmModal = ({ onConfirm, onCancel }) => {
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

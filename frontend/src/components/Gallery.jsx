@@ -26,7 +26,7 @@ const Gallery = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="group relative h-[600px] overflow-hidden rounded-[3rem] bg-gray-100 border border-gray-200 shadow-xl"
+              className="group relative h-600px overflow-hidden rounded-[3rem] bg-gray-100 border border-gray-200 shadow-xl"
             >
               {/* Silver Gradient Overlay */}
               <div className="absolute inset-0 z-10 bg-linear-to-t from-[#1A1A1A] via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />

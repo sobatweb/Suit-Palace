@@ -79,7 +79,7 @@ const [rows, setRows] = useState(() => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
 
         {/* HEADER */}
@@ -192,7 +192,7 @@ const [rows, setRows] = useState(() => {
             </div>
 
             {rows.map((row, index) => (
-              <div key={index} className={isOrderTable ? "p-6 rounded-[2rem] border-2 border-slate-100 bg-white relative" : "p-6 rounded-[2rem] border-2 border-slate-50 bg-slate-50/30 relative"}>
+              <div key={index} className={isOrderTable ? "p-6 rounded-2rem border-2 border-slate-100 bg-white relative" : "p-6 rounded-2rem border-2 border-slate-50 bg-slate-50/30 relative"}>
                 {rows.length > 1 && (
                   <button type="button" onClick={() => removeRow(index)} className="absolute -right-2 -top-2 p-2 bg-white text-rose-500 rounded-full shadow-md border border-slate-100 hover:bg-rose-50 transition-all">
                     <Trash2 size={16} />
@@ -260,7 +260,7 @@ const [rows, setRows] = useState(() => {
                         <textarea
                           value={row.condition_return || row.description || ''}
                           onChange={e => handleInputChange(index, 'condition_return', e.target.value)}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold min-h-[60px] focus:border-black"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold min-h-60px focus:border-black"
                           placeholder="Catatan/deskripsi tambahan untuk order ini..."
                         />
                       </div>
@@ -313,7 +313,7 @@ const [rows, setRows] = useState(() => {
             ))}
           </div>
           {!isOrderTable && !editingItem && (
-            <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
+            <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2rem text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
               <Plus size={16} /> Input Data Baru Lainnya
             </button>
           )}

@@ -21,7 +21,7 @@ const About = () => {
             viewport={{ once: true }}
             className="lg:col-span-5 flex justify-center order-1"
           >
-            <div className="relative w-full max-w-[500px] aspect-square rounded-[3rem] bg-[#FDFDFD] border border-gray-100 p-12 shadow-2xl">
+            <div className="relative w-full max-w-500px aspect-square rounded-[3rem] bg-[#FDFDFD] border border-gray-100 p-12 shadow-2xl">
               <img src="/logo.jpg" alt="Logo" className="w-full h-full object-contain" />
             </div>
           </motion.div>

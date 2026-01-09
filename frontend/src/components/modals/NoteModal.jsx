@@ -20,8 +20,8 @@ const NoteModal = ({ selectedFullDate, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative">
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2rem p-8 w-full max-w-sm shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-black"><X size={18}/></button>
         
         <div className="flex flex-col items-center mb-6 text-center">

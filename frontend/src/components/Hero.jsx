@@ -4,7 +4,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section id="home" className="relative min-h-[100svh] bg-[#FDFDFD] flex items-center justify-center overflow-hidden">
+    <section id="home" className="relative min-h-100svh bg-[#FDFDFD] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-10%] right-[-5%] w-80 md:w-150 h-80 md:h-150 bg-gray-100/50 blur-[80px] md:blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-5%] w-60 md:w-120 h-60 md:h-120 bg-[#E5E5E5]/40 blur-[80px] md:blur-[100px] rounded-full" />
@@ -25,7 +25,7 @@ const Hero = () => {
             <span className="text-transparent bg-clip-text bg-linear-to-r from-[#1A1A1A] via-[#A8A8A8] to-[#1A1A1A]">Palace.</span>
           </h1>
 
-          <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mb-10 md:mb-16 max-w-[260px] md:max-w-xl leading-relaxed mx-auto">
+          <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mb-10 md:mb-16 max-w-260px md:max-w-xl leading-relaxed mx-auto">
             Premium Suit Rental & Custom Tailoring in Tangerang.
           </p>
 

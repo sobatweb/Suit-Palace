@@ -16,7 +16,7 @@ const Navbar = () => {
   const links = ['Home', 'About', 'Services', 'Contact'];
 
   return (
-    <nav className="fixed w-full z-[100] flex justify-center px-4 py-4 md:py-6 pointer-events-none">
+    <nav className="fixed w-full z-100 flex justify-center px-4 py-4 md:py-6 pointer-events-none">
       <motion.div
         layout
         animate={{ 

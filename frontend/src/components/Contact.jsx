@@ -31,8 +31,8 @@ const Contact = () => {
     <section id="contact" className="py-32 md:py-48 bg-[#F8F9FA] relative overflow-hidden">
       {/* Background Decor agar tidak sepi */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
-        <div className="absolute top-1/4 left-[-10%] w-[500px] h-[500px] bg-gray-100 blur-[120px] rounded-full opacity-50" />
-        <div className="absolute bottom-1/4 right-[-10%] w-[500px] h-[500px] bg-gray-100 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute top-1/4 left-[-10%] w-500px h-500px bg-gray-100 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute bottom-1/4 right-[-10%] w-500px h-500px bg-gray-100 blur-[120px] rounded-full opacity-50" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -62,7 +62,7 @@ const Contact = () => {
               viewport={{ once: true }}
               className="group relative p-10 md:p-12 bg-white rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 text-center flex flex-col items-center"
             >
-              <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center mb-8 group-hover:bg-[#1A1A1A] group-hover:text-white transition-all duration-500 shadow-inner">
+              <div className="w-20 h-20 bg-gray-50 rounded-2rem flex items-center justify-center mb-8 group-hover:bg-[#1A1A1A] group-hover:text-white transition-all duration-500 shadow-inner">
                 <item.icon size={32} strokeWidth={1.5} />
               </div>
               
@@ -70,7 +70,7 @@ const Contact = () => {
                 {item.title}
               </h4>
               
-              <p className="text-sm md:text-base font-bold italic text-gray-800 leading-relaxed mb-8 min-h-[50px]">
+              <p className="text-sm md:text-base font-bold italic text-gray-800 leading-relaxed mb-8 min-h-50px">
                 {item.detail}
               </p>
 

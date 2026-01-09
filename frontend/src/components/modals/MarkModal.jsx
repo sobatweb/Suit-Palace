@@ -13,8 +13,8 @@ const MarkModal = ({ selectedFullDate, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white rounded-[2rem] p-8 w-full max-w-xs shadow-2xl relative">
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white rounded-2rem p-8 w-full max-w-xs shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-black"><X size={18}/></button>
         <h3 className="text-[10px] font-black uppercase mb-6 text-center tracking-widest text-[#8D775F]">Add Mark</h3>
         <form onSubmit={handleSubmit} className="space-y-4">

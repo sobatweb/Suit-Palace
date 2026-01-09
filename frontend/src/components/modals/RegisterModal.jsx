@@ -37,7 +37,7 @@ const RegisterAdminModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center">
+    <div className="fixed inset-0 z-200 bg-black/40 flex items-center justify-center">
       <div className="bg-white w-full max-w-md p-8 rounded-3xl relative">
         <button onClick={onClose} className="absolute top-4 right-4">
           <X />
