@@ -189,7 +189,13 @@ const OrderDetailCard = ({
                 </button>
                 <button
                   onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
-                  className="flex-1 py-3 bg-[#1A120B] text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg"
+                  disabled={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel'}
+                  title={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel' ? "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel" : ""}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${
+                    (order.status_rent === 'Dikembalikan' || order.status_rent === 'Cancel')
+                      ? "bg-[#1A120B] text-white hover:bg-black"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                  }`}
                 >
                   <CheckCircle size={12} /> Selesai
                 </button>

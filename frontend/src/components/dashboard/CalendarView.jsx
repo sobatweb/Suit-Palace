@@ -168,7 +168,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm"></div>
-            <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Persiapan</span>
+            <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Diambil</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
