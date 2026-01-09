@@ -343,8 +343,8 @@ INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi) VALUES
 -- INSERT order_items
 INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
 (1, 1, 1, '2026-01-01', '2026-01-04', 237500, 'Dikembalikan', 'Sudah Selesai'),
-(2, 2, 2, '2026-01-02', '2026-01-07', 400000, 'Diambil', 'Belum Selesai'),
-(3, 3, 3, '2026-01-05', '2026-01-12', 495000, 'Booked', 'Belum Selesai');
+(2, 2, 2, '2026-01-02', '2026-01-05', 400000, 'Diambil', 'Belum Selesai'),
+(3, 3, 3, '2026-01-05', '2026-01-8', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
 INSERT INTO history_orders (customer_name, package_name, omset_order, condition_return) VALUES
 ('John Doe', 'Paket Premium', 237500, 'Lengkap dan bersih');
