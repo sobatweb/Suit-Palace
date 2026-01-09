@@ -36,21 +36,7 @@ const OrderDetailCard = ({
 
   return (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide">
-      {/* SECTION MARKS & NOTES */}
-      <div className="flex flex-wrap gap-2 mb-2">
-        {db.marks.filter(m => m.date === selectedFullDate).map(m => (
-          <div key={m.id_mark} className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border shadow-sm" style={{ borderColor: m.color }}>
-            <span className="text-[9px] font-black uppercase">{m.note}</span>
-            <X size={10} className="cursor-pointer text-gray-300 hover:text-rose-500" onClick={() => setDeleteConfirm({ table: 'marks', idField: 'id_mark', id: m.id_mark })} />
-          </div>
-        ))}
-        {db.notes.filter(n => n.date === selectedFullDate).map(n => (
-          <div key={n.id_note} className="flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
-            <span className="text-[9px] font-black uppercase text-amber-700">{n.title}</span>
-            <X size={10} className="cursor-pointer text-amber-300 hover:text-rose-500" onClick={() => setDeleteConfirm({ table: 'notes', idField: 'id_note', id: n.id_note })} />
-          </div>
-        ))}
-      </div>
+
 
       {/* RENDER PESANAN */}
       {filteredOrders.length === 0 ? (

@@ -4,6 +4,7 @@ import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Ta
 const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
+  const [filterValue, setFilterValue] = useState("all");
   const [tempDiscount, setTempDiscount] = useState("0"); // State untuk menyimpan pilihan diskon sementara
   const formatDateFull = (dateStr) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
@@ -59,10 +60,25 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   };
 
   const [priceDetails, setPriceDetails] = useState(null);
-  const filteredData = getDisplayData().filter(item =>
-    Object.values(item).some(v => v?.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+const filteredData = getDisplayData().filter(item => {
+  const matchesSearch = Object.values(item).some(v => 
+    v?.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  let matchesDropdown = true;
+  if (filterValue !== "all") {
+    if (activeTab.includes('order')) {
+      matchesDropdown = (item.display_customer === filterValue || item.customer_name === filterValue);
+    } else if (activeTab === 'packages') {
+      matchesDropdown = item.package_name === filterValue;
+    } else if (['jas', 'celana', 'kemeja', 'dasi', 'changshan'].includes(activeTab)) {
+      // Mencocokkan nama produk (contoh: name_jas atau kode_jas)
+      matchesDropdown = item[`name_${activeTab}`] === filterValue || item[`kode_${activeTab}`] === filterValue;
+    }
+  }
+
+  return matchesSearch && matchesDropdown;
+});
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
     try {
@@ -83,20 +99,93 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     }
   };
 
+const filterOptions = React.useMemo(() => {
+  if (!db) return [];
+  
+  const currentData = getDisplayData();
+
+  switch (activeTab) {
+    case 'order_items':
+    case 'history_order': // Pastikan nama tab history sesuai
+    case 'history_orders': 
+      const custNames = currentData.map(item => item.display_customer || item.customer_name);
+      // Set untuk unik, filter untuk buang null, sort() untuk Ascending (A-Z)
+      return [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+      
+    case 'packages':
+      return (db.packages?.map(p => p.package_name) || []).sort();
+
+    case 'jas': case 'celana': case 'kemeja': case 'dasi': case 'changshan':
+      const productNames = data.map(item => item[`name_${activeTab}`] || item[`kode_${activeTab}`]);
+      return [...new Set(productNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+      
+    default:
+      return [];
+  }
+}, [activeTab, db, data]);
+
+// Tambahkan effect ini agar filter reset saat pindah tab
+React.useEffect(() => {
+  setFilterValue("all");
+}, [activeTab]);
+
   return (
     <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
-      {/* TOOLBAR SEARCH */}
-      <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
-        <div className="relative ">
-          <Search className="absolute left-3 top-3 text-gray-800" size={15} />
-          <input type="text" placeholder={`Cari di ${activeTab}...`} className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-md outline-none w-50 shadow-sm" onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
-        <div className="flex gap-1">
-          <button className="p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600"><Printer size={16} /></button>
-          <button className="p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600"><Download size={16} /></button>
-        </div>
+ {/* TOOLBAR SEARCH - RESPONSIVE VERSION */}
+<div className="p-4 md:p-6 border-b bg-gray-50/50">
+  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+    
+    {/* Sisi Kiri: Search & Filter */}
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+      
+      {/* Input Search */}
+      <div className="relative flex-1 sm:flex-none">
+        <Search className="absolute left-3 top-3 text-gray-400" size={15} />
+        <input 
+          type="text" 
+          placeholder={`Cari di ${activeTab}...`} 
+          className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm outline-none w-full sm:w-64 shadow-sm focus:ring-2 focus:ring-slate-200" 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+        />
       </div>
 
+      {/* Dropdown Filter Dinamis */}
+      {activeTab !== 'notes' && filterOptions.length > 0 && (
+        <div className="relative flex-1 sm:flex-none">
+          <select
+            value={filterValue}
+            onChange={(e) => setFilterValue(e.target.value)}
+            className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+          >
+            <option value="all">
+              {activeTab.includes('order') || activeTab.includes('history') ? '--- SEMUA CUSTOMER ---' : 
+               activeTab === 'packages' ? '--- SEMUA PAKET ---' : '--- SEMUA KOLEKSI ---'}
+            </option>
+            {filterOptions.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* Sisi Kanan: Action Buttons (Printer & Download) */}
+    <div className="flex gap-2 w-full sm:w-auto justify-end">
+      <button className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+        <Printer size={16} /> <span className="sm:hidden">Print</span>
+      </button>
+      <button className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+        <Download size={16} /> <span className="sm:hidden">Export</span>
+      </button>
+    </div>
+
+  </div>
+</div>
       <div className="overflow-x-auto">
         <table className="w-full text-left min-w-[1200px]">
           <thead className="bg-white text-[13px] font-black uppercase text-gray-800 tracking-widest border-b">
@@ -166,6 +255,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                   ))
                 )}
                 <td className="px-6 py-4 text-right sticky right-0 bg-white/90 border-l">
+                {activeTab !== 'history_orders' && (
                   <div className="flex justify-end gap-3">
                     <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
                     {activeTab === 'order_items' ? (
@@ -186,6 +276,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                       <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
                     )}
                   </div>
+                    )}
                 </td>
               </tr>
             ))}
