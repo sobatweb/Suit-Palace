@@ -7,10 +7,10 @@ class TransactionModel {
             await connection.beginTransaction();
 
             // 1. Insert into booked
-            const { id_jas, id_kemeja, id_celana, id_changshan, id_dasi } = bookingData;
+            const { id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest, id_tuxedo } = bookingData;
             const [bookedResult] = await connection.query(
-                'INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi) VALUES (?, ?, ?, ?, ?)',
-                [id_jas || null, id_kemeja || null, id_celana || null, id_changshan || null, id_dasi || null]
+                'INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest, id_tuxedo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [id_jas || null, id_kemeja || null, id_celana || null, id_changshan || null, id_dasi || null, id_vest || null, id_tuxedo || null]
             );
             const id_booked = bookedResult.insertId;
 
@@ -57,7 +57,7 @@ class TransactionModel {
             const bookingData = {};
             const orderData = {};
 
-            const bookingFields = ['id_jas', 'id_kemeja', 'id_celana', 'id_changshan', 'id_dasi'];
+            const bookingFields = ['id_jas', 'id_kemeja', 'id_celana', 'id_changshan', 'id_dasi', 'id_vest', 'id_tuxedo'];
             const orderFields = [
                 'id_customer', 'id_package', 'start_dates', 'end_dates', 
                 'actual_return_date', 'total_price', 'amount_paid', 

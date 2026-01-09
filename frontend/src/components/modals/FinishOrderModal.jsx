@@ -18,7 +18,6 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
             <CheckCircle size={32} />
           </div>
           <h4 className="text-sm font-black uppercase tracking-widest">Selesaikan Pesanan</h4>
-          <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID Order: {order.id_order}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -27,6 +26,7 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
            <input 
                 name="kondisi" 
                 type="text"
+                required
                 placeholder="Contoh: Baik, Robek di lengan, dll..."
                 className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" 
               />

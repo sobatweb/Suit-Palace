@@ -6,7 +6,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
   const [categoryFilter, setCategoryFilter] = useState('all');
 
   const availableStock = useMemo(() => {
-    const categories = ['jas', 'kemeja', 'celana', 'changshan', 'dasi'];
+    const categories = ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
     let results = [];
 
     categories.forEach(cat => {
@@ -81,6 +81,8 @@ const DailyStock = ({ db, selectedFullDate }) => {
             <option value="celana">Celana</option>
             <option value="changshan">Changshan</option>
             <option value="dasi">Dasi</option>
+            <option value="vest">Vest</option>
+            <option value="tuxedo">Tuxedo</option>
           </select>
           <div className="relative w-48">
             <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />

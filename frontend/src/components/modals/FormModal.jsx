@@ -2,17 +2,32 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Database, Plus, Trash2, User, Phone, CreditCard } from 'lucide-react';
 
+const tableSchemas = {
+  packages: ['package_name', 'package_price', 'duration_day', 'deposit', 'penalty_fee'],
+  jas: ['name_jas', 'size_jas', 'color_jas', 'stock_jas', 'condition_jas'],
+  kemeja: ['name_kemeja', 'size_kemeja', 'color_kemeja', 'stock_kemeja', 'condition_kemeja'],
+  celana: ['name_celana', 'size_celana', 'color_celana', 'stock_celana', 'condition_celana'],
+  changshan: ['name_changshan', 'size_changshan', 'color_changshan', 'stock_changshan', 'condition_changshan'],
+  dasi: ['kode_dasi', 'color_dasi', 'stock_dasi', 'description_dasi'],
+  vest: ['name_vest', 'size_vest', 'color_vest', 'stock_vest', 'condition_vest'],
+  tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
+  customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
+  notes: ['title_note', 'description_note']
+};
+
 const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const table = editingItem?.fromTable || activeTab;
   const isOrderTable = table === 'order_items';
 
   const today = new Date().toISOString().split('T')[0];
 
+  const [isNewCustomer, setIsNewCustomer] = useState(true);
   
 
   // State Header Customer
 const [customerInfo, setCustomerInfo] = useState({
   // Ambil dari editingItem jika ada, jika tidak kosongkan
+  id_customer: editingItem?.id_customer || null,
   customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
   customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
   bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || ''
@@ -26,9 +41,10 @@ const [rows, setRows] = useState(() => {
 
     // Format data agar ramah input form
     Object.keys(rowData).forEach(key => {
-      // 1. Hilangkan desimal .00 pada semua angka
-      if (typeof rowData[key] === 'number') {
-        rowData[key] = Math.round(rowData[key]);
+      // 1. Hilangkan desimal pada semua angka (termasuk yang datang sebagai string dari DB)
+      const isNumberField = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
+      if (isNumberField && rowData[key] !== null && rowData[key] !== undefined) {
+        rowData[key] = Math.round(Number(rowData[key]));
       }
       // 2. Format tanggal (YYYY-MM-DD) agar muncul di input type="date"
       if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
@@ -54,9 +70,9 @@ const [rows, setRows] = useState(() => {
 
       if (pkg && startDate) {
         const start = new Date(startDate);
-        start.setDate(start.getDate() + parseInt(pkg.duration_day));
+        start.setDate(start.getDate() + (parseInt(pkg.duration_day) - 1));
         newRows[index].end_dates = start.toISOString().split('T')[0];
-        newRows[index].total_price = pkg.package_price;
+        newRows[index].total_price = Math.round(Number(pkg.package_price));
       }
     }
     setRows(newRows);
@@ -79,18 +95,56 @@ const [rows, setRows] = useState(() => {
           {isOrderTable && (
             <div className={`grid grid-cols-1 ${editingItem ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 pb-6 border-b border-slate-100`}>
               <div className="space-y-1">
-                <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nama Customer</label>
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[12px] font-black uppercase text-slate-400">Nama Customer</label>
+                  {!editingItem && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setIsNewCustomer(!isNewCustomer);
+                        setCustomerInfo({ id_customer: null, customer_name: '', customer_phone: '', bank_account: '' });
+                      }}
+                      className="text-[9px] font-black uppercase text-blue-600 hover:underline"
+                    >
+                      {isNewCustomer ? 'Pilih Pelanggan Lama' : 'Input Pelanggan Baru'}
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    readOnly={!!editingItem}
-                    required 
-                    type="text" 
-                    placeholder="Ketik Nama..." 
-                    value={customerInfo.customer_name} 
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} 
-                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
-                  />
+                  {isNewCustomer || editingItem ? (
+                    <input 
+                      readOnly={!!editingItem}
+                      required 
+                      type="text" 
+                      placeholder="Ketik Nama..." 
+                      value={customerInfo.customer_name} 
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} 
+                      className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={customerInfo.id_customer || ''}
+                      onChange={(e) => {
+                        const cust = db.customers.find(c => String(c.id_customer) === String(e.target.value));
+                        if (cust) {
+                          setCustomerInfo({
+                            id_customer: cust.id_customer,
+                            customer_name: cust.customer_name,
+                            customer_phone: cust.customer_phone,
+                            bank_account: cust.bank_account
+                          });
+                        }
+                      }}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all"
+                    >
+                      <option value="">-- Pilih Pelanggan --</option>
+                      {db.customers.map(c => (
+                        <option key={c.id_customer} value={c.id_customer}>{c.customer_name} ({c.customer_phone})</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
               <div className="space-y-1">
@@ -170,16 +224,20 @@ const [rows, setRows] = useState(() => {
                           <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Total Dibayar (Amount Paid)</label>
                           <input 
                             type="number" 
-                            value={row.amount_paid || 0} 
-                            onChange={(e) => handleInputChange(index, 'amount_paid', e.target.value)} 
+                            step="1"
+                            value={row.amount_paid !== undefined ? Math.round(Number(row.amount_paid)) : 0} 
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : Math.round(Number(e.target.value));
+                              handleInputChange(index, `amount_paid`, val);
+                            }} 
                             className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" 
                           />
                         </div>
                       )}
                       {/* Grid Item Barang */}
                       {!editingItem && (
-                        <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
-                          {['jas', 'kemeja', 'celana', 'dasi', 'changshan'].map(prod => (
+                        <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 pt-2">
+                          {['jas', 'kemeja', 'celana', 'dasi', 'changshan', 'vest', 'tuxedo'].map(prod => (
                             <div key={prod} className="space-y-1">
                               <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{prod}</label>
                               <select value={row[`id_${prod}`] || ''} onChange={(e) => handleInputChange(index, `id_${prod}`, e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-900 rounded-xl text-[11px] font-bold focus:border-black">
@@ -204,11 +262,10 @@ const [rows, setRows] = useState(() => {
                       </div>
                     </>
                   ) : (
-                    Object.keys(db[table]?.[0] || {})
-                      .filter((key, i) => i !== 0 && key !== 'actual_return_date')
+                    (tableSchemas[table] || Object.keys(db[table]?.[0] || {}).filter((key, i) => i !== 0 && key !== 'actual_return_date'))
                       .map((key) => {
                         // 1. Tentukan Tipe Input
-                        const isNumber = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda');
+                        const isNumber = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
                         const isDate = key.includes('date') || key === 'created_at';
                         const inputType = isNumber ? 'number' : (isDate ? 'date' : 'text');
 
@@ -233,6 +290,7 @@ const [rows, setRows] = useState(() => {
                             <input 
                               required 
                               type={inputType}
+                              step={isNumber ? "1" : undefined}
                               min={isDate ? today : undefined}
                               value={displayValue} 
                               onChange={(e) => {

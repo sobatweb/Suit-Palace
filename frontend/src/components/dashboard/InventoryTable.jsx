@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle } from 'lucide-react';
 
+const tableSchemas = {
+  packages: ['package_name', 'package_price', 'duration_day', 'deposit', 'penalty_fee'],
+  jas: ['name_jas', 'size_jas', 'color_jas', 'stock_jas', 'condition_jas'],
+  kemeja: ['name_kemeja', 'size_kemeja', 'color_kemeja', 'stock_kemeja', 'condition_kemeja'],
+  celana: ['name_celana', 'size_celana', 'color_celana', 'stock_celana', 'condition_celana'],
+  changshan: ['name_changshan', 'size_changshan', 'color_changshan', 'stock_changshan', 'condition_changshan'],
+  dasi: ['kode_dasi', 'color_dasi', 'stock_dasi', 'description_dasi'],
+  vest: ['name_vest', 'size_vest', 'color_vest', 'stock_vest', 'condition_vest'],
+  tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
+  customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
+  notes: ['title_note', 'description_note'],
+  history_orders: ['customer_name', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
+};
+
 const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
@@ -26,37 +40,55 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   };
 
   const getDisplayData = () => {
-    if (activeTab !== 'order_items' || !db) return data || [];
-    return data.map(order => {
-      const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
-      const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
-      const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
+    let baseData = data || [];
 
-      const bookedItemsList = [];
-      ['jas', 'kemeja', 'celana', 'changshan', 'dasi'].forEach(cat => {
-        const productId = bookingRow[`id_${cat}`];
-        if (productId) {
-          const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
-          if (prod) {
-            bookedItemsList.push({
-              category: cat.toUpperCase(),
-              name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-              size: prod[`size_${cat}`] || '-',
-              color: prod[`color_${cat}`] || '-'
-            });
+    if (activeTab === 'order_items' && db) {
+      baseData = baseData.map(order => {
+        const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
+        const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
+        const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
+
+        const bookedItemsList = [];
+        ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
+          const productId = bookingRow[`id_${cat}`];
+          if (productId) {
+            const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
+            if (prod) {
+              bookedItemsList.push({
+                category: cat.toUpperCase(),
+                name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+                size: prod[`size_${cat}`] || '-',
+                color: prod[`color_${cat}`] || '-'
+              });
+            }
           }
-        }
-      });
+        });
 
-      return {
-        ...order,
-        display_customer: customer.customer_name || 'Unknown',
-        display_package: packageData.package_name || 'No Package',
-        customer_full: customer,
-        package_full: packageData,
-        booked_items: bookedItemsList
-      };
-    });
+        return {
+          ...order,
+          display_customer: customer.customer_name || 'Unknown',
+          display_package: packageData.package_name || 'No Package',
+          customer_full: customer,
+          package_full: packageData,
+          booked_items: bookedItemsList
+        };
+      });
+    }
+
+    // Logika pengurutan Ascending untuk tab tertentu
+    const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
+    if (sortTabs.includes(activeTab)) {
+      return [...baseData].sort((a, b) => {
+        const key = activeTab === 'packages' ? 'package_name' : 
+                    activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
+        
+        const valA = (a[key] || "").toString();
+        const valB = (b[key] || "").toString();
+        return valA.localeCompare(valB);
+      });
+    }
+
+    return baseData;
   };
 
   const [priceDetails, setPriceDetails] = useState(null);
@@ -67,11 +99,20 @@ const filteredData = getDisplayData().filter(item => {
 
   let matchesDropdown = true;
   if (filterValue !== "all") {
-    if (activeTab.includes('order')) {
+    if (activeTab === 'order_items') {
       matchesDropdown = (item.display_customer === filterValue || item.customer_name === filterValue);
+    } else if (activeTab === 'history_orders') {
+      if (!item.return_date) {
+        matchesDropdown = false;
+      } else {
+        const d = new Date(item.return_date);
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const itemPeriod = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        matchesDropdown = itemPeriod === filterValue;
+      }
     } else if (activeTab === 'packages') {
       matchesDropdown = item.package_name === filterValue;
-    } else if (['jas', 'celana', 'kemeja', 'dasi', 'changshan'].includes(activeTab)) {
+    } else if (['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo'].includes(activeTab)) {
       // Mencocokkan nama produk (contoh: name_jas atau kode_jas)
       matchesDropdown = item[`name_${activeTab}`] === filterValue || item[`kode_${activeTab}`] === filterValue;
     }
@@ -106,16 +147,28 @@ const filterOptions = React.useMemo(() => {
 
   switch (activeTab) {
     case 'order_items':
-    case 'history_order': // Pastikan nama tab history sesuai
-    case 'history_orders': 
       const custNames = currentData.map(item => item.display_customer || item.customer_name);
       // Set untuk unik, filter untuk buang null, sort() untuk Ascending (A-Z)
       return [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+
+    case 'history_orders':
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      const periods = currentData.map(item => {
+        if (!item.return_date) return null;
+        const d = new Date(item.return_date);
+        return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      }).filter(Boolean);
+      return [...new Set(periods)].sort((a, b) => {
+        const [mA, yA] = a.split(' ');
+        const [mB, yB] = b.split(' ');
+        if (yA !== yB) return yB - yA;
+        return monthNames.indexOf(mB) - monthNames.indexOf(mA);
+      });
       
     case 'packages':
       return (db.packages?.map(p => p.package_name) || []).sort();
 
-    case 'jas': case 'celana': case 'kemeja': case 'dasi': case 'changshan':
+    case 'jas': case 'celana': case 'kemeja': case 'dasi': case 'changshan': case 'vest': case 'tuxedo':
       const productNames = data.map(item => item[`name_${activeTab}`] || item[`kode_${activeTab}`]);
       return [...new Set(productNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
       
@@ -143,7 +196,7 @@ React.useEffect(() => {
         <Search className="absolute left-3 top-3 text-gray-400" size={15} />
         <input 
           type="text" 
-          placeholder={`Cari di ${activeTab}...`} 
+          placeholder={`Cari Nama Customer`} 
           className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm outline-none w-full sm:w-64 shadow-sm focus:ring-2 focus:ring-slate-200" 
           onChange={(e) => setSearchTerm(e.target.value)} 
         />
@@ -158,7 +211,8 @@ React.useEffect(() => {
             className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
           >
             <option value="all">
-              {activeTab.includes('order') || activeTab.includes('history') ? '--- SEMUA CUSTOMER ---' : 
+              {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
+               activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
                activeTab === 'packages' ? '--- SEMUA PAKET ---' : '--- SEMUA KOLEKSI ---'}
             </option>
             {filterOptions.map(opt => (
@@ -191,7 +245,6 @@ React.useEffect(() => {
           <thead className="bg-white text-[13px] font-black uppercase text-gray-800 tracking-widest border-b">
             {activeTab === 'order_items' ? (
               <tr>
-                <th className="px-6 py-5">Order ID</th>
                 <th className="px-6 py-5">Customer</th>
                 <th className="px-6 py-5">Package</th>
                 <th className="px-6 py-5">Booked</th>
@@ -203,18 +256,18 @@ React.useEffect(() => {
               </tr>
             ) : (
               <tr>
-                {data.length > 0 && Object.keys(data[0]).map(key => <th key={key} className="px-6 py-5">{key.replace('_', ' ')}</th>)}
-                <th className="px-6 py-5 text-right sticky right-0 bg-white">Action</th>
+                {(tableSchemas[activeTab] || (data.length > 0 ? Object.keys(data[0]).filter(key => !key.startsWith('id_')) : []))
+                  .map(key => <th key={key} className="px-6 py-5">{key.replace('_', ' ')}</th>)}
+                {activeTab !== 'history_orders' && <th className="px-6 py-5 text-right sticky right-0 bg-white">Action</th>}
               </tr>
             )}
           </thead>
 
-          <tbody className="text-[14px] font-bold text-gray-800">
+          <tbody className="text-[13px] font-bold text-gray-800">
             {filteredData.map((item, idx) => (
               <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
                 {activeTab === 'order_items' ? (
                   <>
-                    <td className="px-6 py-4">{item.id_order}</td>
                     <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => { 
                       const currentDisc = item.customer_full?.discount;
                       // Normalisasi: "5.00" -> 5 -> "5" agar match dengan <option value="5">
@@ -245,7 +298,9 @@ React.useEffect(() => {
                     </td>
                   </>
                 ) : (
-                  Object.entries(item).map(([key, val], i) => (
+                  Object.entries(item)
+                    .filter(([key]) => !key.startsWith('id_'))
+                    .map(([key, val], i) => (
                     <td key={i} className="px-6 py-4">
                       {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
                         ? formatIDR(val)
@@ -254,30 +309,30 @@ React.useEffect(() => {
                     </td>
                   ))
                 )}
-                <td className="px-6 py-4 text-right sticky right-0 bg-white/90 border-l">
                 {activeTab !== 'history_orders' && (
-                  <div className="flex justify-end gap-3">
-                    <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
-                    {activeTab === 'order_items' ? (
-                      <CheckCircle
-                        size={16}
-                        className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
-                            ? "text-emerald-500 hover:text-emerald-700"
-                            : "text-gray-300 cursor-not-allowed opacity-50"
-                          }`}
-                        onClick={() => {
-                          if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
-                            setFinishOrderData(item);
-                          }
-                        }}
-                        title={(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel"}
-                      />
-                    ) : (
-                      <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
-                    )}
-                  </div>
-                    )}
-                </td>
+                  <td className="px-6 py-4 text-right sticky right-0 bg-white/90 border-l">
+                    <div className="flex justify-end gap-3">
+                      <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
+                      {activeTab === 'order_items' ? (
+                        <CheckCircle
+                          size={16}
+                          className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
+                              ? "text-emerald-500 hover:text-emerald-700"
+                              : "text-gray-300 cursor-not-allowed opacity-50"
+                            }`}
+                          onClick={() => {
+                            if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
+                              setFinishOrderData(item);
+                            }
+                          }}
+                          title={(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel"}
+                        />
+                      ) : (
+                        <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -303,27 +358,45 @@ React.useEffect(() => {
 
               {/* Harga Sewa */}
               <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
-                <span className="text-[9px] font-black uppercase text-gray-400">Harga Sewa</span>
+                <span className="text-[12px] font-black uppercase text-gray-400">Harga Sewa</span>
                 <span className="text-sm font-black text-gray-900">
                   {formatIDR(priceDetails.total_price)}
                 </span>
               </div>
 
+              {/* Diskon */}
+              {Number(priceDetails.customer_full?.discount || 0) > 0 && (
+                <div className="bg-emerald-50 p-4 rounded-2xl flex justify-between items-center border border-emerald-100">
+                  <span className="text-[12px] font-black uppercase text-emerald-600">Diskon ({priceDetails.customer_full?.discount}%)</span>
+                  <span className="text-sm font-black text-emerald-900">
+                    - {formatIDR(Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount) / 100)}
+                  </span>
+                </div>
+              )}
+
               {/* Deposit dari Tabel Paket */}
               <div className="bg-amber-50 p-4 rounded-2xl flex justify-between items-center border border-amber-100">
-                <span className="text-[9px] font-black uppercase text-amber-600">Deposit Jaminan</span>
+                <span className="text-[12px] font-black uppercase text-amber-600">Deposit Jaminan</span>
                 <span className="text-sm font-black text-amber-900">
                   {formatIDR(priceDetails.package_full?.deposit || 0)}
+                </span>
+              </div>
+
+              {/* Omset (History Preview) */}
+              <div className="bg-blue-50 p-4 rounded-2xl flex justify-between items-center border border-blue-100">
+                <span className="text-[12px] font-black uppercase text-blue-600">Estimasi Omset</span>
+                <span className="text-sm font-black text-blue-900">
+                  {formatIDR((Number(priceDetails.total_price) - (Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount || 0) / 100)))}
                 </span>
               </div>
 
               {/* Garis Total */}
               <div className="pt-2 mt-2 border-t-2 border-dashed border-gray-100">
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[11px] font-black uppercase text-slate-900">Total Dibayar</span>
+                  <span className="text-[11px] font-black uppercase text-slate-900">Total Harga</span>
                   <div className="text-right">
                     <p className="text-xl font-black text-slate-900">
-                      {formatIDR(Number(priceDetails.total_price) + Number(priceDetails.package_full?.deposit || 0))}
+                      {formatIDR((Number(priceDetails.total_price) - (Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount || 0) / 100)) + Number(priceDetails.package_full?.deposit || 0))}
                     </p>
 
                   </div>

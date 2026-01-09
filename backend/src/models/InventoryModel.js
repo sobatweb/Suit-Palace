@@ -3,7 +3,7 @@ const db = require('../config/db');
 class InventoryModel {
     // Helper to validate allowed tables to prevent SQL injection
     static validateTable(table) {
-        const allowed = ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'packages', 'booked'];
+        const allowed = ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'packages', 'booked', 'vest', 'tuxedo'];
         if (!allowed.includes(table)) {
             throw new Error('Invalid table name');
         }

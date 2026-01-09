@@ -25,8 +25,10 @@ const AdminDashboard = () => {
     jas: [],
     kemeja: [],
     celana: [],
-    changshan: [],
     dasi: [],
+    changshan: [],
+    vest: [],
+    tuxedo: [],
     booked: [],
     order_items: [],
     history_orders: [],
@@ -69,7 +71,7 @@ const AdminDashboard = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
 
     try {
-      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes] = await Promise.all([
+      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes, vestRes, tuxedoRes] = await Promise.all([
         fetch('/api/dashboard', { headers }).then(res => res.json()),
         fetch('/api/customers', { headers }).then(res => res.json()),
         fetch('/api/inventory/jas', { headers }).then(res => res.json()),
@@ -79,7 +81,9 @@ const AdminDashboard = () => {
         fetch('/api/inventory/dasi', { headers }).then(res => res.json()),
         fetch('/api/inventory/packages', { headers }).then(res => res.json()),
         fetch('/api/transaction/orders', { headers }).then(res => res.json()),
-        fetch('/api/inventory/booked', { headers }).then(res => res.json())
+        fetch('/api/inventory/booked', { headers }).then(res => res.json()),
+        fetch('/api/inventory/vest', { headers }).then(res => res.json()),
+        fetch('/api/inventory/tuxedo', { headers }).then(res => res.json())
       ]);
 
       setDb(prev => ({
@@ -93,6 +97,8 @@ const AdminDashboard = () => {
         celana: Array.isArray(celanaRes) ? celanaRes : [],
         changshan: Array.isArray(changshanRes) ? changshanRes : [],
         dasi: Array.isArray(dasiRes) ? dasiRes : [],
+        vest: Array.isArray(vestRes) ? vestRes : [],
+        tuxedo: Array.isArray(tuxedoRes) ? tuxedoRes : [],
         packages: Array.isArray(packagesRes) ? packagesRes : [],
         order_items: Array.isArray(ordersRes) ? ordersRes : [],
         booked: Array.isArray(bookedRes) ? bookedRes : []
@@ -118,23 +124,29 @@ const AdminDashboard = () => {
 
       // Jika membuat order baru, simpan data customer terlebih dahulu ke tabel customers
       if (table === 'order_items' && !isEdit && items.length > 0) {
-        const customerResponse = await fetch('/api/customers', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            customer_name: items[0].customer_name,
-            customer_phone: items[0].customer_phone,
-            bank_account: items[0].bank_account
-          }),
-        });
+        if (items[0].id_customer) {
+          // Gunakan ID customer yang sudah ada
+          customerId = items[0].id_customer;
+        } else {
+          // Buat customer baru
+          const customerResponse = await fetch('/api/customers', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              customer_name: items[0].customer_name,
+              customer_phone: items[0].customer_phone,
+              bank_account: items[0].bank_account
+            }),
+          });
 
-        if (!customerResponse.ok) {
-          const errData = await customerResponse.json();
-          throw new Error(errData.message || 'Gagal menyimpan data customer');
+          if (!customerResponse.ok) {
+            const errData = await customerResponse.json();
+            throw new Error(errData.message || 'Gagal menyimpan data customer');
+          }
+
+          const customerData = await customerResponse.json();
+          customerId = customerData.id_customer || customerData.id;
         }
-
-        const customerData = await customerResponse.json();
-        customerId = customerData.id_customer || customerData.id;
       }
 
       // items adalah array yang dikirim dari FormModal

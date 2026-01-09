@@ -66,14 +66,18 @@ const OrderDetailCard = ({
           }
 
           const hargaPaket = Math.round(Number(order.total_price));
+          const discount = Number(cust?.discount || 0);
+          const discountAmount = Math.round(hargaPaket * (discount / 100));
           const deposit = Math.round(Number(pkg?.deposit || 0));
-          const totalTagihan = hargaPaket + deposit + penaltyFee;
+          const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
           const sisaBayar = totalTagihan - Math.round(Number(order.amount_paid));
+
+          const omsetHistory = (hargaPaket - (hargaPaket * discount / 100));
 
           // Ambil daftar item yang di-book
           const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(order.id_booked)) || {};
           const bookedItemsList = [];
-          ['jas', 'kemeja', 'celana', 'changshan', 'dasi'].forEach(cat => {
+          ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
             const productId = bookingRow[`id_${cat}`];
             if (productId) {
               const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
@@ -98,8 +102,8 @@ const OrderDetailCard = ({
                 <div className="flex items-center gap-3">
                   <User size={14} className="text-gray-400" />
                   <div className="text-[15px] font-black uppercase tracking-tighter">
-                    {db.customers.find(c => Number(c.id_customer) === Number(order.id_customer))?.customer_name} 
-                    <span className="text-gray-600 ml-1">({db.customers.find(c => Number(c.id_customer) === Number(order.id_customer))?.customer_phone})</span>
+                    {cust?.customer_name} 
+                    <span className="text-gray-600 ml-1">({cust?.customer_phone})</span>
                   </div>
                 </div>
 
@@ -115,6 +119,12 @@ const OrderDetailCard = ({
               {/* Rincian Biaya */}
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-2 my-4 font-bold border border-gray-100 shadow-inner">
                 <div className="flex justify-between"><span>Harga Paket</span><span>Rp {hargaPaket.toLocaleString('id-ID')}</span></div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Diskon ({discount}%)</span>
+                    <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between"><span>Deposit (Jaminan)</span><span>Rp {deposit.toLocaleString('id-ID')}</span></div>
                 {penaltyFee > 0 && (
                   <div className="flex justify-between text-rose-600">
