@@ -375,7 +375,7 @@ React.useEffect(() => {
       {/* MODAL DETAIL HARGA OVERLAY */}
       {priceDetails && (
         <div className="fixed inset-0 z-600 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
-          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm relative shadow-2xl border-b-8 border-slate-900" onClick={e => e.stopPropagation()}>
+          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl border-b-8 border-slate-900" onClick={e => e.stopPropagation()}>
             <button onClick={() => setPriceDetails(null)} className="absolute top-6 right-6 text-2xl text-gray-300 hover:text-black">&times;</button>
 
             <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8D775F] mb-6 border-b pb-2 flex items-center gap-2">
@@ -385,13 +385,13 @@ React.useEffect(() => {
             <div className="space-y-4">
               {/* Nama Paket */}
               <div className="text-center mb-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paket Terpilih</p>
+                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Paket Terpilih</p>
                 <p className="text-lg font-black text-slate-900">{priceDetails.display_package}</p>
               </div>
 
               {/* Harga Sewa */}
               <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
-                <span className="text-[12px] font-black uppercase text-gray-400">Harga Sewa</span>
+                <span className="text-[12px] font-black uppercase text-gray-700">Harga Sewa</span>
                 <span className="text-sm font-black text-gray-900">
                   {formatIDR(priceDetails.total_price)}
                 </span>
@@ -449,7 +449,7 @@ React.useEffect(() => {
       {/* MODAL DETAIL OVERLAY */}
       {selectedInfo && (
         <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>
-          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm relative shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-120 relative shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setSelectedInfo(null)} className="absolute top-6 right-6 text-2xl text-gray-300 hover:text-black">&times;</button>
             <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8D775F] mb-6 border-b pb-2 flex items-center gap-2">
               {selectedInfo.type === 'customer' && <Tag size={14} />}
@@ -462,22 +462,22 @@ React.useEffect(() => {
             {selectedInfo.type === 'customer' && (
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-2xl">
-                  <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Nama Customer</p>
+                  <p className="text-[11px] text-gray-500 uppercase tracking-tighter">Nama Customer</p>
                   <p className="text-sm font-black">{selectedInfo.data.customer_name}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-2xl flex justify-between items-center">
                   <div>
-                    <p className="text-[9px] text-green-600 uppercase tracking-tighter">WhatsApp Number</p>
+                    <p className="text-[11px] text-green-600 uppercase tracking-tighter">WhatsApp Number</p>
                     <p className="text-sm font-black">{selectedInfo.data.customer_phone}</p>
                   </div>
                   <a href={`https://wa.me/${selectedInfo.data.customer_phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200"><MessageCircle size={18} /></a>
                 </div>
                 <div className="bg-rose-50 p-4 rounded-2xl">
-                  <p className="text-[9px] text-rose-600 uppercase tracking-tighter">Total Denda Terakumulasi</p>
+                  <p className="text-[11px] text-rose-600 uppercase tracking-tighter">Total Denda Terakumulasi</p>
                   <p className="text-sm font-black text-rose-900">{formatIDR(selectedInfo.data.penalty_fee)}</p>
                 </div>
                 <div>
-                  <label className="text-[9px] font-black uppercase text-amber-600 mb-2 block ml-1">Set Discount</label>
+                  <label className="text-[11px] font-black uppercase text-amber-600 mb-2 block ml-1">Set Discount</label>
                   <select
                     value={tempDiscount}
                     onChange={(e) => setTempDiscount(e.target.value)}
@@ -503,19 +503,19 @@ React.useEffect(() => {
               <div className="space-y-3">
                 <div className="text-center p-6 bg-amber-50 rounded-4xl border border-amber-100">
                   <h3 className="text-lg font-black text-amber-900">{selectedInfo.data.package_name}</h3>
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">{selectedInfo.data.duration_day} Hari Sewa</p>
+                  <p className="text-[12px] font-bold text-amber-600 uppercase tracking-widest">{selectedInfo.data.duration_day} Hari Sewa</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-4 bg-gray-50 rounded-2xl">
-                    <p className="text-[8px] text-gray-400 uppercase">Harga</p>
+                    <p className="text-[11px] text-gray-600 uppercase">Harga</p>
                     <p className="text-xs font-black">{formatIDR(selectedInfo.data.package_price)}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl">
-                    <p className="text-[8px] text-gray-400 uppercase">Deposit</p>
+                    <p className="text-[11px] text-gray-600 uppercase">Deposit</p>
                     <p className="text-xs font-black">{formatIDR(selectedInfo.data.deposit)}</p>
                   </div>
                   <div className="p-4 bg-rose-50 rounded-2xl col-span-2">
-                    <p className="text-[8px] text-rose-400 uppercase">Denda Keterlambatan</p>
+                    <p className="text-[11px] text-rose-400 uppercase">Denda Keterlambatan</p>
                     <p className="text-xs font-black text-rose-600">{formatIDR(selectedInfo.data.penalty_fee)} / Hari</p>
                   </div>
                 </div>
@@ -524,23 +524,23 @@ React.useEffect(() => {
 
             {/* DETAIL BOOKED ITEMS */}
             {selectedInfo.type === 'items' && (
-              <div className="space-y-4">
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scroll">
+              <div className="space-y-15">
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scroll">
                   {selectedInfo.data.length > 0 ? selectedInfo.data.map((p, i) => (
-                    <div key={i} className="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
+                    <div key={i} className="p-3 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
                       <div>
-                        <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">{p.name}</p>
-                        <p className="text-[9px] text-gray-400 font-black uppercase">{p.category} • {p.color}</p>
+                        <p className="text-[15px] font-black text-gray-900 tracking-tighter">{p.name}</p>
+                        <p className="text-[12px] text-gray-600 font-black">{p.category} • {p.color}</p>
                       </div>
-                      <span className="text-[10px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE {p.size}</span>
+                      <span className="text-[11px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE: {p.size}</span>
                     </div>
                   )) : <p className="text-center text-xs text-gray-400 py-10 font-bold uppercase italic tracking-widest">Tidak ada item terpilih</p>}
                 </div>
 
                 {selectedInfo.description && (
                   <div className="pt-4 border-t border-dashed border-gray-200">
-                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Deskripsi Order:</p>
-                    <p className="text-[11px] text-gray-600 italic leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[15px] font-black uppercase text-gray-500 mb-1">Deskripsi Order:</p>
+                    <p className="text-[13px] text-gray-900 italic leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
                       {selectedInfo.description}
                     </p>
                   </div>
