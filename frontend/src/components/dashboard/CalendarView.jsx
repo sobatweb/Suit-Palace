@@ -46,7 +46,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
       <div className="xl:col-span-8 space-y-4">
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-800">
+        <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-800">
           <div className="flex justify-between items-center mb-6 px-2">
             <button onClick={() => setViewDate(new Date(currentYear, currentMonth - 1, 1))}><ChevronLeft size={20} /></button>
             <h3 className="font-black uppercase text-sm tracking-widest">
@@ -59,7 +59,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => (
               <div key={d} className="bg-gray-200 py-3 text-center text-[12px] font-black uppercase border-b border-r border-gray-200">{d}</div>
             ))}
-            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-[120px] border-r border-b border-gray-200" />)}
+            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-30 border-r border-b border-gray-200" />)}
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
 
@@ -72,7 +72,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               });
 
               return (
-                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[112px] border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-amber-300/50' : ''}`}
+                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-28 border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-amber-300/50' : ''}`}
                 >
                   <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
                     {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
@@ -192,9 +192,9 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
         </div>
 
         {/* List Mark agar data yang diketik muncul */}
-        <div className="bg-white p-5 rounded-[2rem] border border-gray-800 shadow-sm">
+        <div className="bg-white p-5 rounded-4xl border border-gray-800 shadow-sm">
           <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest text-gray-400">Marks - {new Date(selectedFullDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-50 overflow-y-auto pr-1">
             {(db.marks || []).filter(m => {
               const rawDate = m.date || m.date_mark;
               return rawDate && rawDate.split('T')[0] === selectedFullDate;

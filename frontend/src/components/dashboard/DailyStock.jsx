@@ -60,7 +60,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
   }, [db, selectedFullDate, stockSearch, categoryFilter]);
 
   return (
-    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-800">
+    <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-800">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-[#1A120B] text-white rounded-xl"><Database size={20} /></div>
@@ -96,7 +96,7 @@ const DailyStock = ({ db, selectedFullDate }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-75 overflow-y-auto pr-2 scrollbar-hide">
         {availableStock.map((s, idx) => (
           <div key={idx} className={`p-4 rounded-3xl border transition-all ${s.remaining <= 0 ? 'bg-rose-50 border-rose-100' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex justify-between items-start mb-2">

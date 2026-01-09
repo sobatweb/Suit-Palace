@@ -192,7 +192,7 @@ React.useEffect(() => {
 }, [activeTab]);
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
+    <div className="bg-white rounded-4xl shadow-sm border overflow-hidden">
  {/* TOOLBAR SEARCH - RESPONSIVE VERSION */}
 <div className="p-4 md:p-6 border-b bg-gray-50/50">
   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -220,7 +220,7 @@ React.useEffect(() => {
               <select
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
               >
                 <option value="all">
                   {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
@@ -245,7 +245,7 @@ React.useEffect(() => {
               <select
                 value={sortValue}
                 onChange={(e) => setSortValue(e.target.value)}
-                className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
               >
                 <option value="all">--- DEFAULT ---</option>
                 <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
@@ -274,7 +274,7 @@ React.useEffect(() => {
   </div>
 </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left min-w-[1200px]">
+        <table className="w-full text-left min-w-300">
           <thead className="bg-white text-[13px] font-black uppercase text-gray-800 tracking-widest border-b">
             {activeTab === 'order_items' ? (
               <tr>
@@ -374,7 +374,7 @@ React.useEffect(() => {
 
       {/* MODAL DETAIL HARGA OVERLAY */}
       {priceDetails && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
+        <div className="fixed inset-0 z-600 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
           <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm relative shadow-2xl border-b-8 border-slate-900" onClick={e => e.stopPropagation()}>
             <button onClick={() => setPriceDetails(null)} className="absolute top-6 right-6 text-2xl text-gray-300 hover:text-black">&times;</button>
 
@@ -448,7 +448,7 @@ React.useEffect(() => {
       )}
       {/* MODAL DETAIL OVERLAY */}
       {selectedInfo && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>
+        <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>
           <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm relative shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setSelectedInfo(null)} className="absolute top-6 right-6 text-2xl text-gray-300 hover:text-black">&times;</button>
             <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8D775F] mb-6 border-b pb-2 flex items-center gap-2">
@@ -501,7 +501,7 @@ React.useEffect(() => {
             {/* DETAIL PACKAGE */}
             {selectedInfo.type === 'package' && (
               <div className="space-y-3">
-                <div className="text-center p-6 bg-amber-50 rounded-[2rem] border border-amber-100">
+                <div className="text-center p-6 bg-amber-50 rounded-4xl border border-amber-100">
                   <h3 className="text-lg font-black text-amber-900">{selectedInfo.data.package_name}</h3>
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">{selectedInfo.data.duration_day} Hari Sewa</p>
                 </div>
