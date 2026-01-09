@@ -379,6 +379,7 @@ const AdminDashboard = () => {
             activeTab={activeTab}
             data={db[activeTab]}
             db={db} //
+            fetchData={fetchData}
             setEditingItem={setEditingItem}
             setModalType={setModalType}
             setDeleteConfirm={setDeleteConfirm}

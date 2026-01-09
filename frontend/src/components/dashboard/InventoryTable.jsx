@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle } from 'lucide-react';
 
-const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
+const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
-  const [tempDiscount, setTempDiscount] = useState(0); // State untuk menyimpan pilihan diskon sementara
+  const [tempDiscount, setTempDiscount] = useState("0"); // State untuk menyimpan pilihan diskon sementara
   const formatDateFull = (dateStr) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
 
@@ -75,6 +75,7 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
         body: JSON.stringify({ ...selectedInfo.data, discount: tempDiscount })
       });
       if (response.ok) {
+        await fetchData(); // Refresh data agar state db di parent terupdate
         setSelectedInfo(null);
       }
     } catch (error) {
@@ -125,7 +126,13 @@ const InventoryTable = ({ activeTab, data, db, setEditingItem, setModalType, set
                 {activeTab === 'order_items' ? (
                   <>
                     <td className="px-6 py-4">{item.id_order}</td>
-                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => { setSelectedInfo({ type: 'customer', data: item.customer_full }); setTempDiscount(item.customer_full.discount); }}>
+                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => { 
+                      const currentDisc = item.customer_full?.discount;
+                      // Normalisasi: "5.00" -> 5 -> "5" agar match dengan <option value="5">
+                      const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
+                      setSelectedInfo({ type: 'customer', data: item.customer_full }); 
+                      setTempDiscount(normalizedDisc); 
+                    }}>
                       {item.display_customer}
                     </td>
                     <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', data: item.package_full })}>

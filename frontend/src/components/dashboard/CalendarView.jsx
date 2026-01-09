@@ -55,11 +55,11 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
             <button onClick={() => setViewDate(new Date(currentYear, currentMonth + 1, 1))}><ChevronRight size={20} /></button>
           </div>
 
-          <div className="grid grid-cols-7 border rounded-2xl overflow-hidden bg-white shadow-inner">
+          <div className="grid grid-cols-7 border-t border-l border-gray-200 rounded-2xl overflow-hidden bg-white shadow-inner">
             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => (
-              <div key={d} className="bg-gray-200 py-3 text-center text-[12px] font-black uppercase border-b">{d}</div>
+              <div key={d} className="bg-gray-200 py-3 text-center text-[12px] font-black uppercase border-b border-r border-gray-200">{d}</div>
             ))}
-            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-[120px] border-[0.5px] border-gray-100" />)}
+            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-[120px] border-r border-b border-gray-200" />)}
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
 
@@ -72,7 +72,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               });
 
               return (
-                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-[0.5px] border-gray-100 relative cursor-pointer hover:bg-gray-50 transition-all ${selectedFullDate === dateStr ? 'bg-amber-50/50' : ''}`}
+                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-amber-300/50' : ''}`}
                 >
                   <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
                     {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
@@ -177,6 +177,10 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-rose-600 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Overdue</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-gray-500 shadow-sm"></div>
+            <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Cancel</span>
           </div>
         </div>
         <DailyStock db={db} selectedFullDate={selectedFullDate} />
