@@ -8,7 +8,23 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
   return (
     <aside className={`fixed inset-y-0 left-0 z-[100] w-64 bg-[#1A120B] text-white p-6 transition-transform lg:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-xl font-black italic uppercase">Suit<span className="text-[#A0A0A0]">Palace</span></h1>
+        <h1 className="text-xl font-black italic uppercase select-none">
+          S
+          <span
+            className="cursor-default"
+            onClick={(e) => {
+              if (e.ctrlKey) {
+                setIsOpen(false);
+                navigate("/adminMaster/register");
+              }
+            }}
+            title=""
+          >
+            u
+          </span>
+          it
+          <span className="text-[#A0A0A0]">Palace</span>
+        </h1>
         <button className="lg:hidden text-white" onClick={() => setIsOpen(false)}>
           <X size={24} />
         </button>
@@ -28,17 +44,7 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
 
       {/* ACTIONS */}
       <div className="mt-auto pt-6 border-t border-white/10 space-y-2">
-        {/* REGISTER ADMIN */}
-        <button
-          onClick={() => {
-            setIsOpen(false);
-            navigate("/adminMaster/register");
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-all"
-        >
-          <UserPlus size={14} />
-          Register Admin
-        </button>
+
 
         {/* LOGOUT */}
         <button
