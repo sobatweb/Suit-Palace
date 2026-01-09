@@ -405,4 +405,5 @@ INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_da
 (3, 8, 3, '2026-01-14', '2026-01-16', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
 INSERT INTO history_orders (customer_name, package_name, omset_order, condition_return) VALUES
-('John Doe', 'Paket Premium', 237500, 'Lengkap dan bersih');
+('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, 'CANCEL'),
+('Siti Aminah', '1 Set of Suit + Pants (4 hari)', 400000, 'Dikembalikan dengan Kondisi Baik');
