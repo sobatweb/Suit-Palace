@@ -231,7 +231,11 @@ BEGIN
         -- 2. Hitung Omset Bersih (Murni Harga Sewa)
         -- Rumus: Harga Paket - (Harga Paket * discount / 100)
         -- NEW.total_price menyimpan Harga Paket (Rental Fee) saat transaksi dibuat
-        SET omset_murni = (NEW.total_price - (NEW.total_price * IFNULL(discount_val, 0) / 100));
+        IF NEW.status_rent = 'Cancel' THEN
+            SET omset_murni = 0;
+        ELSE
+            SET omset_murni = (NEW.total_price - (NEW.total_price * IFNULL(discount_val, 0) / 100));
+        END IF;
 
         -- 4. Masukkan ke history_orders
         -- denda_paid berdiri sendiri sesuai keinginan Anda

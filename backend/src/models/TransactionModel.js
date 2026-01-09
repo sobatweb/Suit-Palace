@@ -134,7 +134,7 @@ class TransactionModel {
 
             // 1. Ambil data order & package untuk hitung denda otomatis
             const [orderRows] = await connection.query(
-                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date 
+                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date, status_rent 
                  FROM order_items WHERE id_order = ?`, 
                 [id]
             );
@@ -148,7 +148,8 @@ class TransactionModel {
             let finalPenalty = Number(order.penalty_paid) || 0;
 
             // Jika belum pernah di-set 'Dikembalikan' via Edit, hitung denda sekarang
-            if (!order.actual_return_date) {
+            // Dan pastikan bukan status 'Cancel'
+            if (!order.actual_return_date && order.status_rent !== 'Cancel') {
                 const endDate = new Date(order.end_dates);
                 endDate.setHours(0,0,0,0);
                 const compareDate = new Date(returnDate);
@@ -159,18 +160,21 @@ class TransactionModel {
                     const [pkg] = await connection.query('SELECT penalty_fee FROM packages WHERE id_package = ?', [order.id_package]);
                     finalPenalty = diffDays * (pkg[0].penalty_fee || 0);
                 }
+            } else if (order.status_rent === 'Cancel') {
+                finalPenalty = 0; // Pastikan denda 0 jika cancel
             }
 
             // 2. Update order_items (Set status dan denda)
+            const newStatusRent = order.status_rent === 'Cancel' ? 'Cancel' : 'Dikembalikan';
             const [result] = await connection.query(
                 `UPDATE order_items 
-                 SET status_rent = 'Dikembalikan', 
+                 SET status_rent = ?, 
                      status_order = 'Sudah Selesai', 
                      actual_return_date = ?,
                      penalty_paid = ?,
                      condition_return = ?
                  WHERE id_order = ?`,
-                [returnDate, finalPenalty, condition_return || '', id]
+                [newStatusRent, returnDate, finalPenalty, condition_return || '', id]
             );
 
             // 3. Tambahkan denda ke total denda di tabel customers (Akumulasi)
