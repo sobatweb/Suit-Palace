@@ -239,10 +239,14 @@ const [rows, setRows] = useState(() => {
                         <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 pt-2">
                           {['jas', 'kemeja', 'celana', 'dasi', 'changshan', 'vest', 'tuxedo'].map(prod => (
                             <div key={prod} className="space-y-1">
-                              <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{prod}</label>
+                              <label className="text-[10px] font-black uppercase text-slate-400 ml-1">{prod}</label>
                               <select value={row[`id_${prod}`] || ''} onChange={(e) => handleInputChange(index, `id_${prod}`, e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-900 rounded-xl text-[11px] font-bold focus:border-black">
                                 <option value="">Kosong</option>
-                                {db[prod]?.map(p => (
+                                {db[prod]?.slice().sort((a, b) => {
+                                  const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+                                  const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+                                  return nameA.localeCompare(nameB);
+                                }).map(p => (
                                   <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>{p[`name_${prod}`] || p[`kode_${prod}`]} ({p[`size_${prod}`]})</option>
                                 ))}
                               </select>
@@ -254,8 +258,8 @@ const [rows, setRows] = useState(() => {
                       <div className="col-span-1 md:col-span-3 mt-2">
                         <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Deskripsi Order</label>
                         <textarea
-                          value={row.description_rent || row.description || ''}
-                          onChange={e => handleInputChange(index, 'description_rent', e.target.value)}
+                          value={row.condition_return || row.description || ''}
+                          onChange={e => handleInputChange(index, 'condition_return', e.target.value)}
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold min-h-[60px] focus:border-black"
                           placeholder="Catatan/deskripsi tambahan untuk order ini..."
                         />

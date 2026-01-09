@@ -72,7 +72,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               });
 
               return (
-                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[120px] border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-amber-300/50' : ''}`}
+                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-[112px] border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-amber-300/50' : ''}`}
                 >
                   <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
                     {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}

@@ -148,7 +148,7 @@ CREATE TABLE order_items (
     penalty_paid DECIMAL(10,2) DEFAULT 0,
     status_rent ENUM('Booked', 'Diambil', 'Dikembalikan', 'Cancel') DEFAULT 'Booked',
     status_order ENUM('Belum Selesai', 'Sudah Selesai') DEFAULT 'Belum Selesai',
-    description_rent TEXT,
+    condition_return TEXT,
     FOREIGN KEY (id_customer) REFERENCES customers(id_customer),
     FOREIGN KEY (id_package) REFERENCES packages(id_package),
     FOREIGN KEY (id_booked) REFERENCES booked(id_booked)
@@ -161,7 +161,7 @@ CREATE TABLE history_orders (
     omset_order DECIMAL(10,2),
     denda_paid DECIMAL(10,2) DEFAULT 0, 
     return_date DATETIME,               
-    condition_return VARCHAR(100)
+    condition_return TEXT
 );
 
 -- ======================================================
@@ -212,21 +212,26 @@ BEGIN
 END //
 
 -- Trigger 3: Masuk History saat status_order 'Sudah Selesai'
-CREATE OR REPLACE TRIGGER after_payment_finish
+CREATE TRIGGER after_payment_finish
 AFTER UPDATE ON order_items
 FOR EACH ROW
 BEGIN
+    DECLARE cust_name VARCHAR(100);
+    DECLARE discount_val DECIMAL(5,2);
+    DECLARE pkg_name VARCHAR(100);
+    DECLARE omset_murni DECIMAL(10,2);
+
     -- Trigger hanya jalan jika status berubah menjadi 'Sudah Selesai'
     IF NEW.status_order = 'Sudah Selesai' AND OLD.status_order = 'Belum Selesai' THEN
         
         -- 1. Ambil Nama Customer, Discount, Nama Paket & Deposit
-        SELECT customer_name, discount INTO @cust_name, @discount FROM customers WHERE id_customer = NEW.id_customer;
-        SELECT package_name, deposit INTO @pkg_name, @deposit_amount FROM packages WHERE id_package = NEW.id_package;
+        SELECT customer_name, discount INTO cust_name, discount_val FROM customers WHERE id_customer = NEW.id_customer;
+        SELECT package_name INTO pkg_name FROM packages WHERE id_package = NEW.id_package;
         
         -- 2. Hitung Omset Bersih (Murni Harga Sewa)
         -- Rumus: Harga Paket - (Harga Paket * discount / 100)
         -- NEW.total_price menyimpan Harga Paket (Rental Fee) saat transaksi dibuat
-        SET @omset_murni = (NEW.total_price - (NEW.total_price * IFNULL(@discount, 0) / 100));
+        SET omset_murni = (NEW.total_price - (NEW.total_price * IFNULL(discount_val, 0) / 100));
 
         -- 4. Masukkan ke history_orders
         -- denda_paid berdiri sendiri sesuai keinginan Anda
@@ -239,12 +244,12 @@ BEGIN
             condition_return
         )
         VALUES (
-            @cust_name, 
-            @pkg_name, 
-            @omset_murni, 
+            cust_name, 
+            pkg_name, 
+            omset_murni, 
             NEW.penalty_paid, 
             NEW.actual_return_date, 
-            NEW.description_rent
+            NEW.condition_return
         );
     END IF;
 END //
@@ -302,32 +307,6 @@ UNION ALL
 SELECT 'Tuxedo', name_tuxedo, size_tuxedo, stock_tuxedo FROM tuxedo
 UNION ALL
 SELECT 'Changshan', name_changshan, size_changshan, stock_changshan FROM changshan;
-
-
--- =======================UPDATE CHECKED STATUS=============================
--- 1. Cek Overdue (Terlambat Mengembalikan)
--- Gunakan end_dates (sesuai skema awal) dan status_rent = 'Diambil'
-SELECT id_order, customer_name, end_dates, status_rent 
-FROM order_items 
-JOIN customers USING(id_customer)
-WHERE CURDATE() > end_dates 
-AND status_rent = 'Diambil';
-
--- 2. Tukar Ukuran/Barang dalam Booking
--- Catatan: id_order tidak ada di tabel booked, kita harus join atau menggunakan id_booked
-UPDATE booked 
-SET id_kemeja = 2 
-WHERE id_booked = (SELECT id_booked FROM order_items WHERE id_order = 1);
-
--- 3. Update status order menjadi selesai (Akan memicu trigger history)
-UPDATE order_items 
-SET 
-    actual_return_date = NOW(), 
-    status_rent = 'Dikembalikan',
-    status_order = 'Sudah Selesai', -- Mengikuti skema ENUM Anda
-    description_rent = 'Kancing Jas aman, dikembalikan tepat waktu. Denda 50rb dibayar.'
-WHERE id_order = 1;
-
 
 
 
@@ -414,11 +393,10 @@ INSERT INTO tuxedo (name_tuxedo, size_tuxedo, color_tuxedo, stock_tuxedo, condit
 INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest, id_tuxedo) VALUES
 (1, 1, 1, NULL, 2, 1, NULL), 
 (2, 2, 2, NULL, 3, 2, NULL), 
-(3, 3, 3, NULL, 1, 3, NULL),
-(NULL, NULL, NULL, 1, NULL, 1, NULL);
+(3, 3, 3, NULL, 1, 3, NULL);
 -- INSERT ORDER ITEMS
 INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
-(1, 6, 1, '2026-01-04', '2026-01-07', 237500, 'Diambil', 'Sudah Selesai'),
+(1, 6, 1, '2026-01-04', '2026-01-07', 237500, 'Diambil', 'Belum Selesai'),
 (2, 7, 2, '2026-01-07', '2026-01-11', 400000, 'Diambil', 'Belum Selesai'),
 (3, 8, 3, '2026-01-14', '2026-01-16', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')

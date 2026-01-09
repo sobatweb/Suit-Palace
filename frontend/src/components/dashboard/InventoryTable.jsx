@@ -19,6 +19,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
   const [filterValue, setFilterValue] = useState("all");
+  const [sortValue, setSortValue] = useState("all");
   const [tempDiscount, setTempDiscount] = useState("0"); // State untuk menyimpan pilihan diskon sementara
   const formatDateFull = (dateStr) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
@@ -92,7 +93,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   };
 
   const [priceDetails, setPriceDetails] = useState(null);
-const filteredData = getDisplayData().filter(item => {
+const baseFilteredData = getDisplayData().filter(item => {
   const matchesSearch = Object.values(item).some(v => 
     v?.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -120,6 +121,12 @@ const filteredData = getDisplayData().filter(item => {
 
   return matchesSearch && matchesDropdown;
 });
+
+const filteredData = activeTab === 'order_items'
+  ? (sortValue === "SORT_DATE_ASC"
+      ? [...baseFilteredData].sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates))
+      : baseFilteredData)
+  : baseFilteredData;
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
     try {
@@ -148,8 +155,9 @@ const filterOptions = React.useMemo(() => {
   switch (activeTab) {
     case 'order_items':
       const custNames = currentData.map(item => item.display_customer || item.customer_name);
-      // Set untuk unik, filter untuk buang null, sort() untuk Ascending (A-Z)
-      return [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const sortedCustNames = [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+      // Tambahkan opsi urutan tanggal di awal list
+      return sortedCustNames;
 
     case 'history_orders':
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -180,6 +188,7 @@ const filterOptions = React.useMemo(() => {
 // Tambahkan effect ini agar filter reset saat pindah tab
 React.useEffect(() => {
   setFilterValue("all");
+  setSortValue("all");
 }, [activeTab]);
 
   return (
@@ -203,27 +212,51 @@ React.useEffect(() => {
       </div>
 
       {/* Dropdown Filter Dinamis */}
-      {activeTab !== 'notes' && filterOptions.length > 0 && (
-        <div className="relative flex-1 sm:flex-none">
-          <select
-            value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
-            className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
-          >
-            <option value="all">
-              {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
-               activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
-               activeTab === 'packages' ? '--- SEMUA PAKET ---' : '--- SEMUA KOLEKSI ---'}
-            </option>
-            {filterOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
-            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+      {activeTab !== 'notes' && (
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {/* Filter Utama (Customer/Periode/Paket) */}
+          {filterOptions.length > 0 && (
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={filterValue}
+                onChange={(e) => setFilterValue(e.target.value)}
+                className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+              >
+                <option value="all">
+                  {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
+                   activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
+                   activeTab === 'packages' ? '--- SEMUA PAKET ---' : '--- SEMUA KOLEKSI ---'}
+                </option>
+                {filterOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Dropdown Sort khusus Order Items */}
+          {activeTab === 'order_items' && (
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={sortValue}
+                onChange={(e) => setSortValue(e.target.value)}
+                className="w-full sm:min-w-[200px] px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+              >
+                <option value="all">--- DEFAULT ---</option>
+                <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
+              </select>
+              <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -281,7 +314,7 @@ React.useEffect(() => {
                       {item.display_package}
                     </td>
                     <td className="px-6 py-4">
-                      <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.description_rent })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
+                      <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.condition_return })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
                         <ShoppingBag size={12} /> Detail
                       </button>
                     </td>

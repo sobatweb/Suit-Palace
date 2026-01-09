@@ -17,14 +17,14 @@ class TransactionModel {
             // 2. Insert into order_items
             const {
                 id_customer, id_package, start_dates, end_dates,
-                total_price, amount_paid, description_rent
+                total_price, amount_paid, condition_return
             } = orderData;
 
             const [orderResult] = await connection.query(
                 `INSERT INTO order_items 
-                (id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid, description_rent, status_rent, status_order)
+                (id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid, condition_return, status_rent, status_order)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Booked', 'Belum Selesai')`,
-                [id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid || 0, description_rent || '']
+                [id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid || 0, condition_return || '']
             );
 
             await connection.commit();
@@ -61,7 +61,7 @@ class TransactionModel {
             const orderFields = [
                 'id_customer', 'id_package', 'start_dates', 'end_dates', 
                 'actual_return_date', 'total_price', 'amount_paid', 
-                'penalty_paid', 'status_rent', 'status_order', 'description_rent'
+                'penalty_paid', 'status_rent', 'status_order', 'condition_return'
             ];
 
             Object.keys(data).forEach(key => {
@@ -127,7 +127,7 @@ class TransactionModel {
 
     // Special method for "Finish Order" which might involve penalties and status changes
     // Triggers in SQL handle history insertion and stock return if status changes appropriately
-    static async finishOrder(id, description_rent) {
+    static async finishOrder(id, condition_return) {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
@@ -168,9 +168,9 @@ class TransactionModel {
                      status_order = 'Sudah Selesai', 
                      actual_return_date = ?,
                      penalty_paid = ?,
-                     description_rent = ?
+                     condition_return = ?
                  WHERE id_order = ?`,
-                [returnDate, finalPenalty, description_rent || '', id]
+                [returnDate, finalPenalty, condition_return || '', id]
             );
 
             // 3. Tambahkan denda ke total denda di tabel customers (Akumulasi)

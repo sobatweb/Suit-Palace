@@ -260,13 +260,18 @@ const AdminDashboard = () => {
   const executeFinish = async (orderId, condition) => {
     try {
       // 1. Selesaikan pesanan (memicu trigger history di database)
-      await fetch(`/api/transaction/orders/${orderId}/finish`, {
+      const response = await fetch(`/api/transaction/orders/${orderId}/finish`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          description_rent: condition
+          condition_return: condition
         })
       });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Gagal menyelesaikan pesanan');
+      }
 
       // 2. Cari id_customer untuk pembersihan otomatis
       const orderData = db.order_items.find(o => String(o.id_order) === String(orderId));
@@ -290,6 +295,7 @@ const AdminDashboard = () => {
       setFinishOrderData(null);
     } catch (error) {
       console.error("Finish order failed", error);
+      alert(`Terjadi kesalahan: ${error.message}`);
     }
   };
 

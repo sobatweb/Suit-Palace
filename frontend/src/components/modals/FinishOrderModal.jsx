@@ -5,8 +5,8 @@ import { CheckCircle, X } from 'lucide-react';
 const FinishOrderModal = ({ order, onClose, onConfirm }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
-    const kondisi = e.target.kondisi.value;
-    onConfirm(order.id_order, kondisi);
+    const condition_return = e.target.condition_return.value;
+    onConfirm(order.id_order, condition_return);
   };
 
   return (
@@ -24,7 +24,7 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
           <div>
             <label className="text-[9px] font-black uppercase text-gray-400 ml-1 mb-1 block">Kondisi Pengembalian</label>
            <input 
-                name="kondisi" 
+                name="condition_return" 
                 type="text"
                 required
                 placeholder="Contoh: Baik, Robek di lengan, dll..."

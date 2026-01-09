@@ -152,10 +152,10 @@ const OrderDetailCard = ({
                   {bookedItemsList.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
                 </div>
                 
-                {order.description_rent && (
+                {order.condition_return && (
                   <>
                     <div className="text-[10px] font-black uppercase text-gray-400 mb-1">Deskripsi:</div>
-                    <p className="text-[11px] text-gray-600 italic leading-relaxed">{order.description_rent}</p>
+                    <p className="text-[11px] text-gray-600 italic leading-relaxed">{order.condition_return}</p>
                   </>
                 )}
               </div>
