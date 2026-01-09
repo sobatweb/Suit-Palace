@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, AlertCircle, CheckCircle } from "lucide-react";
 
 const RegisterAdminModal = ({ onClose }) => {
   const [username, setUsername] = useState("");
@@ -47,8 +47,18 @@ const RegisterAdminModal = ({ onClose }) => {
           Register Admin
         </h2>
 
-        {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
-        {success && <p className="text-emerald-600 text-xs mb-2">{success}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-4 mb-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600">
+            <AlertCircle size={16} />
+            <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="flex items-center gap-2 p-4 mb-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-600">
+            <CheckCircle size={16} />
+            <p className="text-[10px] font-black uppercase tracking-widest">{success}</p>
+          </div>
+        )}
 
         <input
           placeholder="Username"

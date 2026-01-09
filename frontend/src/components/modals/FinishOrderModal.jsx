@@ -31,7 +31,7 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
                 className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" 
               />
           </div>
-          <button type="submit" className="w-full py-4 bg-[#1A120B] text-white rounded-1.5rem text-[10px] font-black uppercase shadow-xl mt-2 transition-all hover:bg-black">
+          <button type="submit" className="w-full py-4 bg-[#1A120B] text-white rounded-3xl text-[10px] font-black uppercase shadow-xl mt-2 transition-all hover:bg-black">
             Konfirmasi & Masuk History
           </button>
         </form>

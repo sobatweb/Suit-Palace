@@ -93,10 +93,12 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   };
 
   const [priceDetails, setPriceDetails] = useState(null);
+const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
+
 const baseFilteredData = getDisplayData().filter(item => {
-  const matchesSearch = Object.values(item).some(v => 
-    v?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const matchesSearch = isProductTab
+    ? (item[`name_${activeTab}`] || item[`kode_${activeTab}`] || item.package_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
+    : Object.values(item).some(v => v?.toString().toLowerCase().includes(searchTerm.toLowerCase()));
 
   let matchesDropdown = true;
   if (filterValue !== "all") {
@@ -113,7 +115,7 @@ const baseFilteredData = getDisplayData().filter(item => {
       }
     } else if (activeTab === 'packages') {
       matchesDropdown = item.package_name === filterValue;
-    } else if (['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo'].includes(activeTab)) {
+    } else if (isProductTab) {
       // Mencocokkan nama produk (contoh: name_jas atau kode_jas)
       matchesDropdown = item[`name_${activeTab}`] === filterValue || item[`kode_${activeTab}`] === filterValue;
     }
@@ -173,13 +175,6 @@ const filterOptions = React.useMemo(() => {
         return monthNames.indexOf(mB) - monthNames.indexOf(mA);
       });
       
-    case 'packages':
-      return (db.packages?.map(p => p.package_name) || []).sort();
-
-    case 'jas': case 'celana': case 'kemeja': case 'dasi': case 'changshan': case 'vest': case 'tuxedo':
-      const productNames = data.map(item => item[`name_${activeTab}`] || item[`kode_${activeTab}`]);
-      return [...new Set(productNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
-      
     default:
       return [];
   }
@@ -205,7 +200,12 @@ React.useEffect(() => {
         <Search className="absolute left-3 top-3 text-gray-400" size={15} />
         <input 
           type="text" 
-          placeholder={`Cari Nama Customer`} 
+          placeholder={
+            activeTab === 'order_items' ? 'Cari Nama Customer' : 
+            activeTab === 'packages' ? 'Cari Nama Paket' :
+            isProductTab ? `Cari Nama ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}` :
+            'Cari Data...'
+          } 
           className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm outline-none w-full sm:w-64 shadow-sm focus:ring-2 focus:ring-slate-200" 
           onChange={(e) => setSearchTerm(e.target.value)} 
         />
@@ -225,7 +225,7 @@ React.useEffect(() => {
                 <option value="all">
                   {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
                    activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
-                   activeTab === 'packages' ? '--- SEMUA PAKET ---' : '--- SEMUA KOLEKSI ---'}
+                   `--- NAMA ${activeTab.toUpperCase()} ---`}
                 </option>
                 {filterOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>

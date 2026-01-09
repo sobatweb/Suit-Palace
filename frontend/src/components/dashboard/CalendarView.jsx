@@ -8,10 +8,11 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
   const currentYear = viewDate.getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const getStatusColor = (status, endDate) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr;
 
     if (status === 'Dikembalikan') return 'bg-blue-500';
 

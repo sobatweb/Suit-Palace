@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Database, Plus, Trash2, User, Phone, CreditCard } from 'lucide-react';
+import { X, Database, Plus, Trash2, User, Phone, CreditCard, Clock } from 'lucide-react';
 
 const tableSchemas = {
   packages: ['package_name', 'package_price', 'duration_day', 'deposit', 'penalty_fee'],
@@ -19,7 +19,8 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const table = editingItem?.fromTable || activeTab;
   const isOrderTable = table === 'order_items';
 
-  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const [isNewCustomer, setIsNewCustomer] = useState(true);
   
@@ -80,12 +81,12 @@ const [rows, setRows] = useState(() => {
 
   return (
     <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200`}>
 
         {/* HEADER */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
+        <div className={`flex justify-between items-center p-6 border-b border-slate-100 sticky top-0 ${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} z-10`}>
           <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">
-            {editingItem ? `Edit Data ${table.replace('_', ' ')}` : isOrderTable ? 'Input Order Baru' : `Tambah ${table.replace('_', ' ')}`}
+            {table === 'notes' ? (editingItem ? 'Edit Note' : 'Write New Note') : (editingItem ? `Edit Data ${table.replace('_', ' ')}` : isOrderTable ? 'Input Order Baru' : `Tambah ${table.replace('_', ' ')}`)}
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20} /></button>
         </div>
@@ -179,7 +180,7 @@ const [rows, setRows] = useState(() => {
             </div>
           )}
 
-          <div className="space-y-6">
+          <div className={table === 'notes' ? "hidden" : "space-y-6"}>
             <div className="flex justify-between items-center">
               <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">
                 {isOrderTable ? 'Daftar Paket Pesanan' : 'Data Item'}
@@ -312,17 +313,54 @@ const [rows, setRows] = useState(() => {
               </div>
             ))}
           </div>
-          {!isOrderTable && !editingItem && (
+
+          {table === 'notes' && (
+            <div className="space-y-8 py-4">
+              <div className="relative">
+                <div className="absolute -top-2 right-0 flex items-center gap-2 text-amber-600/40">
+                  <Clock size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {editingItem ? new Date(editingItem.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="space-y-8">
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-black uppercase text-amber-600/50 ml-1">Note Title</label>
+                    <input 
+                      required
+                      type="text"
+                      placeholder="Enter title..."
+                      value={rows[0].title_note || ''}
+                      onChange={(e) => handleInputChange(0, 'title_note', e.target.value)}
+                      className="w-full px-0 py-4 bg-transparent border-b-2 border-amber-100 text-3xl font-black text-slate-800 outline-none focus:border-amber-400 transition-all placeholder:text-slate-300 tracking-tighter"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-black uppercase text-amber-600/50 ml-1">Content</label>
+                    <textarea 
+                      required
+                      placeholder="Write your thoughts here..."
+                      value={rows[0].description_note || ''}
+                      onChange={(e) => handleInputChange(0, 'description_note', e.target.value)}
+                      className="w-full px-8 py-10 bg-white/60 border-2 border-amber-50 rounded-4xl text-lg font-medium text-slate-700 outline-none focus:border-amber-200 transition-all min-h-100 shadow-inner italic font-serif leading-relaxed"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isOrderTable && !editingItem && table !== 'notes' && (
             <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2rem text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
               <Plus size={16} /> Input Data Baru Lainnya
             </button>
           )}
         </form>
 
-        <div className="p-6 bg-white border-t border-slate-100 flex gap-4">
+        <div className={`p-6 ${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} border-t border-slate-100 flex gap-4`}>
           <button type="button" onClick={onClose} className="px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl text-[11px] font-black uppercase hover:bg-slate-200 transition-all">Cancel</button>
-          <button type="button" onClick={() => onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
-            {isOrderTable ? 'Simpan Transaksi Order' : 'Simpan Data'}
+          <button type="button" onClick={() => onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows)} className={`flex-1 py-4 ${table === 'notes' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 hover:bg-black'} text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all`}>
+            {table === 'notes' ? 'Save Note' : (isOrderTable ? 'Simpan Transaksi Order' : 'Simpan Data')}
           </button>
         </div>
       </motion.div>

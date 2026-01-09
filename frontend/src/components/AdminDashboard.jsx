@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Menu, Plus } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { Menu, Plus, Edit3, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import LogoutConfirmModal from "../components/modals/LogoutConfirmModal";
 
@@ -48,6 +48,12 @@ const AdminDashboard = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const selectedFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
@@ -197,6 +203,18 @@ const AdminDashboard = () => {
           // Strip fromTable
           const { fromTable, id_customer, ...rest } = item;
           body = rest;
+        } else if (table === 'notes' || table === 'marks') {
+          const idField = table === 'notes' ? 'id_note' : 'id_marks';
+          const id = isEdit ? editingItem[idField] : '';
+          url = isEdit ? `/api/inventory/${table}/${id}` : `/api/inventory/${table}`;
+
+          const cleanedBody = {};
+          Object.keys(item).forEach(key => {
+            if (key !== 'fromTable' && key !== idField && key !== 'created_at') {
+              cleanedBody[key] = item[key];
+            }
+          });
+          body = cleanedBody;
         } else {
           // Inventory tables (jas, kemeja, etc.)
           const idField = editingItem ? Object.keys(editingItem)[0] : '';
@@ -228,17 +246,18 @@ const AdminDashboard = () => {
       }
 
       fetchData(); // Refresh data
+      showToast(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil disimpan');
       setModalType(null);
       setEditingItem(null);
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
-      alert(`Terjadi kesalahan saat menyimpan data: ${error.message}`);
+      showToast(error.message, 'error');
     }
   };
 
   const handleSaveMarkNote = async (table, newData) => {
     // Determine endpoint based on table
-    const endpoint = table === 'marks' ? '/api/dashboard/marks' : '/api/dashboard/notes';
+    const endpoint = table === 'marks' ? '/api/inventory/marks' : '/api/inventory/notes';
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -251,9 +270,10 @@ const AdminDashboard = () => {
         throw new Error(errData.message || `HTTP error! status: ${response.status}`);
       }
       await fetchData();
+      showToast(`${table === 'marks' ? 'Mark' : 'Note'} berhasil disimpan`);
     } catch (error) {
       console.error("Save Mark/Note failed", error);
-      alert('Failed to save. See console for details.');
+      showToast('Gagal menyimpan data', 'error');
     }
   };
 
@@ -292,10 +312,11 @@ const AdminDashboard = () => {
       }
 
       fetchData();
+      showToast('Pesanan berhasil diselesaikan');
       setFinishOrderData(null);
     } catch (error) {
       console.error("Finish order failed", error);
-      alert(`Terjadi kesalahan: ${error.message}`);
+      showToast(error.message, 'error');
     }
   };
 
@@ -330,7 +351,7 @@ const AdminDashboard = () => {
         if (table === 'customers') {
           url = `/api/customers/${id}`;
         } else if (table === 'marks' || table === 'notes') {
-          url = `/api/dashboard/${table}/${id}`;
+          url = `/api/inventory/${table}/${id}`;
         }
 
         await fetch(url, {
@@ -340,9 +361,10 @@ const AdminDashboard = () => {
       }
 
       fetchData(); // Refresh data
+      showToast('Data berhasil dihapus');
     } catch (error) {
       console.error("Delete failed", error);
-      alert('Gagal menghapus data.');
+      showToast('Gagal menghapus data', 'error');
     } finally {
       setDeleteConfirm(null); // Close modal
     }
@@ -392,6 +414,49 @@ const AdminDashboard = () => {
             setFinishOrderData={setFinishOrderData}
             onDeleteMarkNote={handleDeleteMarkNote}
           />
+        ) : activeTab === 'notes' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {db.notes.map((note) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={note.id_note} 
+                className="group relative bg-[#FFFDF0] p-10 rounded-sm shadow-xl border-l-11 border-amber-400 min-h-80 flex flex-col transition-all hover:rotate-1 hover:-translate-y-2"
+              >
+                <div className="absolute top-6 right-8 flex items-center gap-1.5 text-amber-600/40">
+                  <Clock size={12} />
+                  <span className="text-[10px] font-black uppercase tracking-tighter">
+                    {new Date(note.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-black uppercase tracking-tighter mb-6 pr-20 text-slate-800 border-b-2 border-amber-100/50 pb-3">
+                  {note.title_note}
+                </h3>
+                
+                <p className="text-[13px] font-bold text-slate-600 leading-relaxed flex-1 whitespace-pre-wrap italic font-serif">
+                  "{note.description_note}"
+                </p>
+
+                <div className="mt-8 pt-6 border-t border-amber-100/50 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => { setEditingItem({ ...note, fromTable: 'notes' }); setModalType('form_db'); }}
+                    className="p-2.5 bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition-colors"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => setDeleteConfirm({ table: 'notes', id: note.id_note })}
+                    className="p-2.5 bg-rose-100 text-rose-700 rounded-xl hover:bg-rose-200 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+                <div className="absolute bottom-0 right-0 w-12 h-12 bg-linear-to-tl from-amber-100/30 to-transparent rounded-tl-full"></div>
+              </motion.div>
+            ))}
+          </div>
         ) : (
           <InventoryTable
             activeTab={activeTab}
@@ -413,6 +478,23 @@ const AdminDashboard = () => {
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
         {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
         {showLogoutConfirm && (<LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
+      </AnimatePresence>
+
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {toast && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-9999">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl border shadow-2xl ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}
+            >
+              {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+              <p className="text-[11px] font-black uppercase tracking-widest">{toast.message}</p>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

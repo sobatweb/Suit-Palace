@@ -3,7 +3,7 @@ const db = require('../config/db');
 class InventoryModel {
     // Helper to validate allowed tables to prevent SQL injection
     static validateTable(table) {
-        const allowed = ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'packages', 'booked', 'vest', 'tuxedo'];
+        const allowed = ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'packages', 'booked', 'vest', 'tuxedo', 'notes', 'marks'];
         if (!allowed.includes(table)) {
             throw new Error('Invalid table name');
         }
@@ -23,7 +23,11 @@ class InventoryModel {
 
     static async getById(table, idField, id) {
         const tableName = this.validateTable(table);
-        const [rows] = await db.query(`SELECT * FROM ${tableName} WHERE ${idField} = ?`, [id]);
+        // Fix: Jika tabel notes, pastikan menggunakan id_note meskipun controller mengirim id_notes
+        let actualIdField = idField;
+        if (table === 'notes' && idField === 'id_notes') actualIdField = 'id_note';
+
+        const [rows] = await db.query(`SELECT * FROM ${tableName} WHERE ${actualIdField} = ?`, [id]);
         return rows[0];
     }
 
@@ -43,11 +47,15 @@ class InventoryModel {
 
     static async update(table, idField, id, data) {
         const tableName = this.validateTable(table);
+        // Fix: Jika tabel notes, pastikan menggunakan id_note meskipun controller mengirim id_notes
+        let actualIdField = idField;
+        if (table === 'notes' && idField === 'id_notes') actualIdField = 'id_note';
+
         const keys = Object.keys(data);
         const values = Object.values(data);
 
         const setClause = keys.map(key => `${key} = ?`).join(', ');
-        const query = `UPDATE ${tableName} SET ${setClause} WHERE ${idField} = ?`;
+        const query = `UPDATE ${tableName} SET ${setClause} WHERE ${actualIdField} = ?`;
 
         const [result] = await db.query(query, [...values, id]);
         return result.affectedRows;
@@ -55,7 +63,11 @@ class InventoryModel {
 
     static async delete(table, idField, id) {
         const tableName = this.validateTable(table);
-        const query = `DELETE FROM ${tableName} WHERE ${idField} = ?`;
+        // Fix: Jika tabel notes, pastikan menggunakan id_note meskipun controller mengirim id_notes
+        let actualIdField = idField;
+        if (table === 'notes' && idField === 'id_notes') actualIdField = 'id_note';
+
+        const query = `DELETE FROM ${tableName} WHERE ${actualIdField} = ?`;
         const [result] = await db.query(query, [id]);
         return result.affectedRows;
     }

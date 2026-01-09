@@ -31,8 +31,8 @@ const Contact = () => {
     <section id="contact" className="py-32 md:py-48 bg-[#F8F9FA] relative overflow-hidden">
       {/* Background Decor agar tidak sepi */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
-        <div className="absolute top-1/4 left-[-10%] w-500px h-500px bg-gray-100 blur-[120px] rounded-full opacity-50" />
-        <div className="absolute bottom-1/4 right-[-10%] w-500px h-500px bg-gray-100 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute top-1/4 left-[-10%] w-125 h-125 bg-gray-100 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute bottom-1/4 right-[-10%] w-125 h-125 bg-gray-100 blur-[120px] rounded-full opacity-50" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -70,7 +70,7 @@ const Contact = () => {
                 {item.title}
               </h4>
               
-              <p className="text-sm md:text-base font-bold italic text-gray-800 leading-relaxed mb-8 min-h-50px">
+              <p className="text-sm md:text-base font-bold italic text-gray-800 leading-relaxed mb-8 min-h-12.5">
                 {item.detail}
               </p>
 
