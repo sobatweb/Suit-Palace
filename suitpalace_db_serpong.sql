@@ -319,21 +319,21 @@ SELECT 'Changshan', name_changshan, size_changshan, stock_changshan FROM changsh
 --====================INSERT DATA CONTOH===========================
 -- INSERT customers
 INSERT INTO customers (customer_name, customer_phone, bank_account, discount) VALUES
-('Budi Santoso', '081234567890', 'BCA - 12345678', 5.00),
-('Siti Aminah', '081234567891', 'Mandiri - 87654321', 0.00),
-('Andi Wijaya', '081234567892', 'BNI - 11223344', 10.00);
+('Titus Ericson', '081234567890', 'BCA - 12345678', 5.00),
+('Nabil Wijaya', '081234567891', 'Mandiri - 87654321', 0.00),
+('Muhandis Azmi', '081234567892', 'BNI - 11223344', 10.00);
 
 -- INSERT packages
-INSERT INTO `packages` (`id_package`, `package_name`, `package_price`, `duration_day`, `deposit`, `penalty_fee`) VALUES
-(6, '1 Set of Suit + Pants (3 hari)', 350000.00, 3, 700000.00, 70000.00),
-(7, '1 Set of Suit + Pants (4 hari)', 400000.00, 4, 700000.00, 70000.00),
-(8, '1 Set of Suit + Pants (7 hari)', 500000.00, 7, 700000.00, 70000.00),
-(9, '1 Set of Suit + Pants + Vest (3 hari)', 425000.00, 3, 900000.00, 90000.00),
-(10, '1 Set of Suit + Pants + Shirt (4 hari)', 425000.00, 3, 875000.00, 90000.00),
-(11, '1 Set of Suit + Pants + Vest (4 hari)', 500000.00, 4, 900000.00, 90000.00),
-(12, '1 Set of Suit + Pants + Shirt (4 hari)', 500000.00, 4, 875000.00, 90000.00),
-(13, '1 Set of Suit + Pants + Vest (7 hari)', 625000.00, 7, 875000.00, 90000.00),
-(14, '1 Set of Suit + Pants + Shirt (7 hari)', 625000.00, 7, 875000.00, 90000.00);
+INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposit`, `penalty_fee`) VALUES
+('1 Set of Suit + Pants (3 hari)', 350000.00, 3, 700000.00, 70000.00),
+('1 Set of Suit + Pants (4 hari)', 400000.00, 4, 700000.00, 70000.00),
+('1 Set of Suit + Pants (7 hari)', 500000.00, 7, 700000.00, 70000.00),
+('1 Set of Suit + Pants + Vest (3 hari)', 425000.00, 3, 900000.00, 90000.00),
+('1 Set of Suit + Pants + Shirt (4 hari)', 425000.00, 3, 875000.00, 90000.00),
+('1 Set of Suit + Pants + Vest (4 hari)', 500000.00, 4, 900000.00, 90000.00),
+('1 Set of Suit + Pants + Shirt (4 hari)', 500000.00, 4, 875000.00, 90000.00),
+('1 Set of Suit + Pants + Vest (7 hari)', 625000.00, 7, 875000.00, 90000.00),
+('1 Set of Suit + Pants + Shirt (7 hari)', 625000.00, 7, 875000.00, 90000.00);
 
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
@@ -400,10 +400,9 @@ INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest
 (3, 3, 3, NULL, 1, 3, NULL);
 -- INSERT ORDER ITEMS
 INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
-(1, 6, 1, '2026-01-04', '2026-01-07', 237500, 'Diambil', 'Belum Selesai'),
-(2, 7, 2, '2026-01-07', '2026-01-11', 400000, 'Diambil', 'Belum Selesai'),
-(3, 8, 3, '2026-01-14', '2026-01-16', 495000, 'Booked', 'Belum Selesai');
+(1, 2, 1, '2026-01-06', '2026-01-08', 237500, 'Diambil', 'Belum Selesai'),
+(2, 3, 2, '2026-01-07', '2026-01-10', 400000, 'Diambil', 'Belum Selesai'),
+(3, 4, 3, '2026-01-21', '2026-01-23', 495000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
 INSERT INTO history_orders (customer_name, package_name, omset_order, condition_return) VALUES
-('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, 'CANCEL'),
-('Siti Aminah', '1 Set of Suit + Pants (4 hari)', 400000, 'Dikembalikan dengan Kondisi Baik');
+('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, 'CANCEL');
