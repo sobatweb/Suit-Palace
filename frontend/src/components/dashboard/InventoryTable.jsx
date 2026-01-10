@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle } from 'lucide-react';
 
 const tableSchemas = {
@@ -21,6 +21,8 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const [filterValue, setFilterValue] = useState("all");
   const [sortValue, setSortValue] = useState("all");
   const [tempDiscount, setTempDiscount] = useState("0"); // State untuk menyimpan pilihan diskon sementara
+  const tableRef = useRef(null);
+
   const formatDateFull = (dateStr) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
 
@@ -186,6 +188,49 @@ React.useEffect(() => {
   setSortValue("all");
 }, [activeTab]);
 
+const handlePrint = () => {
+  if (!tableRef.current) return;
+
+  const printContent = tableRef.current.innerHTML;
+  const printWindow = window.open('', '', 'width=1000,height=700');
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Print ${activeTab}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-size: 12px;
+          }
+          th {
+            background-color: #f3f3f3;
+            text-transform: uppercase;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>${activeTab.toUpperCase()}</h2>
+        ${printContent}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+};
+
+
   return (
     <div className="bg-white rounded-4xl shadow-sm border overflow-hidden">
  {/* TOOLBAR SEARCH - RESPONSIVE VERSION */}
@@ -263,17 +308,14 @@ React.useEffect(() => {
 
     {/* Sisi Kanan: Action Buttons (Printer & Download) */}
     <div className="flex gap-2 w-full sm:w-auto justify-end">
-      <button className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+    <button onClick={handlePrint}className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
         <Printer size={16} /> <span className="sm:hidden">Print</span>
-      </button>
-      <button className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
-        <Download size={16} /> <span className="sm:hidden">Export</span>
       </button>
     </div>
 
   </div>
 </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" ref={tableRef}>
         <table className="w-full text-left min-w-300">
           <thead className="bg-white text-[13px] font-black uppercase text-gray-800 tracking-widest border-b">
             {activeTab === 'order_items' ? (
