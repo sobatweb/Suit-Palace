@@ -457,26 +457,124 @@ const handlePrint = () => {
                 </span>
               </div>
 
-              {/* Omset (History Preview) */}
-              <div className="bg-blue-50 p-4 rounded-2xl flex justify-between items-center border border-blue-100">
-                <span className="text-[12px] font-black uppercase text-blue-600">Estimasi Omset</span>
-                <span className="text-sm font-black text-blue-900">
-                  {formatIDR((Number(priceDetails.total_price) - (Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount || 0) / 100)))}
-                </span>
-              </div>
+               {/*  PENALTY FEE  */}
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && priceDetails.actual_return_date)
+                  ? new Date(priceDetails.actual_return_date.split('T')[0])
+                  : today;
+                
+                const endDate = new Date(priceDetails.end_dates.split('T')[0]);
+                endDate.setHours(0, 0, 0, 0);
+                
+                let penaltyFee = 0;
+                let daysLate = 0;
+                
+                if (calculationDate > endDate) {
+                  daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                  penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
+                }
 
-              {/* Garis Total */}
-              <div className="pt-2 mt-2 border-t-2 border-dashed border-gray-100">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[11px] font-black uppercase text-slate-900">Total Harga</span>
-                  <div className="text-right">
-                    <p className="text-xl font-black text-slate-900">
-                      {formatIDR((Number(priceDetails.total_price) - (Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount || 0) / 100)) + Number(priceDetails.package_full?.deposit || 0))}
-                    </p>
+                if (penaltyFee > 0) {
+                  return (
+                    <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
+                      <div>
+                        <span className="text-[12px] font-black uppercase text-rose-600">Penalty Fee</span>
+                        <p className="text-[9px] text-rose-400 font-bold">({daysLate} hari keterlambatan)</p>
+                      </div>
+                      <span className="text-sm font-black text-rose-900">
+                        + {formatIDR(penaltyFee)}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
-                  </div>
-                </div>
-              </div>
+             {/* Baris Estimasi Omset */}
+<div className="flex justify-between items-center px-1 mt-4">
+  <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
+  <span className="text-sm font-bold text-slate-700">
+    {(() => {
+      // 1. Harga Paket
+      const hargaDasar = Number(priceDetails.total_price || 0);
+      
+      // 2. Nominal Diskon
+      const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+      const nominalDiskon = (hargaDasar * diskonPersen / 100);
+      
+      // 3. Hitung Denda (Tanpa Deposit)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(priceDetails.end_dates.split('T')[0]);
+      endDate.setHours(0, 0, 0, 0);
+      
+      const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
+      const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
+        ? new Date(returnDateStr)
+        : today;
+      calculationDate.setHours(0, 0, 0, 0);
+      
+      let penaltyFee = 0;
+      if (calculationDate > endDate) {
+        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+        penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
+      }
+      
+      // RUMUS OMSET: Harga Paket - Diskon + Denda (TANPA DEPOSIT)
+      const estimasiOmset = (hargaDasar - nominalDiskon) + penaltyFee;
+      
+      return formatIDR(estimasiOmset);
+    })()}
+  </span>
+</div>
+             {/* Garis Total */}
+<div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
+  <span className="text-[11px] font-black uppercase text-slate-900">Total Tagihan (Inc. Deposit)</span>
+  <div className="text-right">
+    <p className="text-xl font-black text-slate-900">
+      {(() => {
+        // 1. Pastikan mengambil harga paket yang konsisten
+        const hargaDasar = Number(priceDetails.total_price || 0);
+        
+        // 2. Ambil diskon dari customer_full
+        const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+        const nominalDiskon = (hargaDasar * diskonPersen / 100);
+        
+        // 3. Ambil Deposit
+        const deposit = Number(priceDetails.package_full?.deposit || 0);
+        
+        // 4. Hitung Denda (Penalty)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Ambil tanggal akhir (end_dates)
+        const endDate = new Date(priceDetails.end_dates.split('T')[0]);
+        endDate.setHours(0, 0, 0, 0);
+        
+        // Gunakan tanggal kembali jika sudah ada, jika belum gunakan hari ini
+        const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
+        const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
+          ? new Date(returnDateStr)
+          : today;
+        calculationDate.setHours(0, 0, 0, 0);
+        
+        let penaltyFee = 0;
+        if (calculationDate > endDate) {
+          const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+          penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
+        }
+        
+        // RUMUS SESUAI REQUEST: Harga Paket - Diskon + Deposit + Denda
+        const totalAkhir = (hargaDasar - nominalDiskon) + deposit + penaltyFee;
+        
+        return formatIDR(totalAkhir);
+      })()}
+    </p>
+  </div>
+</div>
             </div>
 
             <button
@@ -514,10 +612,7 @@ const handlePrint = () => {
                   </div>
                   <a href={`https://wa.me/${selectedInfo.data.customer_phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200"><MessageCircle size={18} /></a>
                 </div>
-                <div className="bg-rose-50 p-4 rounded-2xl">
-                  <p className="text-[11px] text-rose-600 uppercase tracking-tighter">Total Denda Terakumulasi</p>
-                  <p className="text-sm font-black text-rose-900">{formatIDR(selectedInfo.data.penalty_fee)}</p>
-                </div>
+           
                 <div>
                   <label className="text-[11px] font-black uppercase text-amber-600 mb-2 block ml-1">Set Discount</label>
                   <select
