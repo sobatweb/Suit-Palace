@@ -340,8 +340,7 @@ INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposi
 ('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (4 hari)', 625000.00, 4, 1150000.00, 120000.00),
 ('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (7 hari)', 750000.00, 7, 1125000.00, 120000.00),
 ('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (7 hari)', 750000.00, 7, 1150000.00, 120000.00),
-('CUSTOM (SATUAN)', 0.00, 0, 0.00, 0.00),
-('Suit + Pants (3 hari)', 370000.00, 3, 700000.00, 70000.00);
+('CUSTOM (SATUAN)', 0.00, 0, 0.00, 0.00);
 
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
