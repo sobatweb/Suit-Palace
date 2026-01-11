@@ -77,7 +77,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
                 >
                   <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
                     {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
-                    <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-[#1A120B] text-white' : isToday ? 'bg-gray-400 text-white' : 'text-gray-900'}`}>
+                    <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-gray-500 text-white' : isToday ?  'bg-[#1A120B] text-white' : 'text-gray-900'}`}>
                       {day}
                     </span>
 

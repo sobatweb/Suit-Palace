@@ -31,8 +31,8 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     const parts = cleanDate.split('-'); // [YYYY, MM, DD]
 
     if (parts.length === 3) {
-      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-      return `${parseInt(parts[2])} ${monthNames[parseInt(parts[1]) - 1]} ${parts[0]}`;
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     }
     return '-';
   };
@@ -111,8 +111,7 @@ const baseFilteredData = getDisplayData().filter(item => {
         matchesDropdown = false;
       } else {
         const d = new Date(item.return_date);
-        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        const itemPeriod = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
         matchesDropdown = itemPeriod === filterValue;
       }
     } else if (activeTab === 'packages') {
@@ -164,17 +163,19 @@ const filterOptions = React.useMemo(() => {
       return sortedCustNames;
 
     case 'history_orders':
-      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
       const periods = currentData.map(item => {
         if (!item.return_date) return null;
         const d = new Date(item.return_date);
-        return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
       }).filter(Boolean);
+
+      const currentPeriod = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+      if (!periods.includes(currentPeriod)) {
+        periods.push(currentPeriod);
+      }
+
       return [...new Set(periods)].sort((a, b) => {
-        const [mA, yA] = a.split(' ');
-        const [mB, yB] = b.split(' ');
-        if (yA !== yB) return yB - yA;
-        return monthNames.indexOf(mB) - monthNames.indexOf(mA);
+        return new Date(b) - new Date(a);
       });
       
     default:
@@ -184,7 +185,12 @@ const filterOptions = React.useMemo(() => {
 
 // Tambahkan effect ini agar filter reset saat pindah tab
 React.useEffect(() => {
-  setFilterValue("all");
+  if (activeTab === 'history_orders') {
+    const currentPeriod = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    setFilterValue(currentPeriod);
+  } else {
+    setFilterValue("all");
+  }
   setSortValue("all");
 }, [activeTab]);
 
@@ -316,11 +322,11 @@ const handlePrint = () => {
   </div>
 </div>
       <div className="overflow-x-auto" ref={tableRef}>
-        <table className="w-full text-left min-w-300">
-          <thead className="bg-white text-[13px] font-black uppercase text-gray-800 tracking-widest border-b">
+        <table className="w-full text-left">
+          <thead className="bg-white text-[15px] font-black uppercase text-gray-900 tracking-widest border-b">
             {activeTab === 'order_items' ? (
               <tr>
-                <th className="px-6 py-5">Customer</th>
+                <th className="px-6 py-6">Customer</th>
                 <th className="px-6 py-5">Package</th>
                 <th className="px-6 py-5">Booked</th>
                 <th className="px-6 py-5">Start Date</th>
@@ -338,7 +344,7 @@ const handlePrint = () => {
             )}
           </thead>
 
-          <tbody className="text-[13px] font-bold text-gray-800">
+          <tbody className="text-[15px] font-bold text-gray-800">
             {filteredData.map((item, idx) => (
               <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
                 {activeTab === 'order_items' ? (

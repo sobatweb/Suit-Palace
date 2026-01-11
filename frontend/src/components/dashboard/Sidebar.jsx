@@ -1,13 +1,19 @@
 import React from 'react';
-import { X, LogOut, UserPlus } from 'lucide-react';
+import { X, LogOut, UserPlus, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutClick }) => {
   const navigate = useNavigate();
 
+  const today = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
   return (
-    <aside className={`fixed inset-y-0 left-0 z-100 w-64 bg-[#1A120B] text-white p-6 transition-transform lg:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="flex justify-between items-center mb-8">
+    <aside className={`fixed inset-y-0 left-0 z-100 w-55 bg-[#1A120B] text-white p-6 transition-transform lg:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="flex justify-between items-center mb-5">
         <h1 className="text-xl font-black italic uppercase select-none">
           S
           <span
@@ -30,12 +36,23 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
         </button>
       </div>
 
-      <nav className="space-y-1 flex-1 overflow-y-auto scrollbar-hide">
+      {/* TODAY'S DATE */}
+      <div className="mb-5 px-3 py-2 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-4">
+        <div className="p-2 bg-white/5 rounded-lg">
+          <Calendar size={14} className="text-[#A0A0A0]" />
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Today</p>
+          <p className="text-[11px] font-bold text-[#cfcfcf]">{today}</p>
+        </div>
+      </div>
+
+      <nav className="space-y-0 flex-1 overflow-y-auto scrollbar-hide">
         {['calendar', ...dbKeys].map(tab => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setIsOpen(false); }}
-            className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest ${activeTab === tab ? 'bg-[#A0A0A0] text-white' : 'text-gray-500 hover:bg-white/5'}`}
+            className={`w-full text-left px-3 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest ${activeTab === tab ? 'bg-[#727272] text-white' : 'text-gray-400 hover:bg-white/10'}`}
           >
             {tab.replace('_', ' ')}
           </button>
@@ -43,13 +60,11 @@ const Sidebar = ({ activeTab, setActiveTab, dbKeys, isOpen, setIsOpen, onLogoutC
       </nav>
 
       {/* ACTIONS */}
-      <div className="mt-auto pt-6 border-t border-white/10 space-y-2">
-
-
+      <div className="mt-auto pt-2 border-t border-white/10 space-y-2">
         {/* LOGOUT */}
         <button
           onClick={onLogoutClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[8px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
         >
           <LogOut size={14} />
           Logout

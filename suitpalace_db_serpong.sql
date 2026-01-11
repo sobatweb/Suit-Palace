@@ -337,9 +337,7 @@ INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposi
 
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
-('#1de25f', 'Perlu dicuci ulang', '2026-01-10'),
-('#1d79e2ff', 'Kancing kendur', '2026-01-11'),
-('#35a85bff', 'Siap pakai', '2026-01-12');
+('#35a85bff', 'Pergi ke Toko di Jakarta || 13:00', '2026-01-20');
 -- INSERT notes
 INSERT INTO notes (title_note, description_note) VALUES
 ('Stok Baru', 'Penambahan 10 jas warna navy'),
@@ -348,51 +346,31 @@ INSERT INTO notes (title_note, description_note) VALUES
 -- INSERT jas
 INSERT INTO jas (name_jas, size_jas, color_jas, stock_jas, condition_jas) VALUES
 ('Slim Fit Tuxedo', 'M', 'Hitam', 5, 'Bagus'), ('Classic Formal', 'L', 'Navy', 3, 'Bagus'),
-('Wool Blazer', 'XL', 'Abu-abu', 2, 'Bagus'), ('Double Breasted', 'S', 'Hitam', 4, 'Bagus'),
-('Modern Wedding', 'M', 'Putih', 3, 'Bagus'), ('Casual Linen', 'L', 'Khaki', 6, 'Bagus'),
-('Vintage Brown', 'XL', 'Cokelat', 2, 'Bagus'), ('Maroon Elegance', 'M', 'Maroon', 3, 'Bagus'),
-('Royal Blue', 'L', 'Biru', 4, 'Bagus'), ('Jet Black', 'XXL', 'Hitam', 2, 'Bagus');
+('Wool Blazer', 'XL', 'Abu-abu', 2, 'Bagus'), ('Double Breasted', 'S', 'Hitam', 4, 'Bagus');
 -- INSERT kemeja
 INSERT INTO kemeja (name_kemeja, size_kemeja, color_kemeja, stock_kemeja, condition_kemeja) VALUES
 ('White Oxford', 'M', 'Putih', 10, 'Bagus'), ('Blue Striped', 'L', 'Biru', 8, 'Bagus'),
-('Black Satin', 'XL', 'Hitam', 5, 'Bagus'), ('Light Pink', 'S', 'Pink', 4, 'Bagus'),
-('Grey Formal', 'M', 'Abu-abu', 7, 'Bagus'), ('Navy Cotton', 'L', 'Navy', 6, 'Bagus'),
-('Ivory Silk', 'M', 'Cream', 3, 'Bagus'), ('Dark Green', 'XL', 'Hijau', 2, 'Bagus'),
-('Spread Collar', 'M', 'Putih', 9, 'Bagus'), ('Slim Fit Blue', 'S', 'Biru Muda', 5, 'Bagus');
+('Black Satin', 'XL', 'Hitam', 5, 'Bagus'), ('Light Pink', 'S', 'Pink', 4, 'Bagus');
 -- INSERT celana
 INSERT INTO celana (name_celana, size_celana, color_celana, stock_celana, condition_celana) VALUES
 ('Formal Black', '32', 'Hitam', 8, 'Bagus'), ('Navy Chinos', '34', 'Navy', 6, 'Bagus'),
-('Grey Slacks', '36', 'Abu-abu', 5, 'Bagus'), ('Slim Khaki', '30', 'Khaki', 4, 'Bagus'),
-('White Trousers', '32', 'Putih', 3, 'Bagus'), ('Dark Brown', '34', 'Cokelat', 5, 'Bagus'),
-('Charcoal Pants', '36', 'Arang', 4, 'Bagus'), ('Deep Blue', '32', 'Biru Tua', 6, 'Bagus'),
-('Wool Pants', '38', 'Hitam', 2, 'Bagus'), ('Corduroy Brown', '34', 'Cokelat', 3, 'Bagus');
+('Grey Slacks', '36', 'Abu-abu', 5, 'Bagus'), ('Slim Khaki', '30', 'Khaki', 4, 'Bagus');
 -- INSERT changshan
 INSERT INTO changshan (name_changshan, size_changshan, color_changshan, stock_changshan, condition_changshan) VALUES
 ('Dragon Embroidered', 'M', 'Merah', 3, 'Bagus'), ('Silk Gold', 'L', 'Emas', 2, 'Bagus'),
-('Classic Black', 'XL', 'Hitam', 4, 'Bagus'), ('Modern Blue', 'S', 'Biru', 3, 'Bagus'),
-('White Crane', 'M', 'Putih', 2, 'Bagus'), ('Lucky Red', 'L', 'Merah', 5, 'Bagus'),
-('Imperial Yellow', 'XL', 'Kuning', 1, 'Bagus'), ('Bamboo Green', 'M', 'Hijau', 2, 'Bagus'),
-('Silver Phoenix', 'S', 'Perak', 3, 'Bagus'), ('Dark Maroon', 'L', 'Maroon', 4, 'Bagus');
+('Classic Black', 'XL', 'Hitam', 4, 'Bagus'), ('Modern Blue', 'S', 'Biru', 3, 'Bagus');
 -- INSERT dasi
 INSERT INTO dasi (kode_dasi, color_dasi, stock_dasi, description_dasi) VALUES
 ('D-001', 'Merah', 10, 'Dasi sutra polos'), ('D-002', 'Hitam', 15, 'Dasi formal hitam'),
-('D-003', 'Navy', 12, 'Dasi motif garis'), ('D-004', 'Emas', 5, 'Dasi pesta mewah'),
-('D-005', 'Hijau', 8, 'Dasi satin hijau'), ('D-006', 'Silver', 7, 'Dasi pernikahan'),
-('D-007', 'Polkadot', 6, 'Dasi biru polkadot'), ('D-008', 'Cokelat', 4, 'Dasi rajut casual'),
-('D-009', 'Ungu', 5, 'Dasi ungu lavender'), ('D-010', 'Batik', 10, 'Dasi motif batik');
+('D-003', 'Navy', 12, 'Dasi motif garis'), ('D-004', 'Emas', 5, 'Dasi pesta mewah');
 -- INSERT vest
 INSERT INTO vest (name_vest, size_vest, color_vest, stock_vest, condition_vest) VALUES
 ('Classic Black Vest', 'M', 'Hitam', 5, 'Bagus'), ('Navy Blue Vest', 'L', 'Navy', 4, 'Bagus'),
-('Grey Formal Vest', 'XL', 'Abu-abu', 3, 'Bagus'), ('Brown Casual Vest', 'S', 'Cokelat', 6, 'Bagus'),
-('White Dress Vest', 'M', 'Putih', 2, 'Bagus'), ('Charcoal Vest', 'L', 'Arang', 4, 'Bagus'),
-('Beige Linen Vest', 'M', 'Beige', 5, 'Bagus'), ('Dark Green Vest', 'XL', 'Hijau Tua', 3, 'Bagus'),
-('Maroon Velvet Vest', 'M', 'Maroon', 2, 'Bagus'), ('Light Blue Vest', 'S', 'Biru Muda', 4, 'Bagus');
+('Grey Formal Vest', 'XL', 'Abu-abu', 3, 'Bagus'), ('Brown Casual Vest', 'S', 'Cokelat', 6, 'Bagus');
 -- INSERT tuxedo
 INSERT INTO tuxedo (name_tuxedo, size_tuxedo, color_tuxedo, stock_tuxedo, condition_tuxedo) VALUES
 ('Classic Black Tuxedo', 'M', 'Hitam', 3, 'Bagus'), ('Navy Blue Tuxedo', 'L', 'Navy', 2, 'Bagus'),
-('Grey Formal Tuxedo', 'XL', 'Abu-abu', 4, 'Bagus'), ('Brown Casual Tuxedo', 'S', 'Cokelat', 5, 'Bagus'),
-('White Dress Tuxedo', 'M', 'Putih', 2, 'Bagus'), ('Charcoal Tuxedo', 'L', 'Arang', 3, 'Bagus'),
-('Beige Linen Tuxedo', 'M', 'Beige', 4, 'Bagus'), ('Dark Green Tuxedo', 'XL', 'Hijau Tua', 2, 'Bagus');
+('Grey Formal Tuxedo', 'XL', 'Abu-abu', 4, 'Bagus'), ('Brown Casual Tuxedo', 'S', 'Cokelat', 5, 'Bagus');
 -- INSERT booked (Menghubungkan item-item yang dipesan)
 INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest, id_tuxedo) VALUES
 (1, 1, 1, NULL, 2, 1, NULL), 
@@ -400,9 +378,9 @@ INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest
 (3, 3, 3, NULL, 1, 3, NULL);
 -- INSERT ORDER ITEMS
 INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
-(1, 2, 1, '2026-01-06', '2026-01-08', 237500, 'Diambil', 'Belum Selesai'),
-(2, 3, 2, '2026-01-07', '2026-01-10', 400000, 'Diambil', 'Belum Selesai'),
-(3, 4, 3, '2026-01-21', '2026-01-23', 495000, 'Booked', 'Belum Selesai');
+(1, 2, 1, '2026-01-06', '2026-01-08', 400000, 'Diambil', 'Belum Selesai'),
+(2, 3, 2, '2026-01-07', '2026-01-10', 500000, 'Diambil', 'Belum Selesai'),
+(3, 4, 3, '2026-01-21', '2026-01-23', 425000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
-INSERT INTO history_orders (customer_name, package_name, omset_order, condition_return) VALUES
-('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, 'CANCEL');
+INSERT INTO history_orders (customer_name, package_name, omset_order, return_date, condition_return) VALUES
+('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, '2026-01-10', 'CANCEL');

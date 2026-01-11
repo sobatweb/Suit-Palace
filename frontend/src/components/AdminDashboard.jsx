@@ -40,8 +40,8 @@ const AdminDashboard = () => {
 
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState('calendar');
-  const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
-  const [selectedDay, setSelectedDay] = useState(3);
+  const [viewDate, setViewDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [modalType, setModalType] = useState(null);
   const [editingItem, setEditingItem] = useState(null);

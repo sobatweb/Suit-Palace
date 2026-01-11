@@ -157,14 +157,29 @@ const [rows, setRows] = useState(() => {
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nomor Telepon</label>
                 <div className="relative">
                   <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input required type="text" placeholder="08..." value={customerInfo.customer_phone} onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input 
+                    readOnly={!isNewCustomer || !!editingItem}
+                    required 
+                    type="text" 
+                    placeholder="08..." 
+                    value={customerInfo.customer_phone} 
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })} 
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer || editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                  />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Rekening</label>
                 <div className="relative">
                   <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder="BCA - xxxxx" value={customerInfo.bank_account} onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all" />
+                  <input 
+                    readOnly={!isNewCustomer || !!editingItem}
+                    type="text" 
+                    placeholder="BCA - xxxxx" 
+                    value={customerInfo.bank_account} 
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} 
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer || editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                  />
                 </div>
               </div>
               {editingItem && (
