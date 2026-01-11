@@ -26,13 +26,13 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const formatDateFull = (dateStr) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === 'null' || dateStr === '-') return '-';
 
-    // Karena sudah datestrings:true, kita cukup split stringnya
-    const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    // Pastikan hanya mengambil bagian tanggal (YYYY-MM-DD) baik dari format ISO (T) maupun MySQL (spasi)
+    const cleanDate = dateStr.toString().split('T')[0].split(' ')[0];
     const parts = cleanDate.split('-'); // [YYYY, MM, DD]
 
     if (parts.length === 3) {
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     }
     return '-';
   };
@@ -111,7 +111,9 @@ const baseFilteredData = getDisplayData().filter(item => {
         matchesDropdown = false;
       } else {
         const d = new Date(item.return_date);
-        const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+        const itemPeriod = !isNaN(d.getTime()) 
+          ? d.toLocaleString('en-GB', { month: 'long', year: 'numeric' }) 
+          : null;
         matchesDropdown = itemPeriod === filterValue;
       }
     } else if (activeTab === 'packages') {
@@ -129,7 +131,9 @@ const filteredData = activeTab === 'order_items'
   ? (sortValue === "SORT_DATE_ASC"
       ? [...baseFilteredData].sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates))
       : baseFilteredData)
-  : baseFilteredData;
+  : activeTab === 'history_orders'
+    ? [...baseFilteredData].sort((a, b) => new Date(b.return_date) - new Date(a.return_date))
+    : baseFilteredData;
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
     try {
@@ -166,6 +170,7 @@ const filterOptions = React.useMemo(() => {
       const periods = currentData.map(item => {
         if (!item.return_date) return null;
         const d = new Date(item.return_date);
+        if (isNaN(d.getTime())) return null;
         return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
       }).filter(Boolean);
 
@@ -338,7 +343,14 @@ const handlePrint = () => {
             ) : (
               <tr>
                 {(tableSchemas[activeTab] || (data.length > 0 ? Object.keys(data[0]).filter(key => !key.startsWith('id_')) : []))
-                  .map(key => <th key={key} className="px-6 py-5">{key.replace('_', ' ')}</th>)}
+                  .map(key => {
+                    let displayName = key.replace('_', ' ');
+                    if (activeTab === 'history_orders') {
+                      if (key === 'return_date') displayName = 'Finish Order';
+                      if (key === 'condition_return') displayName = 'Description Order';
+                    }
+                    return <th key={key} className="px-6 py-5">{displayName}</th>;
+                  })}
                 {activeTab !== 'history_orders' && <th className="px-6 py-5 text-right sticky right-0 bg-white">Action</th>}
               </tr>
             )}
@@ -439,7 +451,7 @@ const handlePrint = () => {
 
               {/* Harga Sewa */}
               <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
-                <span className="text-[12px] font-black uppercase text-gray-700">Harga Sewa</span>
+                <span className="text-[14px] font-black uppercase text-gray-700">Harga Sewa</span>
                 <span className="text-sm font-black text-gray-900">
                   {formatIDR(priceDetails.total_price)}
                 </span>
@@ -448,7 +460,7 @@ const handlePrint = () => {
               {/* Diskon */}
               {Number(priceDetails.customer_full?.discount || 0) > 0 && (
                 <div className="bg-emerald-50 p-4 rounded-2xl flex justify-between items-center border border-emerald-100">
-                  <span className="text-[12px] font-black uppercase text-emerald-600">Diskon ({priceDetails.customer_full?.discount}%)</span>
+                  <span className="text-[14px] font-black uppercase text-emerald-600">Diskon ({priceDetails.customer_full?.discount}%)</span>
                   <span className="text-sm font-black text-emerald-900">
                     - {formatIDR(Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount) / 100)}
                   </span>
@@ -457,7 +469,7 @@ const handlePrint = () => {
 
               {/* Deposit dari Tabel Paket */}
               <div className="bg-amber-50 p-4 rounded-2xl flex justify-between items-center border border-amber-100">
-                <span className="text-[12px] font-black uppercase text-amber-600">Deposit Jaminan</span>
+                <span className="text-[14px] font-black uppercase text-amber-600">Deposit Jaminan</span>
                 <span className="text-sm font-black text-amber-900">
                   {formatIDR(priceDetails.package_full?.deposit || 0)}
                 </span>
@@ -487,8 +499,8 @@ const handlePrint = () => {
                   return (
                     <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
                       <div>
-                        <span className="text-[12px] font-black uppercase text-rose-600">Penalty Fee</span>
-                        <p className="text-[9px] text-rose-400 font-bold">({daysLate} hari keterlambatan)</p>
+                        <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
+                        <p className="text-[11px] text-rose-400 font-bold">({daysLate} hari keterlambatan)</p>
                       </div>
                       <span className="text-sm font-black text-rose-900">
                         + {formatIDR(penaltyFee)}
@@ -500,7 +512,7 @@ const handlePrint = () => {
               })()}
 
              {/* Baris Estimasi Omset */}
-<div className="flex justify-between items-center px-1 mt-4">
+<div className="flex justify-between items-center px-1 mt-10">
   <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
   <span className="text-sm font-bold text-slate-700">
     {(() => {
@@ -538,7 +550,7 @@ const handlePrint = () => {
 </div>
              {/* Garis Total */}
 <div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
-  <span className="text-[11px] font-black uppercase text-slate-900">Total Tagihan (Inc. Deposit)</span>
+  <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan </span>
   <div className="text-right">
     <p className="text-xl font-black text-slate-900">
       {(() => {

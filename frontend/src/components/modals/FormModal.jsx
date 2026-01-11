@@ -12,7 +12,8 @@ const tableSchemas = {
   vest: ['name_vest', 'size_vest', 'color_vest', 'stock_vest', 'condition_vest'],
   tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
-  notes: ['title_note', 'description_note']
+  notes: ['title_note', 'description_note'],
+  history_orders: ['customer_name', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
 };
 
 const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
@@ -52,6 +53,10 @@ const [rows, setRows] = useState(() => {
       if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
         rowData[key] = rowData[key].split('T')[0];
       }
+      // 3. Ubah ukuran (size) menjadi UPPERCASE saat load data edit
+      if (key.includes('size') && rowData[key] && typeof rowData[key] === 'string') {
+        rowData[key] = rowData[key].toUpperCase();
+      }
     });
     return [rowData];
   }
@@ -63,7 +68,13 @@ const [rows, setRows] = useState(() => {
 
   const handleInputChange = (index, field, value) => {
     const newRows = [...rows];
-    newRows[index][field] = value;
+
+    // Otomatis ubah input ukuran (size) menjadi UPPERCASE saat mengetik
+    let finalValue = value;
+    if (typeof value === 'string' && field.includes('size')) {
+      finalValue = value.toUpperCase();
+    }
+    newRows[index][field] = finalValue;
 
     if (isOrderTable && (field === 'id_package' || field === 'start_dates')) {
       const pkgId = field === 'id_package' ? value : newRows[index].id_package;
@@ -158,13 +169,13 @@ const [rows, setRows] = useState(() => {
                 <div className="relative">
                   <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
-                    readOnly={!isNewCustomer || !!editingItem}
+                    readOnly={!isNewCustomer && !editingItem}
                     required 
                     type="text" 
                     placeholder="08..." 
                     value={customerInfo.customer_phone} 
                     onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })} 
-                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer || editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
                   />
                 </div>
               </div>
@@ -173,12 +184,12 @@ const [rows, setRows] = useState(() => {
                 <div className="relative">
                   <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
-                    readOnly={!isNewCustomer || !!editingItem}
+                    readOnly={!isNewCustomer && !editingItem}
                     type="text" 
                     placeholder="BCA - xxxxx" 
                     value={customerInfo.bank_account} 
                     onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} 
-                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer || editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
                   />
                 </div>
               </div>
@@ -268,7 +279,10 @@ const [rows, setRows] = useState(() => {
                                   const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
                                   return nameA.localeCompare(nameB);
                                 }).map(p => (
-                                  <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>{p[`name_${prod}`] || p[`kode_${prod}`]} ({p[`size_${prod}`]})</option>
+                                  <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>
+                                    {p[`name_${prod}`] || p[`kode_${prod}`]} 
+                                    {p[`size_${prod}`] ? ` (${p[`size_${prod}`].toString().toUpperCase()})` : ''}
+                                  </option>
                                 ))}
                               </select>
                             </div>
@@ -307,10 +321,21 @@ const [rows, setRows] = useState(() => {
                           displayValue = Math.round(Number(displayValue));
                         }
 
+                        // Jika ukuran, pastikan UPPERCASE untuk tampilan input
+                        if (key.includes('size') && displayValue) {
+                          displayValue = displayValue.toString().toUpperCase();
+                        }
+
+                        let displayName = key.replace('_', ' ');
+                        if (table === 'history_orders') {
+                          if (key === 'return_date') displayName = 'Finish Order';
+                          if (key === 'condition_return') displayName = 'Description Order';
+                        }
+
                         return (
                           <div key={key} className={key.includes('note') || key.includes('content') ? 'col-span-1 md:col-span-2' : ''}>
                             <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block ml-1">
-                              {key.replace('_', ' ')}
+                              {displayName}
                             </label>
                             <input 
                               required 

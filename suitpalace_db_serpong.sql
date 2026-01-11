@@ -319,9 +319,9 @@ SELECT 'Changshan', name_changshan, size_changshan, stock_changshan FROM changsh
 --====================INSERT DATA CONTOH===========================
 -- INSERT customers
 INSERT INTO customers (customer_name, customer_phone, bank_account, discount) VALUES
-('Titus Ericson', '081234567890', 'BCA - 12345678', 5.00),
+('Titus Ericson', '081234567890', 'BCA - 12345678', 0.00),
 ('Nabil Wijaya', '081234567891', 'Mandiri - 87654321', 0.00),
-('Muhandis Azmi', '081234567892', 'BNI - 11223344', 10.00);
+('Muhandis Azmi', '081234567892', 'BNI - 11223344', 0.00);
 
 -- INSERT packages
 INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposit`, `penalty_fee`) VALUES
@@ -373,14 +373,14 @@ INSERT INTO tuxedo (name_tuxedo, size_tuxedo, color_tuxedo, stock_tuxedo, condit
 ('Grey Formal Tuxedo', 'XL', 'Abu-abu', 4, 'Bagus'), ('Brown Casual Tuxedo', 'S', 'Cokelat', 5, 'Bagus');
 -- INSERT booked (Menghubungkan item-item yang dipesan)
 INSERT INTO booked (id_jas, id_kemeja, id_celana, id_changshan, id_dasi, id_vest, id_tuxedo) VALUES
-(1, 1, 1, NULL, 2, 1, NULL), 
-(2, 2, 2, NULL, 3, 2, NULL), 
-(3, 3, 3, NULL, 1, 3, NULL);
+(1, 1, 1, NULL, NULL, NULL, NULL), 
+(2, 2, 2, NULL, NULL, NULL, NULL), 
+(3, 3, 3, NULL, NULL, NULL, NULL);
 -- INSERT ORDER ITEMS
-INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, status_rent, status_order) VALUES
-(1, 2, 1, '2026-01-06', '2026-01-08', 400000, 'Diambil', 'Belum Selesai'),
-(2, 3, 2, '2026-01-07', '2026-01-10', 500000, 'Diambil', 'Belum Selesai'),
-(3, 4, 3, '2026-01-21', '2026-01-23', 425000, 'Booked', 'Belum Selesai');
+INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid, status_rent, status_order) VALUES
+(1, 2, 1, '2026-01-06', '2026-01-08', 400000, 1100000, 'Diambil', 'Belum Selesai'),
+(2, 3, 2, '2026-01-07', '2026-01-10', 500000, 1200000, 'Diambil', 'Belum Selesai'),
+(3, 4, 3, '2026-01-21', '2026-01-23', 425000, 1325000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
 INSERT INTO history_orders (customer_name, package_name, omset_order, return_date, condition_return) VALUES
 ('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, '2026-01-10', 'CANCEL');

@@ -35,7 +35,7 @@ const OrderDetailCard = ({
   
 
   return (
-    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide">
+    <div className="space-y-4 max-h-250 overflow-y-auto pr-2 scrollbar-hide">
 
 
       {/* RENDER PESANAN */}
@@ -85,7 +85,8 @@ const OrderDetailCard = ({
                 bookedItemsList.push({
                   category: cat.toUpperCase(),
                   name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-                  size: prod[`size_${cat}`] || '-'
+                  size: prod[`size_${cat}`] || '-',
+                  color: prod[`color_${cat}`] || '-'
                 });
               }
             }
@@ -101,23 +102,23 @@ const OrderDetailCard = ({
                 {/* Bagian Customer */}
                 <div className="flex items-center gap-3">
                   <User size={14} className="text-gray-400" />
-                  <div className="text-[15px] font-black uppercase tracking-tighter">
+                  <div className="text-[17px] font-black tracking-tighter">
                     {cust?.customer_name} 
-                    <span className="text-gray-600 ml-1">({cust?.customer_phone})</span>
+                    <span className="text-gray-600 ml-2">({cust?.customer_phone})</span>
                   </div>
                 </div>
 
                 {/* Bagian Tanggal (SUDAH DIUBAH) */}
                 <div className="flex items-center gap-3">
                   <CalendarDays size={14} className="text-gray-400" />
-                  <div className="text-[11px] font-bold text-[#8D775F]">
-                    {formatDisplayDate(order.start_dates)} s/d {formatDisplayDate(order.end_dates)}
+                  <div className="text-[12px] font-bold text-[#8D775F]">
+                    {formatDisplayDate(order.start_dates)} - {formatDisplayDate(order.end_dates)}
                   </div>
                 </div>
               </div>
 
               {/* Rincian Biaya */}
-              <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-2 my-4 font-bold border border-gray-100 shadow-inner">
+              <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-1 my-4 font-bold border border-gray-100 shadow-inner">
                 <div className="flex justify-between"><span>Harga Paket</span><span>Rp {hargaPaket.toLocaleString('id-ID')}</span></div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600">
@@ -141,29 +142,39 @@ const OrderDetailCard = ({
               </div>
 
               {/* Booked Items & Description */}
-              <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
-                <div className="text-[10px] font-black uppercase text-gray-400 mb-2">Item Terpesan:</div>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {bookedItemsList.map((item, i) => (
-                    <span key={i} className="px-2 py-1 bg-slate-100 rounded-lg text-[9px] font-bold uppercase">
-                      {item.category}: {item.name} ({item.size})
-                    </span>
-                  ))}
+              <div className="pt-4 border-t border-dashed border-gray-400">
+                <div className="text-[12px] font-black uppercase text-gray-500 mb-2">Item Terpesan:</div>
+                <div className="mb-3">
+                  <table className="w-full">
+                    <tbody>
+                      {bookedItemsList.map((item, i) => (
+                        <tr key={i} className="text-[12px] font-bold">
+                          <td className="bg-slate-100 pl-3 py-1.5 rounded-l-xl w-24 uppercase text-gray-500 tracking-tighter">
+                            {item.category}
+                          </td>
+                          <td className="bg-slate-100 py-1.5 text-center text-gray-400 w-4">:</td>
+                          <td className="bg-slate-100 pr-3 py-1.5 rounded-r-xl text-gray-800">
+                            {item.category === 'DASI' 
+                              ? `${item.name} (${item.color})` 
+                              : `${item.name} (${item.color} - ${item.size})`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                   {bookedItemsList.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
                 </div>
                 
                 {order.condition_return && (
-                  <>
-                    <div className="text-[10px] font-black uppercase text-gray-400 mb-1">Deskripsi:</div>
-                    <p className="text-[11px] text-gray-600 italic leading-relaxed">{order.condition_return}</p>
-                  </>
+                  <div className="pt-2 border-t ">
+                    <div className="text-[13px] font-black uppercase text-gray-400 mb-1">Deskripsi Order:</div>
+                    <p className="text-[12px] font-bold text-gray-700 mb-text-gray-600 leading-relaxed">{order.condition_return}</p>
+                  </div>
                 )}
               </div>
 
               {/* AKSI */}
-              <div className="flex gap-2">
-               
-
+              <div className="flex gap-2 mt-5 ">
                 <button
                   onClick={() => {
                     // Cari data customer dan package terlebih dahulu untuk dikirim ke modal

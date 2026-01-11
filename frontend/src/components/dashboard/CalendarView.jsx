@@ -58,9 +58,9 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
 
           <div className="grid grid-cols-7 border-t border-l border-gray-200 rounded-2xl overflow-hidden bg-white shadow-inner">
             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => (
-              <div key={d} className="bg-gray-200 py-3 text-center text-[12px] font-black uppercase border-b border-r border-gray-200">{d}</div>
+              <div key={d} className="bg-gray-200 py-2 md:py-3 text-center text-[10px] md:text-[12px] font-black uppercase border-b border-r border-gray-200">{d}</div>
             ))}
-            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-30 border-r border-b border-gray-200" />)}
+            {[...Array(firstDay)].map((_, i) => <div key={`empty-${i}`} className="bg-gray-50/20 min-h-20 md:min-h-30 border-r border-b border-gray-200" />)}
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
 
@@ -73,11 +73,11 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
               });
 
               return (
-                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-28 border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-gray-300' : ''}`}
+                <div key={day} onClick={() => setSelectedDay(day)} className={`min-h-20 md:min-h-28 border-r border-b border-gray-300 relative cursor-pointer hover:bg-gray-100 transition-all ${selectedFullDate === dateStr ? 'bg-gray-300' : ''}`}
                 >
-                  <div className="p-2 flex justify-between items-start h-8 shrink-0 relative">
+                  <div className="p-1.5 md:p-2 flex justify-between items-start h-6 md:h-8 shrink-0 relative">
                     {/* Sekarang isToday sudah terdefinisi dan bisa digunakan di bawah ini */}
-                    <span className={`text-[12px] font-black rounded px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-gray-500 text-white' : isToday ?  'bg-[#1A120B] text-white' : 'text-gray-900'}`}>
+                    <span className={`text-[10px] md:text-[12px] font-black rounded px-1.5 md:px-2 py-0.5 ${selectedFullDate === dateStr ? 'bg-gray-500 text-white' : isToday ?  'bg-[#1A120B] text-white' : 'text-gray-900'}`}>
                       {day}
                     </span>
 
@@ -115,7 +115,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
                     {[...Array(Math.max(processedOrders.totalRows, 3))].map((_, rowIndex) => {
                       const order = dayOrders.find(o => o.visualRow === rowIndex);
 
-                      if (!order) return <div key={rowIndex} className="h-2.5 w-full" />;
+                      if (!order) return <div key={rowIndex} className="h-1.5 md:h-2.5 w-full" />;
 
                       // PERBAIKAN: Ambil hanya tanggal saja agar perbandingan akurat
                       const orderStart = order.start_dates.split('T')[0];
@@ -127,7 +127,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
                       return (
                         <div
                           key={rowIndex}
-                          className={`h-2.5 w-full ${getStatusColor(order.status_rent, order.end_dates)} relative flex items-center shrink-0 transition-all duration-300`}
+                          className={`h-1.5 md:h-2.5 w-full ${getStatusColor(order.status_rent, order.end_dates)} relative flex items-center shrink-0 transition-all duration-300`}
                           style={{
                             // 1. EFEK LENGKUNG (CAPSULE)
                             // Menggunakan 999px memastikan ujung benar-benar bulat sempurna
@@ -149,7 +149,7 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
                         >
                           {/* 3. MENAMPILKAN ID HANYA DI START */}
                           {isStart && (
-                            <span className="text-[7px] font-black text-white ml-2.5 uppercase truncate pointer-events-none drop-shadow-md">
+                            <span className="hidden md:block text-[7px] font-black text-white ml-2.5 uppercase truncate pointer-events-none drop-shadow-md">
                               {db.customers?.find(c => Number(c.id_customer) === Number(order.id_customer))?.customer_name || `#${order.id_order}`}
                             </span>
                           )}
@@ -162,24 +162,24 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
             })}
           </div>
         </div>
-        <div className="p-4 bg-white border-b flex flex-wrap gap-6 items-center justify-center shadow-sm">
-          <div className="flex items-center gap-2">
+        <div className="p-3 md:p-4 bg-white border-b flex flex-wrap gap-3 md:gap-6 items-center justify-center shadow-sm rounded-2xl">
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Booked</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Diambil</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Dikembalikan</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-rose-600 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Overdue</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-gray-500 shadow-sm"></div>
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Cancel</span>
           </div>
