@@ -333,7 +333,15 @@ INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposi
 ('1 Set of Suit + Pants + Vest (4 hari)', 500000.00, 4, 900000.00, 90000.00),
 ('1 Set of Suit + Pants + Shirt (4 hari)', 500000.00, 4, 875000.00, 90000.00),
 ('1 Set of Suit + Pants + Vest (7 hari)', 625000.00, 7, 875000.00, 90000.00),
-('1 Set of Suit + Pants + Shirt (7 hari)', 625000.00, 7, 875000.00, 90000.00);
+('1 Set of Suit + Pants + Shirt (7 hari)', 625000.00, 7, 875000.00, 90000.00),
+('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (3 hari)', 550000.00, 3, 1125000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (3 hari)', 550000.00, 3, 1150000.0000000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (4 hari)', 625000.00, 4, 1125000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (4 hari)', 625000.00, 4, 1150000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (7 hari)', 750000.00, 7, 1125000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (7 hari)', 750000.00, 7, 1150000.00, 120000.00),
+('CUSTOM (SATUAN)', 0.00, 0, 0.00, 0.00),
+('Suit + Pants (3 hari)', 370000.00, 3, 700000.00, 70000.00);
 
 -- INSERT marks
 INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
@@ -341,7 +349,7 @@ INSERT INTO marks (color_mark, note_mark, date_mark) VALUES
 -- INSERT notes
 INSERT INTO notes (title_note, description_note) VALUES
 ('Stok Baru', 'Penambahan 10 jas warna navy'),
-('Jadwal Laundry', 'Vendor laundry ambil hari Senin');
+('Jadwal Laundry', 'Vendor laundry ambil hari Senin, 26 January 2026 || HARUS DIKEMBALIKAN HARI RABU, 28 JANUARI 2026!!!');
 
 -- INSERT jas
 INSERT INTO jas (name_jas, size_jas, color_jas, stock_jas, condition_jas) VALUES
