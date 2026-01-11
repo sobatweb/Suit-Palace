@@ -168,6 +168,7 @@ const OrderDetailCard = ({
                   onClick={() => {
                     // Cari data customer dan package terlebih dahulu untuk dikirim ke modal
                     const currentCustomer = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
+                    const currentPackage = db.packages.find(p => Number(p.id_package) === Number(order.id_package));
                     
                     setEditingItem({ 
                       ...order, 
@@ -175,7 +176,9 @@ const OrderDetailCard = ({
                       // Tambahkan field ini agar FormModal bisa langsung melakukan pre-fill
                       customer_name: currentCustomer?.customer_name || '',
                       customer_phone: currentCustomer?.customer_phone || '',
-                      bank_account: currentCustomer?.bank_account || ''
+                      bank_account: currentCustomer?.bank_account || '',
+                      customer_full: currentCustomer, // TAMBAHKAN INI (untuk akses discount)
+                      package_full: currentPackage // TAMBAHKAN INI (untuk akses package detail)
                     }); 
                     setModalType('form_db'); 
                   }}

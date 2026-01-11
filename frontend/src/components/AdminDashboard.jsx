@@ -182,7 +182,8 @@ const AdminDashboard = () => {
                 body: JSON.stringify({
                   customer_name: item.customer_name,
                   customer_phone: item.customer_phone,
-                  bank_account: item.bank_account
+                  bank_account: item.bank_account,
+                   discount: item.discount || 0
                 })
               });
             }

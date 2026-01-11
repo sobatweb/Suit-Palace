@@ -31,7 +31,8 @@ const [customerInfo, setCustomerInfo] = useState({
   id_customer: editingItem?.id_customer || null,
   customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
   customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
-  bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || ''
+  bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || '',
+  discount: editingItem?.customer_full?.discount || 0
 });
 
 // State Rows (Berbagi untuk Order maupun Master)
@@ -74,6 +75,10 @@ const [rows, setRows] = useState(() => {
         start.setDate(start.getDate() + (parseInt(pkg.duration_day) - 1));
         newRows[index].end_dates = start.toISOString().split('T')[0];
         newRows[index].total_price = Math.round(Number(pkg.package_price));
+
+          if (!editingItem) {
+          newRows[index].total_price = Math.round(Number(pkg.package_price));
+        }
       }
     }
     setRows(newRows);
