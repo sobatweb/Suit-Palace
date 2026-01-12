@@ -335,7 +335,7 @@ INSERT INTO `packages` (`package_name`, `package_price`, `duration_day`, `deposi
 ('1 Set of Suit + Pants + Vest (7 hari)', 625000.00, 7, 875000.00, 90000.00),
 ('1 Set of Suit + Pants + Shirt (7 hari)', 625000.00, 7, 875000.00, 90000.00),
 ('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (3 hari)', 550000.00, 3, 1125000.00, 120000.00),
-('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (3 hari)', 550000.00, 3, 1150000.0000000.00, 120000.00),
+('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (3 hari)', 550000.00, 3, 1150000.00, 120000.00),
 ('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (4 hari)', 625000.00, 4, 1125000.00, 120000.00),
 ('1 Set of Suit + Pants + Vest + Tuxedo + Bow Tie (4 hari)', 625000.00, 4, 1150000.00, 120000.00),
 ('1 Set of Suit + Pants + Vest + Shirt + Bow Tie (7 hari)', 750000.00, 7, 1125000.00, 120000.00),
