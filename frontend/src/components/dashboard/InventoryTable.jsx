@@ -241,6 +241,33 @@ const handlePrint = () => {
   printWindow.print();
 };
 
+// Tambahkan di dalam komponen InventoryTable, di bawah handlePrint
+const handleExportExcel = () => {
+  const table = tableRef.current;
+  const fileName = `Laporan_${activeTab}_${new Date().toLocaleDateString()}.csv`;
+  
+  // Logika sederhana export ke CSV (yang bisa dibuka Excel) tanpa library tambahan
+  let csvContent = "";
+  const rows = table.querySelectorAll("tr");
+  
+  rows.forEach(row => {
+    const cols = row.querySelectorAll("th, td");
+    const rowData = Array.from(cols)
+      .map(col => `"${col.innerText.replace(/"/g, '""')}"`)
+      .join(",");
+    csvContent += rowData + "\r\n";
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", fileName);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   return (
     <div className="bg-white rounded-4xl shadow-sm border overflow-hidden">
@@ -322,6 +349,15 @@ const handlePrint = () => {
     <button onClick={handlePrint}className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
         <Printer size={16} /> <span className="sm:hidden">Print</span>
       </button>
+
+      <button 
+        onClick={handleExportExcel}
+        className="flex-1 md:flex-none px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl shadow-lg shadow-slate-200 hover:bg-black text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+      >
+        <Download size={16} className="text-emerald-400" /> 
+        <span>Excel</span>
+      </button>
+      
     </div>
 
   </div>
