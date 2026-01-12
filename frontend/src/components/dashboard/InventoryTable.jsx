@@ -439,8 +439,8 @@ const handleExportExcel = () => {
                   ))
                 )}
                 {activeTab !== 'history_orders' && (
-                  <td className="px-6 py-4 text-right sticky right-0 bg-white/90 border-l">
-                    <div className="flex justify-end gap-3">
+                  <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
+                    <div className="flex justify-end gap-10">
                       <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
                       {activeTab === 'order_items' ? (
                         <CheckCircle

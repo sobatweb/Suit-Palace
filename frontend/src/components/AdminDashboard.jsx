@@ -427,17 +427,17 @@ const AdminDashboard = () => {
               >
                 <div className="absolute top-6 right-8 flex items-center gap-1.5 text-amber-600/40">
                   <Clock size={12} />
-                  <span className="text-[10px] font-black uppercase tracking-tighter">
+                  <span className="text-[13px] font-black uppercase tracking-tighter">
                     {new Date(note.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
                 </div>
 
-                <h3 className="text-xl font-black uppercase tracking-tighter mb-6 pr-20 text-slate-800 border-b-2 border-amber-100/50 pb-3">
+                <h3 className="text-xl font-black uppercase tracking-tighter mb-6 pr-20 text-slate-900 border-b-2 border-amber-300 pb-3">
                   {note.title_note}
                 </h3>
                 
-                <p className="text-[13px] font-bold text-slate-600 leading-relaxed flex-1 whitespace-pre-wrap italic font-serif">
-                  "{note.description_note}"
+                <p className="text-[17px] font-bold text-slate-600 leading-relaxed flex-1 whitespace-pre-wrap">
+                  {note.description_note}
                 </p>
 
                 <div className="mt-8 pt-6 border-t border-amber-100/50 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
