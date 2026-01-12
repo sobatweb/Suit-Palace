@@ -15,6 +15,13 @@ const tableSchemas = {
   history_orders: ['customer_name', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
 };
 
+
+
+const API_BASE = window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://abc.domainanda.com"; // Alamat backend saat di hosting
+
+  
 const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
@@ -137,7 +144,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
     try {
-      const response = await fetch(`/api/customers/${selectedInfo.data.id_customer}`, {
+      const response = await fetch(`${API_BASE}/api/customers/${selectedInfo.data.id_customer}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

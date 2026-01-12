@@ -14,6 +14,10 @@ import NoteModal from '../components/modals/NoteModal';
 import DeleteConfirmModal from '../components/modals/DeleteConfirmModal';
 import FinishOrderModal from '../components/modals/FinishOrderModal';
 
+const API_BASE = window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://abc.domainanda.com"; // Alamat backend saat di hosting
+
 const AdminDashboard = () => {
 
 
@@ -78,18 +82,18 @@ const AdminDashboard = () => {
 
     try {
       const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes, vestRes, tuxedoRes] = await Promise.all([
-        fetch('/api/dashboard', { headers }).then(res => res.json()),
-        fetch('/api/customers', { headers }).then(res => res.json()),
-        fetch('/api/inventory/jas', { headers }).then(res => res.json()),
-        fetch('/api/inventory/kemeja', { headers }).then(res => res.json()),
-        fetch('/api/inventory/celana', { headers }).then(res => res.json()),
-        fetch('/api/inventory/changshan', { headers }).then(res => res.json()),
-        fetch('/api/inventory/dasi', { headers }).then(res => res.json()),
-        fetch('/api/inventory/packages', { headers }).then(res => res.json()),
-        fetch('/api/transaction/orders', { headers }).then(res => res.json()),
-        fetch('/api/inventory/booked', { headers }).then(res => res.json()),
-        fetch('/api/inventory/vest', { headers }).then(res => res.json()),
-        fetch('/api/inventory/tuxedo', { headers }).then(res => res.json())
+        fetch(`${API_BASE}/api/dashboard`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/customers`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/jas`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/kemeja`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/celana`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/changshan`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/dasi`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/packages`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/transaction/orders`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/booked`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/vest`, { headers }).then(res => res.json()),
+        fetch(`${API_BASE}/api/inventory/tuxedo`, { headers }).then(res => res.json())
       ]);
 
       setDb(prev => ({
@@ -135,7 +139,7 @@ const AdminDashboard = () => {
           customerId = items[0].id_customer;
         } else {
           // Buat customer baru
-          const customerResponse = await fetch('/api/customers', {
+          const customerResponse = await fetch(`${API_BASE}/api/customers`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -164,7 +168,7 @@ const AdminDashboard = () => {
 
         if (table === 'order_items') {
           const id = isEdit ? editingItem.id_order : '';
-          url = isEdit ? `/api/transaction/orders/${id}` : `/api/transaction/orders`;
+          url = isEdit ? `${API_BASE}/api/transaction/orders/${id}` : `${API_BASE}/api/transaction/orders`;
 
           if (!isEdit) {
             const { customer_name, customer_phone, bank_account, ...rest } = item;
@@ -176,7 +180,7 @@ const AdminDashboard = () => {
             // Update Customer Info first if it's an order edit
             const customerId = editingItem.id_customer;
             if (customerId) {
-              await fetch(`/api/customers/${customerId}`, {
+              await fetch(`${API_BASE}/api/customers/${customerId}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
@@ -199,7 +203,7 @@ const AdminDashboard = () => {
           }
         } else if (table === 'customers') {
           const id = isEdit ? editingItem.id_customer : '';
-          url = isEdit ? `/api/customers/${id}` : `/api/customers`;
+          url = isEdit ? `${API_BASE}/api/customers/${id}` : `${API_BASE}/api/customers`;
 
           // Strip fromTable
           const { fromTable, id_customer, ...rest } = item;
@@ -207,7 +211,7 @@ const AdminDashboard = () => {
         } else if (table === 'notes' || table === 'marks') {
           const idField = table === 'notes' ? 'id_note' : 'id_marks';
           const id = isEdit ? editingItem[idField] : '';
-          url = isEdit ? `/api/inventory/${table}/${id}` : `/api/inventory/${table}`;
+          url = isEdit ? `${API_BASE}/api/inventory/${table}/${id}` : `${API_BASE}/api/inventory/${table}`;
 
           const cleanedBody = {};
           Object.keys(item).forEach(key => {
@@ -221,8 +225,8 @@ const AdminDashboard = () => {
           const idField = editingItem ? Object.keys(editingItem)[0] : '';
           const id = isEdit ? editingItem[idField] : '';
           url = isEdit
-            ? `/api/inventory/${table}/${id}`
-            : `/api/inventory/${table}`;
+            ? `${API_BASE}/api/inventory/${table}/${id}`
+            : `${API_BASE}/api/inventory/${table}`;
 
           // Strip fromTable and the primary key ID field
           const cleanedBody = {};
@@ -258,7 +262,7 @@ const AdminDashboard = () => {
 
   const handleSaveMarkNote = async (table, newData) => {
     // Determine endpoint based on table
-    const endpoint = table === 'marks' ? '/api/inventory/marks' : '/api/inventory/notes';
+    const endpoint = table === 'marks' ? `${API_BASE}/api/inventory/marks` : `${API_BASE}/api/inventory/notes`;
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -281,7 +285,7 @@ const AdminDashboard = () => {
   const executeFinish = async (orderId, condition) => {
     try {
       // 1. Selesaikan pesanan (memicu trigger history di database)
-      const response = await fetch(`/api/transaction/orders/${orderId}/finish`, {
+      const response = await fetch(`${API_BASE}/api/transaction/orders/${orderId}/finish`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -299,14 +303,14 @@ const AdminDashboard = () => {
       const customerId = orderData?.id_customer;
 
       // 3. Hapus order_items secara otomatis
-      await fetch(`/api/transaction/orders/${orderId}`, {
+      await fetch(`${API_BASE}/api/transaction/orders/${orderId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
 
       // 4. Hapus customer secara otomatis
       if (customerId) {
-        await fetch(`/api/customers/${customerId}`, {
+        await fetch(`${API_BASE}/api/customers/${customerId}`, {
           method: 'DELETE',
           headers: getAuthHeaders()
         });
@@ -335,24 +339,24 @@ const AdminDashboard = () => {
         const customerId = orderToDelete?.id_customer;
 
         // 1. Hapus Order terlebih dahulu (karena adanya relasi Foreign Key)
-        await fetch(`/api/transaction/orders/${id}`, {
+        await fetch(`${API_BASE}/api/transaction/orders/${id}`, {
           method: 'DELETE',
           headers: getAuthHeaders()
         });
 
         // 2. Hapus Customer yang terkait jika ditemukan
         if (customerId) {
-          await fetch(`/api/customers/${customerId}`, {
+          await fetch(`${API_BASE}/api/customers/${customerId}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
           });
         }
       } else {
-        let url = `/api/inventory/${table}/${id}`;
+        let url = `${API_BASE}/api/inventory/${table}/${id}`;
         if (table === 'customers') {
-          url = `/api/customers/${id}`;
+          url = `${API_BASE}/api/customers/${id}`;
         } else if (table === 'marks' || table === 'notes') {
-          url = `/api/inventory/${table}/${id}`;
+          url = `${API_BASE}/api/inventory/${table}/${id}`;
         }
 
         await fetch(url, {

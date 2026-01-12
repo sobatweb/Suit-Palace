@@ -20,7 +20,7 @@ const Register = () => {
     setSuccess("");
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/register", {
+      const res = await fetch("http://localhost:3000/api/auth/register", { //ganti jadi lokasi backend
         method: "POST",
         headers: {
           "Content-Type": "application/json",
