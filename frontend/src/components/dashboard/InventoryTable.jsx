@@ -82,9 +82,9 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
     if (sortTabs.includes(activeTab)) {
       return [...baseData].sort((a, b) => {
-        const key = activeTab === 'packages' ? 'package_name' : 
-                    activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
-        
+        const key = activeTab === 'packages' ? 'package_name' :
+          activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
+
         const valA = (a[key] || "").toString();
         const valB = (b[key] || "").toString();
         return valA.localeCompare(valB);
@@ -95,45 +95,45 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   };
 
   const [priceDetails, setPriceDetails] = useState(null);
-const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
+  const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
 
-const baseFilteredData = getDisplayData().filter(item => {
-  const matchesSearch = isProductTab
-    ? (item[`name_${activeTab}`] || item[`kode_${activeTab}`] || item.package_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
-    : Object.values(item).some(v => v?.toString().toLowerCase().includes(searchTerm.toLowerCase()));
+  const baseFilteredData = getDisplayData().filter(item => {
+    const matchesSearch = isProductTab
+      ? (item[`name_${activeTab}`] || item[`kode_${activeTab}`] || item.package_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
+      : Object.values(item).some(v => v?.toString().toLowerCase().includes(searchTerm.toLowerCase()));
 
-  let matchesDropdown = true;
-  if (filterValue !== "all") {
-    if (activeTab === 'order_items') {
-      matchesDropdown = (item.display_customer === filterValue || item.customer_name === filterValue);
-    } else if (activeTab === 'history_orders') {
-      if (!item.return_date) {
-        matchesDropdown = false;
-      } else {
-        const d = new Date(item.return_date);
-        const itemPeriod = !isNaN(d.getTime()) 
-          ? d.toLocaleString('en-GB', { month: 'long', year: 'numeric' }) 
-          : null;
-        matchesDropdown = itemPeriod === filterValue;
+    let matchesDropdown = true;
+    if (filterValue !== "all") {
+      if (activeTab === 'order_items') {
+        matchesDropdown = (item.display_customer === filterValue || item.customer_name === filterValue);
+      } else if (activeTab === 'history_orders') {
+        if (!item.return_date) {
+          matchesDropdown = false;
+        } else {
+          const d = new Date(item.return_date);
+          const itemPeriod = !isNaN(d.getTime())
+            ? d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })
+            : null;
+          matchesDropdown = itemPeriod === filterValue;
+        }
+      } else if (activeTab === 'packages') {
+        matchesDropdown = item.package_name === filterValue;
+      } else if (isProductTab) {
+        // Mencocokkan nama produk (contoh: name_jas atau kode_jas)
+        matchesDropdown = item[`name_${activeTab}`] === filterValue || item[`kode_${activeTab}`] === filterValue;
       }
-    } else if (activeTab === 'packages') {
-      matchesDropdown = item.package_name === filterValue;
-    } else if (isProductTab) {
-      // Mencocokkan nama produk (contoh: name_jas atau kode_jas)
-      matchesDropdown = item[`name_${activeTab}`] === filterValue || item[`kode_${activeTab}`] === filterValue;
     }
-  }
 
-  return matchesSearch && matchesDropdown;
-});
+    return matchesSearch && matchesDropdown;
+  });
 
-const filteredData = activeTab === 'order_items'
-  ? (sortValue === "SORT_DATE_ASC"
+  const filteredData = activeTab === 'order_items'
+    ? (sortValue === "SORT_DATE_ASC"
       ? [...baseFilteredData].sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates))
       : baseFilteredData)
-  : activeTab === 'history_orders'
-    ? [...baseFilteredData].sort((a, b) => new Date(b.return_date) - new Date(a.return_date))
-    : baseFilteredData;
+    : activeTab === 'history_orders'
+      ? [...baseFilteredData].sort((a, b) => new Date(b.return_date) - new Date(a.return_date))
+      : baseFilteredData;
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
     try {
@@ -154,58 +154,58 @@ const filteredData = activeTab === 'order_items'
     }
   };
 
-const filterOptions = React.useMemo(() => {
-  if (!db) return [];
-  
-  const currentData = getDisplayData();
+  const filterOptions = React.useMemo(() => {
+    if (!db) return [];
 
-  switch (activeTab) {
-    case 'order_items':
-      const custNames = currentData.map(item => item.display_customer || item.customer_name);
-      const sortedCustNames = [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
-      // Tambahkan opsi urutan tanggal di awal list
-      return sortedCustNames;
+    const currentData = getDisplayData();
 
-    case 'history_orders':
-      const periods = currentData.map(item => {
-        if (!item.return_date) return null;
-        const d = new Date(item.return_date);
-        if (isNaN(d.getTime())) return null;
-        return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-      }).filter(Boolean);
+    switch (activeTab) {
+      case 'order_items':
+        const custNames = currentData.map(item => item.display_customer || item.customer_name);
+        const sortedCustNames = [...new Set(custNames)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+        // Tambahkan opsi urutan tanggal di awal list
+        return sortedCustNames;
 
+      case 'history_orders':
+        const periods = currentData.map(item => {
+          if (!item.return_date) return null;
+          const d = new Date(item.return_date);
+          if (isNaN(d.getTime())) return null;
+          return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+        }).filter(Boolean);
+
+        const currentPeriod = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+        if (!periods.includes(currentPeriod)) {
+          periods.push(currentPeriod);
+        }
+
+        return [...new Set(periods)].sort((a, b) => {
+          return new Date(b) - new Date(a);
+        });
+
+      default:
+        return [];
+    }
+  }, [activeTab, db, data]);
+
+  // Tambahkan effect ini agar filter reset saat pindah tab
+  React.useEffect(() => {
+    if (activeTab === 'history_orders') {
       const currentPeriod = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-      if (!periods.includes(currentPeriod)) {
-        periods.push(currentPeriod);
-      }
+      setFilterValue(currentPeriod);
+    } else {
+      setFilterValue("all");
+    }
+    setSortValue("all");
+  }, [activeTab]);
 
-      return [...new Set(periods)].sort((a, b) => {
-        return new Date(b) - new Date(a);
-      });
-      
-    default:
-      return [];
-  }
-}, [activeTab, db, data]);
+  const handlePrint = () => {
+    if (!tableRef.current) return;
 
-// Tambahkan effect ini agar filter reset saat pindah tab
-React.useEffect(() => {
-  if (activeTab === 'history_orders') {
-    const currentPeriod = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-    setFilterValue(currentPeriod);
-  } else {
-    setFilterValue("all");
-  }
-  setSortValue("all");
-}, [activeTab]);
+    const printContent = tableRef.current.innerHTML;
+    const printWindow = window.open('', '', 'width=1000,height=700');
 
-const handlePrint = () => {
-  if (!tableRef.current) return;
-
-  const printContent = tableRef.current.innerHTML;
-  const printWindow = window.open('', '', 'width=1000,height=700');
-
-  printWindow.document.write(`
+    printWindow.document.write(`
     <html>
       <head>
         <title>Print ${activeTab}</title>
@@ -236,134 +236,134 @@ const handlePrint = () => {
     </html>
   `);
 
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-};
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
-// Tambahkan di dalam komponen InventoryTable, di bawah handlePrint
-const handleExportExcel = () => {
-  const table = tableRef.current;
-  const fileName = `Laporan_${activeTab}_${new Date().toLocaleDateString()}.csv`;
-  
-  // Logika sederhana export ke CSV (yang bisa dibuka Excel) tanpa library tambahan
-  let csvContent = "";
-  const rows = table.querySelectorAll("tr");
-  
-  rows.forEach(row => {
-    const cols = row.querySelectorAll("th, td");
-    const rowData = Array.from(cols)
-      .map(col => `"${col.innerText.replace(/"/g, '""')}"`)
-      .join(",");
-    csvContent += rowData + "\r\n";
-  });
+  // Tambahkan di dalam komponen InventoryTable, di bawah handlePrint
+  const handleExportExcel = () => {
+    const table = tableRef.current;
+    const fileName = `Laporan_${activeTab}_${new Date().toLocaleDateString()}.csv`;
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", fileName);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    // Logika sederhana export ke CSV (yang bisa dibuka Excel) tanpa library tambahan
+    let csvContent = "";
+    const rows = table.querySelectorAll("tr");
+
+    rows.forEach(row => {
+      const cols = row.querySelectorAll("th, td");
+      const rowData = Array.from(cols)
+        .map(col => `"${col.innerText.replace(/"/g, '""')}"`)
+        .join(",");
+      csvContent += rowData + "\r\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="bg-white rounded-4xl shadow-sm border overflow-hidden">
- {/* TOOLBAR SEARCH - RESPONSIVE VERSION */}
-<div className="p-4 md:p-6 border-b bg-gray-50/50">
-  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-    
-    {/* Sisi Kiri: Search & Filter */}
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-      
-      {/* Input Search */}
-      <div className="relative flex-1 sm:flex-none">
-        <Search className="absolute left-3 top-3 text-gray-400" size={15} />
-        <input 
-          type="text" 
-          placeholder={
-            activeTab === 'order_items' ? 'Cari Nama Customer' : 
-            activeTab === 'packages' ? 'Cari Nama Paket' :
-            isProductTab ? `Cari Nama ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}` :
-            'Cari Data...'
-          } 
-          className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm outline-none w-full sm:w-64 shadow-sm focus:ring-2 focus:ring-slate-200" 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-        />
-      </div>
+      {/* TOOLBAR SEARCH - RESPONSIVE VERSION */}
+      <div className="p-4 md:p-6 border-b bg-gray-50/50">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
 
-      {/* Dropdown Filter Dinamis */}
-      {activeTab !== 'notes' && (
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {/* Filter Utama (Customer/Periode/Paket) */}
-          {filterOptions.length > 0 && (
-            <div className="relative flex-1 sm:flex-none">
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
-              >
-                <option value="all">
-                  {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' : 
-                   activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
-                   `--- NAMA ${activeTab.toUpperCase()} ---`}
-                </option>
-                {filterOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </div>
-          )}
+          {/* Sisi Kiri: Search & Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
 
-          {/* Dropdown Sort khusus Order Items */}
-          {activeTab === 'order_items' && (
+            {/* Input Search */}
             <div className="relative flex-1 sm:flex-none">
-              <select
-                value={sortValue}
-                onChange={(e) => setSortValue(e.target.value)}
-                className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
-              >
-                <option value="all">--- DEFAULT ---</option>
-                <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
-              </select>
-              <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              <Search className="absolute left-3 top-3 text-gray-400" size={15} />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'order_items' ? 'Cari Nama Customer' :
+                    activeTab === 'packages' ? 'Cari Nama Paket' :
+                      isProductTab ? `Cari Nama ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}` :
+                        'Cari Data...'
+                }
+                className="pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm outline-none w-full sm:w-64 shadow-sm focus:ring-2 focus:ring-slate-200"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          )}
+
+            {/* Dropdown Filter Dinamis */}
+            {activeTab !== 'notes' && (
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                {/* Filter Utama (Customer/Periode/Paket) */}
+                {filterOptions.length > 0 && (
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={filterValue}
+                      onChange={(e) => setFilterValue(e.target.value)}
+                      className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                    >
+                      <option value="all">
+                        {activeTab === 'order_items' ? '--- SEMUA CUSTOMER ---' :
+                          activeTab === 'history_orders' ? '--- SEMUA PERIODE ---' :
+                            `--- NAMA ${activeTab.toUpperCase()} ---`}
+                      </option>
+                      {filterOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dropdown Sort khusus Order Items */}
+                {activeTab === 'order_items' && (
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={sortValue}
+                      onChange={(e) => setSortValue(e.target.value)}
+                      className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                    >
+                      <option value="all">--- DEFAULT ---</option>
+                      <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
+                    </select>
+                    <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sisi Kanan: Action Buttons (Printer & Download) */}
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <button onClick={handlePrint} className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+              <Printer size={16} /> <span className="sm:hidden">Print</span>
+            </button>
+
+            {activeTab !== 'order_items' && (
+              <button
+                onClick={handleExportExcel}
+                className="flex-1 md:flex-none px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl shadow-lg shadow-slate-200 hover:bg-black text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+              >
+                <Download size={16} className="text-emerald-400" />
+                <span>Excel</span>
+              </button>
+            )}
+
+          </div>
+
         </div>
-      )}
-    </div>
-
-    {/* Sisi Kanan: Action Buttons (Printer & Download) */}
-    <div className="flex gap-2 w-full sm:w-auto justify-end">
-    <button onClick={handlePrint}className="flex-1 sm:flex-none p-2.5 bg-white border rounded-xl shadow-sm hover:bg-gray-50 text-gray-600 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
-        <Printer size={16} /> <span className="sm:hidden">Print</span>
-      </button>
-
-      {activeTab !== 'order_items' && (
-        <button 
-          onClick={handleExportExcel}
-          className="flex-1 md:flex-none px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl shadow-lg shadow-slate-200 hover:bg-black text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
-        >
-          <Download size={16} className="text-emerald-400" /> 
-          <span>Excel</span>
-        </button>
-      )}
-      
-    </div>
-
-  </div>
-</div>
+      </div>
       <div className="overflow-x-auto" ref={tableRef}>
         <table className="w-full text-left">
           <thead className="bg-white text-[15px] font-black uppercase text-gray-900 tracking-widest border-b">
@@ -399,12 +399,12 @@ const handleExportExcel = () => {
               <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
                 {activeTab === 'order_items' ? (
                   <>
-                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => { 
+                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
                       const currentDisc = item.customer_full?.discount;
                       // Normalisasi: "5.00" -> 5 -> "5" agar match dengan <option value="5">
                       const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
-                      setSelectedInfo({ type: 'customer', data: item.customer_full }); 
-                      setTempDiscount(normalizedDisc); 
+                      setSelectedInfo({ type: 'customer', data: item.customer_full });
+                      setTempDiscount(normalizedDisc);
                     }}>
                       {item.display_customer}
                     </td>
@@ -432,13 +432,13 @@ const handleExportExcel = () => {
                   Object.entries(item)
                     .filter(([key]) => !key.startsWith('id_'))
                     .map(([key, val], i) => (
-                    <td key={i} className="px-6 py-4">
-                      {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
-                        ? formatIDR(val)
-                        : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
-                          ? formatDateFull(val) : val?.toString() || '-'}
-                    </td>
-                  ))
+                      <td key={i} className="px-6 py-4">
+                        {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
+                          ? formatIDR(val)
+                          : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
+                            ? formatDateFull(val) : val?.toString() || '-'}
+                      </td>
+                    ))
                 )}
                 {activeTab !== 'history_orders' && (
                   <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
@@ -448,8 +448,8 @@ const handleExportExcel = () => {
                         <CheckCircle
                           size={16}
                           className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
-                              ? "text-emerald-500 hover:text-emerald-700"
-                              : "text-gray-300 cursor-not-allowed opacity-50"
+                            ? "text-emerald-500 hover:text-emerald-700"
+                            : "text-gray-300 cursor-not-allowed opacity-50"
                             }`}
                           onClick={() => {
                             if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
@@ -513,21 +513,21 @@ const handleExportExcel = () => {
                 </span>
               </div>
 
-               {/*  PENALTY FEE  */}
+              {/*  PENALTY FEE  */}
               {(() => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                
+
                 const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && priceDetails.actual_return_date)
                   ? new Date(priceDetails.actual_return_date.split('T')[0])
                   : today;
-                
+
                 const endDate = new Date(priceDetails.end_dates.split('T')[0]);
                 endDate.setHours(0, 0, 0, 0);
-                
+
                 let penaltyFee = 0;
                 let daysLate = 0;
-                
+
                 if (calculationDate > endDate) {
                   daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
                   penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
@@ -549,88 +549,88 @@ const handleExportExcel = () => {
                 return null;
               })()}
 
-             {/* Baris Estimasi Omset */}
-<div className="flex justify-between items-center px-1 mt-10">
-  <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
-  <span className="text-sm font-bold text-slate-700">
-    {(() => {
-      // 1. Harga Paket
-      const hargaDasar = Number(priceDetails.total_price || 0);
-      
-      // 2. Nominal Diskon
-      const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
-      const nominalDiskon = (hargaDasar * diskonPersen / 100);
-      
-      // 3. Hitung Denda (Tanpa Deposit)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const endDate = new Date(priceDetails.end_dates.split('T')[0]);
-      endDate.setHours(0, 0, 0, 0);
-      
-      const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
-      const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
-        ? new Date(returnDateStr)
-        : today;
-      calculationDate.setHours(0, 0, 0, 0);
-      
-      let penaltyFee = 0;
-      if (calculationDate > endDate) {
-        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-        penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
-      }
-      
-      // RUMUS OMSET: Harga Paket - Diskon + Denda (TANPA DEPOSIT)
-      const estimasiOmset = (hargaDasar - nominalDiskon) + penaltyFee;
-      
-      return formatIDR(estimasiOmset);
-    })()}
-  </span>
-</div>
-             {/* Garis Total */}
-<div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
-  <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan </span>
-  <div className="text-right">
-    <p className="text-xl font-black text-slate-900">
-      {(() => {
-        // 1. Pastikan mengambil harga paket yang konsisten
-        const hargaDasar = Number(priceDetails.total_price || 0);
-        
-        // 2. Ambil diskon dari customer_full
-        const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
-        const nominalDiskon = (hargaDasar * diskonPersen / 100);
-        
-        // 3. Ambil Deposit
-        const deposit = Number(priceDetails.package_full?.deposit || 0);
-        
-        // 4. Hitung Denda (Penalty)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Ambil tanggal akhir (end_dates)
-        const endDate = new Date(priceDetails.end_dates.split('T')[0]);
-        endDate.setHours(0, 0, 0, 0);
-        
-        // Gunakan tanggal kembali jika sudah ada, jika belum gunakan hari ini
-        const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
-        const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
-          ? new Date(returnDateStr)
-          : today;
-        calculationDate.setHours(0, 0, 0, 0);
-        
-        let penaltyFee = 0;
-        if (calculationDate > endDate) {
-          const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-          penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
-        }
-        
-        // RUMUS SESUAI REQUEST: Harga Paket - Diskon + Deposit + Denda
-        const totalAkhir = (hargaDasar - nominalDiskon) + deposit + penaltyFee;
-        
-        return formatIDR(totalAkhir);
-      })()}
-    </p>
-  </div>
-</div>
+              {/* Baris Estimasi Omset */}
+              <div className="flex justify-between items-center px-1 mt-10">
+                <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
+                <span className="text-sm font-bold text-slate-700">
+                  {(() => {
+                    // 1. Harga Paket
+                    const hargaDasar = Number(priceDetails.total_price || 0);
+
+                    // 2. Nominal Diskon
+                    const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+                    const nominalDiskon = (hargaDasar * diskonPersen / 100);
+
+                    // 3. Hitung Denda (Tanpa Deposit)
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const endDate = new Date(priceDetails.end_dates.split('T')[0]);
+                    endDate.setHours(0, 0, 0, 0);
+
+                    const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
+                    const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
+                      ? new Date(returnDateStr)
+                      : today;
+                    calculationDate.setHours(0, 0, 0, 0);
+
+                    let penaltyFee = 0;
+                    if (calculationDate > endDate) {
+                      const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                      penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
+                    }
+
+                    // RUMUS OMSET: Harga Paket - Diskon + Denda (TANPA DEPOSIT)
+                    const estimasiOmset = (hargaDasar - nominalDiskon) + penaltyFee;
+
+                    return formatIDR(estimasiOmset);
+                  })()}
+                </span>
+              </div>
+              {/* Garis Total */}
+              <div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
+                <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan </span>
+                <div className="text-right">
+                  <p className="text-xl font-black text-slate-900">
+                    {(() => {
+                      // 1. Pastikan mengambil harga paket yang konsisten
+                      const hargaDasar = Number(priceDetails.total_price || 0);
+
+                      // 2. Ambil diskon dari customer_full
+                      const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+                      const nominalDiskon = (hargaDasar * diskonPersen / 100);
+
+                      // 3. Ambil Deposit
+                      const deposit = Number(priceDetails.package_full?.deposit || 0);
+
+                      // 4. Hitung Denda (Penalty)
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+
+                      // Ambil tanggal akhir (end_dates)
+                      const endDate = new Date(priceDetails.end_dates.split('T')[0]);
+                      endDate.setHours(0, 0, 0, 0);
+
+                      // Gunakan tanggal kembali jika sudah ada, jika belum gunakan hari ini
+                      const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
+                      const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
+                        ? new Date(returnDateStr)
+                        : today;
+                      calculationDate.setHours(0, 0, 0, 0);
+
+                      let penaltyFee = 0;
+                      if (calculationDate > endDate) {
+                        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                        penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
+                      }
+
+                      // RUMUS SESUAI REQUEST: Harga Paket - Diskon + Deposit + Denda
+                      const totalAkhir = (hargaDasar - nominalDiskon) + deposit + penaltyFee;
+
+                      return formatIDR(totalAkhir);
+                    })()}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <button
@@ -668,7 +668,7 @@ const handleExportExcel = () => {
                   </div>
                   <a href={`https://wa.me/${selectedInfo.data.customer_phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200"><MessageCircle size={18} /></a>
                 </div>
-           
+
                 <div>
                   <label className="text-[11px] font-black uppercase text-amber-600 mb-2 block ml-1">Set Discount</label>
                   <select
