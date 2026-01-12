@@ -35,7 +35,7 @@ const OrderDetailCard = ({
   
 
   return (
-    <div className="space-y-4 max-h-250 overflow-y-auto pr-2 scrollbar-hide">
+    <div className="space-y-4 max-h-270 overflow-y-auto pr-2 scrollbar-hide">
 
 
       {/* RENDER PESANAN */}

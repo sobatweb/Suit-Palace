@@ -22,13 +22,13 @@ const FinishOrderModal = ({ order, onClose, onConfirm }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[9px] font-black uppercase text-gray-400 ml-1 mb-1 block">Kondisi Pengembalian</label>
+            <label className="text-[10px] font-black uppercase text-gray-500 ml-1 mb-4 block">Deskripsi Pesanan</label>
            <input 
                 name="condition_return" 
                 type="text"
                 required
-                placeholder="Contoh: Baik, Robek di lengan, dll..."
-                className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-100 outline-none focus:ring-[#1A120B]" 
+                placeholder="Contoh: CANCEL, Kondisi robek di lengan, dll..."
+                className="w-full p-3.5 bg-gray-50 rounded-2xl text-xs font-bold border-none ring-1 ring-gray-200 outline-none focus:ring-[#1A120B]" 
               />
           </div>
           <button type="submit" className="w-full py-4 bg-[#1A120B] text-white rounded-3xl text-[10px] font-black uppercase shadow-xl mt-2 transition-all hover:bg-black">
