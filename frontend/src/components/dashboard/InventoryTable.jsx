@@ -350,13 +350,15 @@ const handleExportExcel = () => {
         <Printer size={16} /> <span className="sm:hidden">Print</span>
       </button>
 
-      <button 
-        onClick={handleExportExcel}
-        className="flex-1 md:flex-none px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl shadow-lg shadow-slate-200 hover:bg-black text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
-      >
-        <Download size={16} className="text-emerald-400" /> 
-        <span>Excel</span>
-      </button>
+      {activeTab !== 'order_items' && (
+        <button 
+          onClick={handleExportExcel}
+          className="flex-1 md:flex-none px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl shadow-lg shadow-slate-200 hover:bg-black text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+        >
+          <Download size={16} className="text-emerald-400" /> 
+          <span>Excel</span>
+        </button>
+      )}
       
     </div>
 
