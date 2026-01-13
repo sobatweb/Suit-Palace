@@ -15,8 +15,10 @@ const SearchableSelect = ({ label, options, value, onChange, isOpen, onToggle, p
     <div className="space-y-1 relative">
       <label className="text-[12px] font-black uppercase text-slate-500 ml-1">{label}</label>
       <div
+        tabIndex="0"
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className="w-full px-4 py-3 bg-white border-2 border-slate-900 rounded-xl text-[13px] font-bold focus:border-black cursor-pointer flex justify-between items-center"
+        onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        className="w-full px-4 py-3 bg-white border-2 border-slate-900 rounded-xl text-[13px] font-bold focus:border-black cursor-pointer flex justify-between items-center outline-none focus:ring-2 focus:ring-slate-200"
       >
         <span className={!selectedOption ? "text-slate-500" : "text-slate-900"}>
           {selectedOption ? selectedOption.label : placeholder}
@@ -138,6 +140,30 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const addRow = () => setRows([...rows, {}]);
   const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      // Biarkan Enter berfungsi normal di textarea untuk baris baru
+      if (e.target.tagName === 'TEXTAREA') return;
+
+      e.preventDefault();
+      const form = e.currentTarget;
+      // Ambil semua elemen input, select, textarea, dan elemen kustom yang bisa difokuskan
+      const focusableElements = Array.from(form.querySelectorAll('input, select, textarea, [tabindex="0"]'))
+        .filter(el => {
+          const style = window.getComputedStyle(el);
+          return !el.disabled && !el.readOnly && el.type !== 'hidden' && style.display !== 'none' && style.visibility !== 'hidden';
+        });
+
+      const index = focusableElements.indexOf(e.target);
+      if (index > -1 && index < focusableElements.length - 1) {
+        focusableElements[index + 1].focus();
+      } else {
+        // Jika sudah di input terakhir, jalankan fungsi simpan
+        onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows);
+      }
+    }
+  };
+
   const handleInputChange = (index, field, value) => {
     const newRows = [...rows];
 
@@ -179,7 +205,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
         </div>
 
-        <form className="flex-1 overflow-y-auto p-6 space-y-5 custom-scroll">
+        <form onKeyDown={handleKeyDown} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scroll">
 
           {isOrderTable && (
             <div className={`grid grid-cols-1 ${editingItem ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 pb-6 border-b border-slate-100`}>

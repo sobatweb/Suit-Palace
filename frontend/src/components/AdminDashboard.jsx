@@ -50,6 +50,7 @@ const AdminDashboard = () => {
   const [modalType, setModalType] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [finalConfirmData, setFinalConfirmData] = useState(null);
   const [finishOrderData, setFinishOrderData] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [toast, setToast] = useState(null);
@@ -282,6 +283,11 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleFinishRequest = (orderId, condition) => {
+    setFinalConfirmData({ orderId, condition });
+    setFinishOrderData(null);
+  };
+
   const executeFinish = async (orderId, condition) => {
     try {
       // 1. Selesaikan pesanan (memicu trigger history di database)
@@ -481,7 +487,49 @@ const AdminDashboard = () => {
         {modalType === 'mark' && <MarkModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(m) => handleSaveMarkNote('marks', m)} />}
         {modalType === 'note' && <NoteModal selectedFullDate={selectedFullDate} onClose={() => setModalType(null)} onSave={(n) => handleSaveMarkNote('notes', n)} />}
         {deleteConfirm && <DeleteConfirmModal deleteConfirm={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={confirmDelete} />}
-        {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={executeFinish} />}
+        {finishOrderData && <FinishOrderModal order={finishOrderData} onClose={() => setFinishOrderData(null)} onConfirm={handleFinishRequest} />}
+        
+        {finalConfirmData && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border-b-8 border-rose-500 text-center"
+            >
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={40} className="text-rose-500" />
+              </div>
+              <h3 className="text-xl font-black uppercase tracking-tighter mb-2">Konfirmasi Akhir</h3>
+              <p className="text-slate-500 text-sm font-bold leading-relaxed mb-8">
+                Apakah Anda yakin ingin menyelesaikan pesanan ini? <br/>
+                <span className="text-rose-500">Data akan dipindahkan ke History dan dihapus dari daftar aktif secara permanen.</span>
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setFinalConfirmData(null)}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl text-[11px] font-black uppercase hover:bg-slate-200 transition-all"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={() => {
+                    executeFinish(finalConfirmData.orderId, finalConfirmData.condition);
+                    setFinalConfirmData(null);
+                  }}
+                  className="flex-1 py-4 bg-rose-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all"
+                >
+                  Ya, Selesaikan
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
         {showLogoutConfirm && (<LogoutConfirmModal onConfirm={handleLogout} onCancel={() => setShowLogoutConfirm(false)} />)}
       </AnimatePresence>
 
