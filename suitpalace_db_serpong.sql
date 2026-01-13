@@ -140,6 +140,7 @@ CREATE TABLE order_items (
     id_customer INT,
     id_package INT,
     id_booked INT,
+    order_date DATE DEFAULT (CURRENT_DATE),
     start_dates DATE NOT NULL,
     end_dates DATE NOT NULL,
     actual_return_date DATETIME NULL,
@@ -157,9 +158,12 @@ CREATE TABLE order_items (
 CREATE TABLE history_orders (
     id_history INT PRIMARY KEY AUTO_INCREMENT,
     customer_name VARCHAR(100),
+    customer_phone VARCHAR(15),
+    bank_account VARCHAR(100),
     package_name VARCHAR(100),
     omset_order DECIMAL(10,2),
     denda_paid DECIMAL(10,2) DEFAULT 0, 
+    order_date DATE,
     return_date DATETIME,               
     condition_return TEXT
 );
@@ -217,6 +221,8 @@ AFTER UPDATE ON order_items
 FOR EACH ROW
 BEGIN
     DECLARE cust_name VARCHAR(100);
+    DECLARE cust_phone VARCHAR(15);
+    DECLARE bank_acc VARCHAR(100);
     DECLARE discount_val DECIMAL(5,2);
     DECLARE pkg_name VARCHAR(100);
     DECLARE omset_murni DECIMAL(10,2);
@@ -224,8 +230,11 @@ BEGIN
     -- Trigger hanya jalan jika status berubah menjadi 'Sudah Selesai'
     IF NEW.status_order = 'Sudah Selesai' AND OLD.status_order = 'Belum Selesai' THEN
         
-        -- 1. Ambil Nama Customer, Discount, Nama Paket & Deposit
-        SELECT customer_name, discount INTO cust_name, discount_val FROM customers WHERE id_customer = NEW.id_customer;
+        -- 1. Ambil Nama Customer, Phone, Bank, Discount, Nama Paket
+        SELECT customer_name, customer_phone, bank_account, discount 
+        INTO cust_name, cust_phone, bank_acc, discount_val 
+        FROM customers WHERE id_customer = NEW.id_customer;
+
         SELECT package_name INTO pkg_name FROM packages WHERE id_package = NEW.id_package;
         
         -- 2. Hitung Omset Bersih (Murni Harga Sewa)
@@ -241,17 +250,23 @@ BEGIN
         -- denda_paid berdiri sendiri sesuai keinginan Anda
         INSERT INTO history_orders (
             customer_name, 
+            customer_phone,
+            bank_account,
             package_name, 
             omset_order, 
             denda_paid, 
+            order_date,
             return_date, 
             condition_return
         )
         VALUES (
             cust_name, 
+            cust_phone,
+            bank_acc,
             pkg_name, 
             omset_murni, 
             NEW.penalty_paid, 
+            NEW.order_date,
             NEW.actual_return_date, 
             NEW.condition_return
         );
@@ -389,5 +404,5 @@ INSERT INTO order_items (id_customer, id_package, id_booked, start_dates, end_da
 (2, 3, 2, '2026-01-07', '2026-01-10', 500000, 1200000, 'Diambil', 'Belum Selesai'),
 (3, 4, 3, '2026-01-21', '2026-01-23', 425000, 1325000, 'Booked', 'Belum Selesai');
 -- INSERT history_orders (Data dari order yang sudah 'Dikembalikan' atau 'Selesai')
-INSERT INTO history_orders (customer_name, package_name, omset_order, return_date, condition_return) VALUES
-('Budi Santoso', '1 Set of Suit + Pants (3 hari)', 0, '2026-01-10', 'CANCEL');
+INSERT INTO history_orders (customer_name, customer_phone, bank_account, package_name, omset_order, order_date, return_date, condition_return) VALUES
+('Budi Santoso', '081234567899', 'BCA - 999999', '1 Set of Suit + Pants (3 hari)', 0, '2026-01-07', '2026-01-10', 'CANCEL');
