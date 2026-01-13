@@ -265,7 +265,7 @@ BEGIN
             bank_acc,
             pkg_name, 
             omset_murni, 
-            NEW.penalty_paid, 
+            IF(NEW.status_rent = 'Cancel', NEW.amount_paid, NEW.penalty_paid),
             NEW.order_date,
             NEW.actual_return_date, 
             NEW.condition_return
