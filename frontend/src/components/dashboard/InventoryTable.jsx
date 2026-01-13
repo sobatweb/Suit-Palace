@@ -125,10 +125,10 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
       if (activeTab === 'order_items') {
         matchesDropdown = (item.display_customer === filterValue || item.customer_name === filterValue);
       } else if (activeTab === 'history_orders') {
-        if (!item.return_date) {
+        if (!item.order_date) {
           matchesDropdown = false;
         } else {
-          const d = new Date(item.return_date);
+          const d = new Date(item.order_date);
           const itemPeriod = !isNaN(d.getTime())
             ? d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })
             : null;
@@ -165,7 +165,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
         return result;
       })()
     : activeTab === 'history_orders'
-      ? [...baseFilteredData].sort((a, b) => new Date(b.return_date) - new Date(a.return_date))
+      ? [...baseFilteredData].sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
       : baseFilteredData;
   // Fungsi untuk simpan diskon customer
   const handleSaveDiscount = async () => {
@@ -201,8 +201,8 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
 
       case 'history_orders':
         const periods = currentData.map(item => {
-          if (!item.return_date) return null;
-          const d = new Date(item.return_date);
+          if (!item.order_date) return null;
+          const d = new Date(item.order_date);
           if (isNaN(d.getTime())) return null;
           return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
         }).filter(Boolean);
