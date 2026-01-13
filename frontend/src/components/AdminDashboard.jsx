@@ -404,7 +404,7 @@ const AdminDashboard = () => {
             <Menu className="lg:hidden cursor-pointer" onClick={() => setIsSidebarOpen(true)} />
             <h2 className="text-2xl font-black uppercase italic tracking-tighter">{activeTab.replace('_', ' ')}</h2>
           </div>
-          {activeTab !== 'calendar' && (
+          {activeTab !== 'calendar' && activeTab !== 'history_orders' && (
             <button onClick={() => { setEditingItem(null); setModalType('form_db'); }} className="px-6 py-3 bg-[#1A120B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:bg-black">
               <Plus size={14} /> Add New
             </button>
