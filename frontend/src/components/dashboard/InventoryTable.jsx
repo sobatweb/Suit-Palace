@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle } from 'lucide-react';
+import { Search, Printer, Download, Edit, Trash2, MessageCircle, ShoppingBag, Tag, Save, Box, CheckCircle, CreditCard } from 'lucide-react';
 
 const tableSchemas = {
   packages: ['package_name', 'package_price', 'duration_day', 'deposit', 'penalty_fee'],
@@ -17,11 +17,11 @@ const tableSchemas = {
 
 
 
-const API_BASE = window.location.hostname === "localhost" 
-  ? "http://localhost:3000" 
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:3000"
   : "https://abc.domainanda.com"; // Alamat backend saat di hosting
 
-  
+
 const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setModalType, setDeleteConfirm, setFinishOrderData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
@@ -674,6 +674,16 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                     <p className="text-sm font-black">{selectedInfo.data.customer_phone}</p>
                   </div>
                   <a href={`https://wa.me/${selectedInfo.data.customer_phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200"><MessageCircle size={18} /></a>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-2xl flex justify-between items-center">
+                  <div>
+                    <p className="text-[11px] text-blue-600 uppercase tracking-tighter">Bank Account</p>
+                    <p className="text-sm font-black">{selectedInfo.data.bank_account || '-'}</p>
+                  </div>
+                  <div className="p-3 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-200">
+                    <CreditCard size={18} />
+                  </div>
                 </div>
 
                 <div>
