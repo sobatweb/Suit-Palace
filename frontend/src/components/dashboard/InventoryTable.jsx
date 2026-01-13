@@ -12,7 +12,7 @@ const tableSchemas = {
   tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
-  history_orders: ['customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
+  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
 };
 
 
@@ -104,6 +104,17 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const [priceDetails, setPriceDetails] = useState(null);
   const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
 
+  const monthOptions = React.useMemo(() => {
+    if (activeTab !== 'order_items' || !data) return [];
+    const months = data.map(item => {
+      if (!item.start_dates) return null;
+      const d = new Date(item.start_dates);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    }).filter(Boolean);
+    return [...new Set(months)].sort((a, b) => new Date(b) - new Date(a));
+  }, [activeTab, data]);
+
   const baseFilteredData = getDisplayData().filter(item => {
     const matchesSearch = isProductTab
       ? (item[`name_${activeTab}`] || item[`kode_${activeTab}`] || item.package_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -135,9 +146,24 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   });
 
   const filteredData = activeTab === 'order_items'
-    ? (sortValue === "SORT_DATE_ASC"
-      ? [...baseFilteredData].sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates))
-      : baseFilteredData)
+    ? (() => {
+        let result = [...baseFilteredData];
+        if (sortValue === "all") {
+          // Urutkan berdasarkan Order Date Ascending secara default
+          result.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+        } else if (sortValue === "SORT_DATE_ASC") {
+          result.sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
+        } else {
+          // Filter berdasarkan bulan (start_dates)
+          result = result.filter(item => {
+            if (!item.start_dates) return false;
+            const d = new Date(item.start_dates);
+            const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+            return itemPeriod === sortValue;
+          }).sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
+        }
+        return result;
+      })()
     : activeTab === 'history_orders'
       ? [...baseFilteredData].sort((a, b) => new Date(b.return_date) - new Date(a.return_date))
       : baseFilteredData;
@@ -337,8 +363,11 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                       onChange={(e) => setSortValue(e.target.value)}
                       className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
                     >
-                      <option value="all">--- DEFAULT ---</option>
+                      <option value="all">--- SEMUA ORDER ---</option>
                       <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
+                      {monthOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
                       <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -373,9 +402,10 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
       </div>
       <div className="overflow-x-auto" ref={tableRef}>
         <table className="w-full text-left">
-          <thead className="bg-white text-[15px] font-black uppercase text-gray-900 tracking-widest border-b">
+          <thead className={`bg-white ${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-black uppercase text-gray-900 tracking-widest border-b`}>
             {activeTab === 'order_items' ? (
               <tr>
+                <th className="px-6 py-5">Order Date</th>
                 <th className="px-6 py-6">Customer</th>
                 <th className="px-6 py-5">Package</th>
                 <th className="px-6 py-5">Booked</th>
@@ -391,6 +421,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                   .map(key => {
                     let displayName = key.replace('_', ' ');
                     if (activeTab === 'history_orders') {
+                      if (key === 'omset_order') displayName = 'Package Price';
                       if (key === 'return_date') displayName = 'Finish Order';
                       if (key === 'condition_return') displayName = 'Description Order';
                     }
@@ -401,11 +432,12 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
             )}
           </thead>
 
-          <tbody className="text-[15px] font-bold text-gray-800">
+          <tbody className={`${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-bold text-gray-800`}>
             {filteredData.map((item, idx) => (
               <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
                 {activeTab === 'order_items' ? (
                   <>
+                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.order_date)}</td>
                     <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
                       const currentDisc = item.customer_full?.discount;
                       // Normalisasi: "5.00" -> 5 -> "5" agar match dengan <option value="5">
@@ -436,16 +468,18 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                     </td>
                   </>
                 ) : (
-                  Object.entries(item)
-                    .filter(([key]) => !key.startsWith('id_'))
-                    .map(([key, val], i) => (
-                      <td key={i} className="px-6 py-4">
-                        {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
-                          ? formatIDR(val)
-                          : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
-                            ? formatDateFull(val) : val?.toString() || '-'}
-                      </td>
-                    ))
+                  (tableSchemas[activeTab] || Object.keys(item).filter(k => !k.startsWith('id_')))
+                    .map((key, i) => {
+                      const val = item[key];
+                      return (
+                        <td key={i} className="px-6 py-4">
+                          {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
+                            ? formatIDR(val)
+                            : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
+                              ? formatDateFull(val) : val?.toString() || '-'}
+                        </td>
+                      );
+                    })
                 )}
                 {activeTab !== 'history_orders' && (
                   <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
@@ -476,6 +510,25 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
           </tbody>
         </table>
       </div>
+
+      {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
+      {(activeTab === 'order_items' || activeTab === 'history_orders') && (
+        <div className="p-6 border-t bg-gray-50/50">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+              {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
+            </span>
+            <span className="text-2xl font-black text-slate-900">
+              {formatIDR(filteredData.reduce((sum, item) => {
+                if (activeTab === 'order_items') {
+                  return sum + Number(item.amount_paid || 0);
+                }
+                return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
+              }, 0))}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DETAIL HARGA OVERLAY */}
       {priceDetails && (

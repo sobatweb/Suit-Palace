@@ -195,7 +195,7 @@ const AdminDashboard = () => {
             // For Edit, strip synthetic fields
             const cleanedBody = {};
             Object.keys(item).forEach(key => {
-              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order') {
+              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order' && key !== 'order_date') {
                 cleanedBody[key] = item[key];
               }
             });

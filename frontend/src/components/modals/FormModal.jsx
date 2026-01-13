@@ -18,7 +18,7 @@ const SearchableSelect = ({ label, options, value, onChange, isOpen, onToggle, p
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className="w-full px-4 py-3 bg-white border-2 border-slate-900 rounded-xl text-[13px] font-bold focus:border-black cursor-pointer flex justify-between items-center"
       >
-        <span className={!selectedOption ? "text-slate-400" : "text-slate-900"}>
+        <span className={!selectedOption ? "text-slate-500" : "text-slate-900"}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <div className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
@@ -42,7 +42,7 @@ const SearchableSelect = ({ label, options, value, onChange, isOpen, onToggle, p
           <div className="overflow-y-auto custom-scroll">
             <div
               onClick={() => { onChange(""); onToggle(); setSearch(""); }}
-              className="px-4 py-3 text-[13px] hover:bg-slate-50 cursor-pointer font-bold text-slate-400"
+              className="px-4 py-3 text-[13px] hover:bg-slate-50 cursor-pointer font-bold text-slate-500"
             >
               Kosong
             </div>
@@ -57,7 +57,7 @@ const SearchableSelect = ({ label, options, value, onChange, isOpen, onToggle, p
                 </div>
               ))
             ) : (
-              <div className="px-4 py-6 text-[13px] text-center text-slate-400 italic">Tidak ditemukan</div>
+              <div className="px-4 py-6 text-[13px] text-center text-slate-500 italic">Tidak ditemukan</div>
             )}
           </div>
         </div>
@@ -77,7 +77,7 @@ const tableSchemas = {
   tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
-  history_orders: ['customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
+  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
 };
 
 const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
@@ -169,23 +169,23 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200`}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} rounded-[2.5rem] w-full max-w-6xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border border-slate-200`}>
 
         {/* HEADER */}
         <div className={`flex justify-between items-center p-6 border-b border-slate-100 sticky top-0 ${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} z-10`}>
           <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">
             {table === 'notes' ? (editingItem ? 'Edit Note' : 'Write New Note') : (editingItem ? `Edit Data ${table.replace('_', ' ')}` : isOrderTable ? 'Input Order Baru' : `Tambah ${table.replace('_', ' ')}`)}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
         </div>
 
-        <form className="flex-1 overflow-y-auto p-6 space-y-6 custom-scroll">
+        <form className="flex-1 overflow-y-auto p-6 space-y-5 custom-scroll">
 
           {isOrderTable && (
             <div className={`grid grid-cols-1 ${editingItem ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 pb-6 border-b border-slate-100`}>
               <div className="space-y-1">
                 <div className="flex justify-between items-center ml-1">
-                  <label className="text-[12px] font-black uppercase text-slate-400">Nama Customer</label>
+                  <label className="text-[12px] font-black uppercase text-slate-500">Nama Customer</label>
                   {!editingItem && (
                     <button
                       type="button"
@@ -200,7 +200,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                   )}
                 </div>
                 <div className="relative">
-                  <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   {isNewCustomer || editingItem ? (
                     <input
                       readOnly={!!editingItem}
@@ -237,9 +237,9 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nomor Telepon</label>
+                <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Nomor Telepon</label>
                 <div className="relative">
-                  <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     readOnly={!isNewCustomer && !editingItem}
                     required
@@ -252,9 +252,9 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Rekening</label>
+                <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Rekening</label>
                 <div className="relative">
-                  <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     readOnly={!isNewCustomer && !editingItem}
                     type="text"
@@ -267,7 +267,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
               </div>
               {editingItem && (
                 <div className="space-y-1">
-                  <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Status Rent</label>
+                  <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Status Rent</label>
                   <select
                     value={rows[0].status_rent || 'Booked'}
                     onChange={(e) => handleInputChange(0, 'status_rent', e.target.value)}
@@ -285,7 +285,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
           <div className={table === 'notes' ? "hidden" : "space-y-6"}>
             <div className="flex justify-between items-center">
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">
                 {isOrderTable ? 'Daftar Paket Pesanan' : 'Data Item'}
               </h4>
               {isOrderTable && !editingItem && (
@@ -296,7 +296,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
             </div>
 
             {rows.map((row, index) => (
-              <div key={index} className={isOrderTable ? "p-6 rounded-2rem border-2 border-slate-100 bg-white relative" : "p-6 rounded-2rem border-2 border-slate-50 bg-slate-50/30 relative"}>
+              <div key={index} className={isOrderTable ? "p-6 rounded-2rem border-2 border-gray-900 bg-gray-100 relative" : "p-6 rounded-2rem border-2 border-slate-50 bg-slate-50/30 relative"}>
                 {rows.length > 1 && (
                   <button type="button" onClick={() => removeRow(index)} className="absolute -right-2 -top-2 p-2 bg-white text-rose-500 rounded-full shadow-md border border-slate-100 hover:bg-rose-50 transition-all">
                     <Trash2 size={16} />
@@ -308,7 +308,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                     <>
                       {!editingItem && (
                         <div className="space-y-1">
-                          <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Pilih Paket</label>
+                          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Pilih Paket</label>
                           <select required value={row.id_package || ''} onChange={(e) => handleInputChange(index, 'id_package', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black">
                             <option value="">-- Pilih Paket --</option>
                             {db.packages.map(p => <option key={p.id_package} value={p.id_package}>{p.package_name}</option>)}
@@ -316,23 +316,22 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         </div>
                       )}
                       <div className="space-y-1">
-                        <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Tanggal Mulai</label>
+                        <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Tanggal Mulai</label>
                         <input type="date" min={today} value={row.start_dates || ''} onChange={(e) => handleInputChange(index, 'start_dates', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Tanggal Selesai (Auto)</label>
-                        <input readOnly type="date" value={row.end_dates || ''} className="w-full px-4 py-3 bg-slate-100 border border-slate-900 rounded-2xl text-sm font-bold text-slate-400" />
+                        <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Tanggal Selesai (Auto)</label>
+                        <input readOnly type="date" value={row.end_dates || ''} className="w-full px-4 py-3 bg-slate-100 border border-slate-900 rounded-2xl text-sm font-bold text-slate-500" />
                       </div>
                       {editingItem && (
                         <div className="space-y-1">
-                          <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Total Dibayar (Amount Paid)</label>
+                          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Total Dibayar (Amount Paid)</label>
                           <input
-                            type="number"
-                            step="1"
-                            value={row.amount_paid !== undefined ? Math.round(Number(row.amount_paid)) : 0}
+                            type="text"
+                            value={row.amount_paid !== undefined ? Number(row.amount_paid).toLocaleString('id-ID') : '0'}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? '' : Math.round(Number(e.target.value));
-                              handleInputChange(index, `amount_paid`, val);
+                              const rawValue = e.target.value.replace(/\D/g, '');
+                              handleInputChange(index, `amount_paid`, rawValue === '' ? 0 : parseInt(rawValue, 10));
                             }}
                             className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
                           />
@@ -400,7 +399,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                       )}
                       {/* Description input */}
                       <div className="col-span-1 md:col-span-3 mt-2">
-                        <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Deskripsi Order</label>
+                        <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Deskripsi Order</label>
                         <textarea
                           value={row.condition_return || row.description || ''}
                           onChange={e => handleInputChange(index, 'condition_return', e.target.value)}
@@ -415,19 +414,19 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         // 1. Tentukan Tipe Input
                         const isNumber = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
                         const isDate = key.includes('date') || key === 'created_at';
-                        const inputType = isNumber ? 'number' : (isDate ? 'date' : 'text');
+                        const inputType = isNumber ? 'text' : (isDate ? 'date' : 'text');
 
                         // 2. Ambil & Bersihkan Nilai (Pre-fill logic)
-                        let displayValue = row[key] || '';
+                        let displayValue = (row[key] !== null && row[key] !== undefined) ? row[key] : '';
 
                         // Jika tanggal, potong agar formatnya YYYY-MM-DD (Syarat input type="date")
                         if (isDate && typeof displayValue === 'string' && displayValue.includes('T')) {
                           displayValue = displayValue.split('T')[0];
                         }
 
-                        // Jika angka, pastikan bulat (hilangkan .00)
-                        if (isNumber && displayValue !== '') {
-                          displayValue = Math.round(Number(displayValue));
+                        // Jika angka, format dengan titik (thousand separator)
+                        if (isNumber && displayValue !== '' && displayValue !== null) {
+                          displayValue = Number(displayValue).toLocaleString('id-ID');
                         }
 
                         // Jika ukuran, pastikan UPPERCASE untuk tampilan input
@@ -437,6 +436,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
                         let displayName = key.replace('_', ' ');
                         if (table === 'history_orders') {
+                          if (key === 'omset_order') displayName = 'Package Price';
                           if (key === 'return_date') displayName = 'Finish Order';
                           if (key === 'condition_return') displayName = 'Description Order';
                         }
@@ -449,12 +449,14 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                             <input
                               required
                               type={inputType}
-                              step={isNumber ? "1" : undefined}
                               min={isDate ? today : undefined}
                               value={displayValue}
                               onChange={(e) => {
                                 let val = e.target.value;
-                                if (isNumber) val = val === '' ? '' : Math.round(Number(val));
+                                if (isNumber) {
+                                  const rawValue = val.replace(/\D/g, '');
+                                  val = rawValue === '' ? 0 : parseInt(rawValue, 10);
+                                }
                                 handleInputChange(index, key, val);
                               }}
                               className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-[13px] font-black text-slate-900 outline-none focus:border-slate-900 shadow-sm"
@@ -486,7 +488,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                       placeholder="Enter title..."
                       value={rows[0].title_note || ''}
                       onChange={(e) => handleInputChange(0, 'title_note', e.target.value)}
-                      className="w-full px-0 py-4 bg-transparent border-b-2 border-amber-100 text-3xl font-black text-slate-800 outline-none focus:border-amber-400 transition-all placeholder:text-slate-300 tracking-tighter"
+                      className="w-full px-0 py-4 bg-transparent border-b-2 border-amber-100 text-3xl font-black text-slate-800 outline-none focus:border-amber-500 transition-all placeholder:text-slate-300 tracking-tighter"
                     />
                   </div>
                   <div className="space-y-2">
@@ -505,7 +507,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
           )}
 
           {!isOrderTable && !editingItem && table !== 'notes' && (
-            <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2rem text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
+            <button type="button" onClick={addRow} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2rem text-slate-500 hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest">
               <Plus size={16} /> Input Data Baru Lainnya
             </button>
           )}

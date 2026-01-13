@@ -17,14 +17,14 @@ class TransactionModel {
             // 2. Insert into order_items
             const {
                 id_customer, id_package, start_dates, end_dates,
-                total_price, amount_paid, condition_return
+                total_price, amount_paid, condition_return, order_date
             } = orderData;
 
             const [orderResult] = await connection.query(
                 `INSERT INTO order_items 
-                (id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid, condition_return, status_rent, status_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Booked', 'Belum Selesai')`,
-                [id_customer, id_package, id_booked, start_dates, end_dates, total_price, amount_paid || 0, condition_return || '']
+                (id_customer, id_package, id_booked, order_date, start_dates, end_dates, total_price, amount_paid, condition_return, status_rent, status_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Booked', 'Belum Selesai')`,
+                [id_customer, id_package, id_booked, order_date || new Date(), start_dates, end_dates, total_price, amount_paid || 0, condition_return || '']
             );
 
             await connection.commit();
