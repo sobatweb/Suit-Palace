@@ -2,6 +2,70 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Database, Plus, Trash2, User, Phone, CreditCard, Clock } from 'lucide-react';
 
+const SearchableSelect = ({ label, options, value, onChange, isOpen, onToggle, placeholder = "Pilih..." }) => {
+  const [search, setSearch] = useState("");
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedOption = options.find(opt => String(opt.value) === String(value));
+
+  return (
+    <div className="space-y-1 relative">
+      <label className="text-[12px] font-black uppercase text-slate-500 ml-1">{label}</label>
+      <div
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="w-full px-4 py-3 bg-white border-2 border-slate-900 rounded-xl text-[13px] font-bold focus:border-black cursor-pointer flex justify-between items-center"
+      >
+        <span className={!selectedOption ? "text-slate-400" : "text-slate-900"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <div className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+          <svg width="12" height="8" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 top-full left-0 w-full mt-1 bg-white border-2 border-slate-900 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-80">
+          <div className="p-2 border-b border-slate-100 bg-slate-50">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Cari..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full px-4 py-2 text-[13px] border-2 border-slate-200 rounded-lg outline-none focus:border-slate-900"
+            />
+          </div>
+          <div className="overflow-y-auto custom-scroll">
+            <div
+              onClick={() => { onChange(""); onToggle(); setSearch(""); }}
+              className="px-4 py-3 text-[13px] hover:bg-slate-50 cursor-pointer font-bold text-slate-400"
+            >
+              Kosong
+            </div>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  onClick={() => { onChange(opt.value); onToggle(); setSearch(""); }}
+                  className={`px-4 py-3 text-[13px] hover:bg-slate-900 hover:text-white cursor-pointer font-bold ${String(value) === String(opt.value) ? 'bg-slate-100' : ''}`}
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-6 text-[13px] text-center text-slate-400 italic">Tidak ditemukan</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const tableSchemas = {
   packages: ['package_name', 'package_price', 'duration_day', 'deposit', 'penalty_fee'],
   jas: ['name_jas', 'size_jas', 'color_jas', 'stock_jas', 'condition_jas'],
@@ -24,44 +88,52 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const [isNewCustomer, setIsNewCustomer] = useState(true);
-  
+  const [openSelectId, setOpenSelectId] = useState(null); // Track which SearchableSelect is open
+
+  // Close any open select when clicking outside
+  React.useEffect(() => {
+    const handleGlobalClick = () => setOpenSelectId(null);
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, []);
+
 
   // State Header Customer
-const [customerInfo, setCustomerInfo] = useState({
-  // Ambil dari editingItem jika ada, jika tidak kosongkan
-  id_customer: editingItem?.id_customer || null,
-  customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
-  customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
-  bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || '',
-  discount: editingItem?.customer_full?.discount || 0
-});
+  const [customerInfo, setCustomerInfo] = useState({
+    // Ambil dari editingItem jika ada, jika tidak kosongkan
+    id_customer: editingItem?.id_customer || null,
+    customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
+    customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
+    bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || '',
+    discount: editingItem?.customer_full?.discount || 0
+  });
 
-// State Rows (Berbagi untuk Order maupun Master)
-const [rows, setRows] = useState(() => {
-  if (editingItem) {
-    // Buat salinan data agar tidak merubah data asli secara langsung
-    const rowData = { ...editingItem };
+  // State Rows (Berbagi untuk Order maupun Master)
+  const [rows, setRows] = useState(() => {
+    if (editingItem) {
+      // Buat salinan data agar tidak merubah data asli secara langsung
+      const rowData = { ...editingItem };
 
-    // Format data agar ramah input form
-    Object.keys(rowData).forEach(key => {
-      // 1. Hilangkan desimal pada semua angka (termasuk yang datang sebagai string dari DB)
-      const isNumberField = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
-      if (isNumberField && rowData[key] !== null && rowData[key] !== undefined) {
-        rowData[key] = Math.round(Number(rowData[key]));
-      }
-      // 2. Format tanggal (YYYY-MM-DD) agar muncul di input type="date"
-      if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
-        rowData[key] = rowData[key].split('T')[0];
-      }
-      // 3. Ubah ukuran (size) menjadi UPPERCASE saat load data edit
-      if (key.includes('size') && rowData[key] && typeof rowData[key] === 'string') {
-        rowData[key] = rowData[key].toUpperCase();
-      }
-    });
-    return [rowData];
-  }
-  return [{}];
-});
+      // Format data agar ramah input form
+      Object.keys(rowData).forEach(key => {
+        // 1. Hilangkan desimal pada semua angka (termasuk yang datang sebagai string dari DB)
+        const isNumberField = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
+        if (isNumberField && rowData[key] !== null && rowData[key] !== undefined) {
+          rowData[key] = Math.round(Number(rowData[key]));
+        }
+        // 2. Format tanggal (YYYY-MM-DD) agar muncul di input type="date"
+        if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
+          rowData[key] = rowData[key].split('T')[0];
+        }
+        // 3. Ubah ukuran (size) menjadi UPPERCASE saat load data edit
+        if (key.includes('size') && rowData[key] && typeof rowData[key] === 'string') {
+          rowData[key] = rowData[key].toUpperCase();
+        }
+      });
+      return [rowData];
+    }
+    return [{}];
+  });
 
   const addRow = () => setRows([...rows, {}]);
   const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
@@ -87,7 +159,7 @@ const [rows, setRows] = useState(() => {
         newRows[index].end_dates = start.toISOString().split('T')[0];
         newRows[index].total_price = Math.round(Number(pkg.package_price));
 
-          if (!editingItem) {
+        if (!editingItem) {
           newRows[index].total_price = Math.round(Number(pkg.package_price));
         }
       }
@@ -115,7 +187,7 @@ const [rows, setRows] = useState(() => {
                 <div className="flex justify-between items-center ml-1">
                   <label className="text-[12px] font-black uppercase text-slate-400">Nama Customer</label>
                   {!editingItem && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => {
                         setIsNewCustomer(!isNewCustomer);
@@ -130,14 +202,14 @@ const [rows, setRows] = useState(() => {
                 <div className="relative">
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   {isNewCustomer || editingItem ? (
-                    <input 
+                    <input
                       readOnly={!!editingItem}
-                      required 
-                      type="text" 
-                      placeholder="Ketik Nama..." 
-                      value={customerInfo.customer_name} 
-                      onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })} 
-                      className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                      required
+                      type="text"
+                      placeholder="Ketik Nama..."
+                      value={customerInfo.customer_name}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })}
+                      className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                     />
                   ) : (
                     <select
@@ -168,14 +240,14 @@ const [rows, setRows] = useState(() => {
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Nomor Telepon</label>
                 <div className="relative">
                   <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
+                  <input
                     readOnly={!isNewCustomer && !editingItem}
-                    required 
-                    type="text" 
-                    placeholder="08..." 
-                    value={customerInfo.customer_phone} 
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })} 
-                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                    required
+                    type="text"
+                    placeholder="08..."
+                    value={customerInfo.customer_phone}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, customer_phone: e.target.value })}
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
               </div>
@@ -183,21 +255,21 @@ const [rows, setRows] = useState(() => {
                 <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Rekening</label>
                 <div className="relative">
                   <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
+                  <input
                     readOnly={!isNewCustomer && !editingItem}
-                    type="text" 
-                    placeholder="BCA - xxxxx" 
-                    value={customerInfo.bank_account} 
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })} 
-                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`} 
+                    type="text"
+                    placeholder="BCA - xxxxx"
+                    value={customerInfo.bank_account}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, bank_account: e.target.value })}
+                    className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${(!isNewCustomer && !editingItem) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
               </div>
               {editingItem && (
                 <div className="space-y-1">
                   <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Status Rent</label>
-                  <select 
-                    value={rows[0].status_rent || 'Booked'} 
+                  <select
+                    value={rows[0].status_rent || 'Booked'}
                     onChange={(e) => handleInputChange(0, 'status_rent', e.target.value)}
                     className="w-full px-4 py-3 bg-amber-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
                   >
@@ -254,39 +326,76 @@ const [rows, setRows] = useState(() => {
                       {editingItem && (
                         <div className="space-y-1">
                           <label className="text-[12px] font-black uppercase text-slate-400 ml-1">Total Dibayar (Amount Paid)</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             step="1"
-                            value={row.amount_paid !== undefined ? Math.round(Number(row.amount_paid)) : 0} 
+                            value={row.amount_paid !== undefined ? Math.round(Number(row.amount_paid)) : 0}
                             onChange={(e) => {
                               const val = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                               handleInputChange(index, `amount_paid`, val);
-                            }} 
-                            className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" 
+                            }}
+                            className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
                           />
                         </div>
                       )}
                       {/* Grid Item Barang */}
                       {!editingItem && (
-                        <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 pt-2">
-                          {['jas', 'kemeja', 'celana', 'dasi', 'changshan', 'vest', 'tuxedo'].map(prod => (
-                            <div key={prod} className="space-y-1">
-                              <label className="text-[10px] font-black uppercase text-slate-400 ml-1">{prod}</label>
-                              <select value={row[`id_${prod}`] || ''} onChange={(e) => handleInputChange(index, `id_${prod}`, e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-900 rounded-xl text-[11px] font-bold focus:border-black">
-                                <option value="">Kosong</option>
-                                {db[prod]?.slice().sort((a, b) => {
-                                  const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
-                                  const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
-                                  return nameA.localeCompare(nameB);
-                                }).map(p => (
-                                  <option key={p[`id_${prod}`]} value={p[`id_${prod}`]}>
-                                    {p[`name_${prod}`] || p[`kode_${prod}`]} 
-                                    {p[`size_${prod}`] ? ` (${p[`size_${prod}`].toString().toUpperCase()})` : ''}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          ))}
+                        <div className="col-span-1 md:col-span-3 space-y-3 pt-2">
+                          {/* Baris 1: 4 Item */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {['jas', 'kemeja', 'celana', 'dasi'].map(prod => {
+                              const options = (db[prod] || []).slice().sort((a, b) => {
+                                const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+                                const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+                                return nameA.localeCompare(nameB);
+                              }).map(p => ({
+                                value: p[`id_${prod}`],
+                                label: `${p[`name_${prod}`] || p[`kode_${prod}`]}${p[`color_${prod}`] ? ` - ${p[`color_${prod}`]}` : ''}${p[`size_${prod}`] ? ` (${p[`size_${prod}`].toString().toUpperCase()})` : ''}`
+                              }));
+
+                              const selectId = `${index}-${prod}`;
+                              return (
+                                <SearchableSelect
+                                  key={prod}
+                                  label={prod}
+                                  options={options}
+                                  value={row[`id_${prod}`] || ''}
+                                  onChange={(val) => handleInputChange(index, `id_${prod}`, val)}
+                                  isOpen={openSelectId === selectId}
+                                  onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                                  placeholder="Kosong"
+                                />
+                              );
+                            })}
+                          </div>
+
+                          {/* Baris 2: 3 Item */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {['changshan', 'vest', 'tuxedo'].map(prod => {
+                              const options = (db[prod] || []).slice().sort((a, b) => {
+                                const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+                                const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+                                return nameA.localeCompare(nameB);
+                              }).map(p => ({
+                                value: p[`id_${prod}`],
+                                label: `${p[`name_${prod}`] || p[`kode_${prod}`]}${p[`color_${prod}`] ? ` - ${p[`color_${prod}`]}` : ''}${p[`size_${prod}`] ? ` (${p[`size_${prod}`].toString().toUpperCase()})` : ''}`
+                              }));
+
+                              const selectId = `${index}-${prod}`;
+                              return (
+                                <SearchableSelect
+                                  key={prod}
+                                  label={prod}
+                                  options={options}
+                                  value={row[`id_${prod}`] || ''}
+                                  onChange={(val) => handleInputChange(index, `id_${prod}`, val)}
+                                  isOpen={openSelectId === selectId}
+                                  onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                                  placeholder="Kosong"
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                       {/* Description input */}
@@ -310,12 +419,12 @@ const [rows, setRows] = useState(() => {
 
                         // 2. Ambil & Bersihkan Nilai (Pre-fill logic)
                         let displayValue = row[key] || '';
-                        
+
                         // Jika tanggal, potong agar formatnya YYYY-MM-DD (Syarat input type="date")
                         if (isDate && typeof displayValue === 'string' && displayValue.includes('T')) {
                           displayValue = displayValue.split('T')[0];
                         }
-                        
+
                         // Jika angka, pastikan bulat (hilangkan .00)
                         if (isNumber && displayValue !== '') {
                           displayValue = Math.round(Number(displayValue));
@@ -337,18 +446,18 @@ const [rows, setRows] = useState(() => {
                             <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block ml-1">
                               {displayName}
                             </label>
-                            <input 
-                              required 
+                            <input
+                              required
                               type={inputType}
                               step={isNumber ? "1" : undefined}
                               min={isDate ? today : undefined}
-                              value={displayValue} 
+                              value={displayValue}
                               onChange={(e) => {
                                 let val = e.target.value;
                                 if (isNumber) val = val === '' ? '' : Math.round(Number(val));
                                 handleInputChange(index, key, val);
-                              }} 
-                              className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-[13px] font-black text-slate-900 outline-none focus:border-slate-900 shadow-sm" 
+                              }}
+                              className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-[13px] font-black text-slate-900 outline-none focus:border-slate-900 shadow-sm"
                             />
                           </div>
                         );
@@ -371,7 +480,7 @@ const [rows, setRows] = useState(() => {
                 <div className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[12px] font-black uppercase text-amber-600/50 ml-1">Note Title</label>
-                    <input 
+                    <input
                       required
                       type="text"
                       placeholder="Enter title..."
@@ -382,7 +491,7 @@ const [rows, setRows] = useState(() => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[12px] font-black uppercase text-amber-600/50 ml-1">Content</label>
-                    <textarea 
+                    <textarea
                       required
                       placeholder="Write your thoughts here..."
                       value={rows[0].description_note || ''}
