@@ -20,24 +20,32 @@ const DailyStock = ({ db, selectedFullDate }) => {
         const colorValue = item.color || item[`color_${cat}`] || '-';
         const totalStockInitial = Number(item[`stock_${cat}`]) || 0;
 
-      // LOGIKA PENGURANGAN STOK OTOMATIS
-      const usedCount = (db.order_items || []).filter(order => {
-        // 1. Pastikan tanggal order masuk dalam rentang selectedFullDate
-        // Kita gunakan .split('T')[0] agar sinkron dengan format database
-        const start = order.start_dates ? order.start_dates.split('T')[0] : '';
-        const end = order.end_dates ? order.end_dates.split('T')[0] : '';
-        const isDateOverlap = selectedFullDate >= start && selectedFullDate <= end;
+     // Copy bagian ini ke dalam loop items.forEach di DailyStock.jsx
+const usedCount = (db.order_items || []).filter(order => {
+  // 1. Identifikasi Item: Cek apakah item (jas/kemeja/dll) ini ada di pesanan tersebut
+  const idInOrder = order[`id_${cat}`];
+  if (!idInOrder || !item[idField]) return false;
+  if (String(idInOrder) !== String(item[idField])) return false;
 
-        // 2. Cek apakah item ini yang sedang dipesan
-        // Karena struktur database Anda flat (id_jas, id_kemeja di dalam satu row order)
-        const idInOrder = order[`id_${cat}`]; // misal order['id_jas']
-        const hasThisItem = Number(idInOrder) === Number(item[idField]);
+  // 2. Filter Tanggal: Cek apakah hari yang dipilih berada dalam rentang sewa
+  const start = order.start_dates ? order.start_dates.split('T')[0] : '';
+  const end = order.end_dates ? order.end_dates.split('T')[0] : '';
+  const isDateOverlap = selectedFullDate >= start && selectedFullDate <= end;
+  if (!isDateOverlap) return false;
 
-        // 3. Pastikan pesanan masih aktif (belum dikembalikan)
-        const isActive = (order.status_rent === 'Booked' || order.status_rent === 'Diambil') && order.status_order !== 'Sudah Selesai';
+  // 3. LOGIKA STATUS (Sesuai Struktur DB Anda):
+  // Kita anggap stok berkurang HANYA jika statusnya sedang 'Booked' atau 'Diambil'
+  const statusRent = order.status_rent; // 'Booked', 'Diambil', 'Dikembalikan', 'Cancel'
+  
+  // Jika berubah dari 'Booked' ke 'Diambil', hasil isOccupied tetap TRUE (stok tidak berubah)
+  // Jika berubah ke 'Cancel' atau 'Dikembalikan', hasil isOccupied jadi FALSE (stok kembali)
+  const isOccupied = (statusRent === 'Booked' || statusRent === 'Diambil');
 
-        return isDateOverlap && hasThisItem && isActive;
-      }).length;
+  // 4. Double Check: Pastikan order secara keseluruhan belum diselesaikan
+  const isNotFinished = order.status_order !== 'Sudah Selesai';
+
+  return isOccupied && isNotFinished;
+}).length;
 
         const currentRemaining = totalStockInitial - usedCount;
 
