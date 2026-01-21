@@ -566,18 +566,53 @@ return (
       {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
       {(activeTab === 'order_items' || activeTab === 'history_orders') && (
         <div className="p-6 border-t bg-gray-50/50">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
-              {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
-            </span>
-            <span className="text-2xl font-black text-slate-900">
-              {formatIDR(filteredData.reduce((sum, item) => {
-                if (activeTab === 'order_items') {
-                  return sum + Number(item.amount_paid || 0);
-                }
-                return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
-              }, 0))}
-            </span>
+          <div className="flex flex-col md:flex-row gap-8 md:gap-16">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+                {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
+              </span>
+              <span className="text-2xl font-black text-slate-900">
+                {formatIDR(filteredData.reduce((sum, item) => {
+                  if (activeTab === 'order_items') {
+                    return sum + Number(item.amount_paid || 0);
+                  }
+                  return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
+                }, 0))}
+              </span>
+            </div>
+
+            {activeTab === 'order_items' && (
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">
+                  Total Estimasi Omset
+                </span>
+                <span className="text-2xl font-black text-amber-600">
+                  {formatIDR(filteredData.reduce((sum, item) => {
+                    const hargaDasar = Number(item.total_price || 0);
+                    const diskonPersen = Number(item.customer_full?.discount || 0);
+                    const nominalDiskon = (hargaDasar * diskonPersen / 100);
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const endDate = new Date(item.end_dates?.split('T')[0] || new Date());
+                    endDate.setHours(0, 0, 0, 0);
+
+                    const returnDateStr = item.actual_return_date ? item.actual_return_date.split('T')[0] : null;
+                    const calculationDate = (item.status_rent === 'Dikembalikan' && returnDateStr)
+                      ? new Date(returnDateStr)
+                      : today;
+                    calculationDate.setHours(0, 0, 0, 0);
+
+                    let penaltyFee = 0;
+                    if (calculationDate > endDate) {
+                      const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                      penaltyFee = daysLate * (item.package_full?.penalty_fee || 0);
+                    }
+                    return sum + (hargaDasar - nominalDiskon) + penaltyFee;
+                  }, 0))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
