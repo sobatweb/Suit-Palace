@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { User, CalendarDays, X, CheckCircle } from 'lucide-react';
 const getDateString = (dateStr) => (dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr) : '');
@@ -32,70 +32,96 @@ const OrderDetailCard = ({
     );
   });
 
-  
+  // GROUPING LOGIC: Group by Customer ID + Start Date
+  const groupedOrders = useMemo(() => {
+    const groups = {};
+    filteredOrders.forEach(order => {
+      const key = `${order.id_customer}_${getDateString(order.start_dates)}`;
+      if (!groups[key]) {
+        // Create group leader, add relatedOrders array
+        groups[key] = { ...order, relatedOrders: [] };
+      }
+      groups[key].relatedOrders.push(order);
+    });
+    return Object.values(groups);
+  }, [filteredOrders]);
 
   return (
     <div className="space-y-4 max-h-270 overflow-y-auto pr-2 scrollbar-hide">
 
 
       {/* RENDER PESANAN */}
-      {filteredOrders.length === 0 ? (
+      {groupedOrders.length === 0 ? (
         <div className="text-center py-10 opacity-20 font-black uppercase text-[15px] tracking-widest">No Orders Today</div>
       ) : (
-        filteredOrders.map(order => {
+        groupedOrders.map(order => {
           const cust = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
-          const pkg = db.packages.find(p => Number(p.id_package) === Number(order.id_package));
-
-          // Hitung Penalty Fee: Gunakan actual_return_date jika sudah kembali, jika belum gunakan hari ini
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
           
-          const calculationDate = (order.status_rent === 'Dikembalikan' && order.actual_return_date)
-            ? new Date(getDateString(order.actual_return_date))
-            : today;
+          // Calculate Totals for the Group
+          let totalGroupTagihan = 0;
+          let totalGroupPaid = 0;
+          let totalGroupSisa = 0;
+          let isGroupLate = false;
 
-          const endDate = new Date(getDateString(order.end_dates));
-          endDate.setHours(0, 0, 0, 0);
-          
-          let penaltyFee = 0;
-          let daysLate = 0;
-          
-          if (calculationDate > endDate) {
-            daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-            penaltyFee = daysLate * (pkg?.penalty_fee || 0);
-          }
+          // Iterate related orders to calculate totals and build item list
+          const groupDetails = order.relatedOrders.map(subOrder => {
+            const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
+            
+            // Hitung Penalty Fee per order
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
+              ? new Date(getDateString(subOrder.actual_return_date))
+              : today;
 
-          const hargaPaket = Math.round(Number(order.total_price));
-          const discount = Number(cust?.discount || 0);
-          const discountAmount = Math.round(hargaPaket * (discount / 100));
-          const deposit = Math.round(Number(pkg?.deposit || 0));
-          const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
-          const sisaBayar = totalTagihan - Math.round(Number(order.amount_paid));
-
-          const omsetHistory = (hargaPaket - (hargaPaket * discount / 100));
-
-          // Ambil daftar item yang di-book
-          const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(order.id_booked)) || {};
-          const bookedItemsList = [];
-          ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
-            const productId = bookingRow[`id_${cat}`];
-            if (productId) {
-              const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
-              if (prod) {
-                bookedItemsList.push({
-                  category: cat.toUpperCase(),
-                  name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-                  size: prod[`size_${cat}`] || '-',
-                  color: prod[`color_${cat}`] || '-'
-                });
-              }
+            const endDate = new Date(getDateString(subOrder.end_dates));
+            endDate.setHours(0, 0, 0, 0);
+            
+            let penaltyFee = 0;
+            
+            if (calculationDate > endDate) {
+              const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+              penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+              isGroupLate = true;
             }
+
+            const hargaPaket = Math.round(Number(subOrder.total_price));
+            const discount = Number(cust?.discount || 0);
+            const discountAmount = Math.round(hargaPaket * (discount / 100));
+            const deposit = Math.round(Number(pkg?.deposit || 0));
+            const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
+            const sisaBayar = totalTagihan - Math.round(Number(subOrder.amount_paid));
+
+            totalGroupTagihan += totalTagihan;
+            totalGroupPaid += Math.round(Number(subOrder.amount_paid));
+            totalGroupSisa += sisaBayar;
+
+            // Ambil daftar item yang di-book
+            const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
+            const items = [];
+            ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
+              const productId = bookingRow[`id_${cat}`];
+              if (productId) {
+                const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
+                if (prod) {
+                  items.push({
+                    category: cat.toUpperCase(),
+                    name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+                    size: prod[`size_${cat}`] || '-',
+                    color: prod[`color_${cat}`] || '-'
+                  });
+                }
+              }
+            });
+
+            return { pkgName: pkg?.package_name, items, status: subOrder.status_rent };
           });
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={order.id_order} className="bg-white p-5 rounded-4xl shadow-xl border relative overflow-hidden">
-              <div className={`absolute top-0 right-0 px-4 py-1 text-[13px] font-black text-white  rounded-bl-xl ${getStatusColor(order.status_rent)}`}>
-                {order.status_rent}
+              <div className={`absolute top-0 right-0 px-4 py-1 text-[13px] font-black text-white rounded-bl-xl ${isGroupLate ? 'bg-rose-600' : getStatusColor(order.status_rent)}`}>
+                {order.relatedOrders.length > 1 ? `${order.relatedOrders.length} Orders` : order.status_rent}
               </div>
 
               <div className="space-y-3 mt-4">
@@ -119,51 +145,42 @@ const OrderDetailCard = ({
 
               {/* Rincian Biaya */}
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-1 my-4 font-bold border border-gray-100 shadow-inner">
-                <div className="flex justify-between"><span>Harga Paket</span><span>Rp {hargaPaket.toLocaleString('id-ID')}</span></div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Diskon ({discount}%)</span>
-                    <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
-                  </div>
-                )}
-                <div className="flex justify-between"><span>Deposit (Jaminan)</span><span>Rp {deposit.toLocaleString('id-ID')}</span></div>
-                {penaltyFee > 0 && (
-                  <div className="flex justify-between text-rose-600">
-                    <span>Penalty Fee ({daysLate} Hari)</span>
-                    <span>+ Rp {penaltyFee.toLocaleString('id-ID')}</span>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Bayar</span><span>Rp {totalTagihan.toLocaleString('id-ID')}</span></div>
-                <div className="flex justify-between text-emerald-600"><span>Sudah Dibayar</span><span>- Rp {Math.round(Number(order.amount_paid)).toLocaleString('id-ID')}</span></div>
-                <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${sisaBayar > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
-                  <span>{sisaBayar > 0 ? 'Sisa Tagihan' : 'Lunas'}</span>
-                  <span>Rp {sisaBayar.toLocaleString('id-ID')}</span>
+                <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Tagihan ({order.relatedOrders.length} Order)</span><span>Rp {totalGroupTagihan.toLocaleString('id-ID')}</span></div>
+                <div className="flex justify-between text-emerald-600"><span>Total Dibayar</span><span>- Rp {totalGroupPaid.toLocaleString('id-ID')}</span></div>
+                <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${totalGroupSisa > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                  <span>{totalGroupSisa > 0 ? 'Sisa Tagihan' : 'Lunas'}</span>
+                  <span>Rp {totalGroupSisa.toLocaleString('id-ID')}</span>
                 </div>
               </div>
 
               {/* Booked Items & Description */}
               <div className="pt-4 border-t border-dashed border-gray-400">
-                <div className="text-[12px] font-black uppercase text-gray-500 mb-2">Item Terpesan:</div>
-                <div className="mb-3">
-                  <table className="w-full">
-                    <tbody>
-                      {bookedItemsList.map((item, i) => (
-                        <tr key={i} className="text-[12px] font-bold">
-                          <td className="bg-slate-100 pl-3 py-1.5 rounded-l-xl w-24 uppercase text-gray-500 tracking-tighter">
-                            {item.category}
-                          </td>
-                          <td className="bg-slate-100 py-1.5 text-center text-gray-400 w-4">:</td>
-                          <td className="bg-slate-100 pr-3 py-1.5 rounded-r-xl text-gray-800">
-                            {item.category === 'DASI' 
-                              ? `${item.name} (${item.color})` 
-                              : `${item.name} (${item.color} - ${item.size})`}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {bookedItemsList.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
-                </div>
+                {groupDetails.map((detail, idx) => (
+                  <div key={idx} className="mb-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="text-[11px] font-black uppercase text-gray-800">{detail.pkgName}</div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded ${getStatusColor(detail.status)} text-white font-bold`}>{detail.status}</span>
+                    </div>
+                    <table className="w-full">
+                      <tbody>
+                        {detail.items.map((item, i) => (
+                          <tr key={i} className="text-[12px] font-bold">
+                            <td className="bg-slate-100 pl-3 py-1.5 rounded-l-xl w-24 uppercase text-gray-500 tracking-tighter">
+                              {item.category}
+                            </td>
+                            <td className="bg-slate-100 py-1.5 text-center text-gray-400 w-4">:</td>
+                            <td className="bg-slate-100 pr-3 py-1.5 rounded-r-xl text-gray-800">
+                              {item.category === 'DASI' 
+                                ? `${item.name} (${item.color})` 
+                                : `${item.name} (${item.color} - ${item.size})`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {detail.items.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
+                  </div>
+                ))}
                 
                 {order.condition_return && (
                   <div className="pt-2 border-t ">
@@ -179,7 +196,6 @@ const OrderDetailCard = ({
                   onClick={() => {
                     // Cari data customer dan package terlebih dahulu untuk dikirim ke modal
                     const currentCustomer = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
-                    const currentPackage = db.packages.find(p => Number(p.id_package) === Number(order.id_package));
                     
                     setEditingItem({ 
                       ...order, 
@@ -189,7 +205,6 @@ const OrderDetailCard = ({
                       customer_phone: currentCustomer?.customer_phone || '',
                       bank_account: currentCustomer?.bank_account || '',
                       customer_full: currentCustomer, // TAMBAHKAN INI (untuk akses discount)
-                      package_full: currentPackage // TAMBAHKAN INI (untuk akses package detail)
                     }); 
                     setModalType('form_db'); 
                   }}

@@ -162,23 +162,27 @@ const handleSaveItem = async (items) => {
 
     // items adalah array yang dikirim dari FormModal
     for (const item of items) {
-      const method = isEdit ? 'PUT' : 'POST';
+      // Determine method based on item ID for order_items, otherwise fallback to isEdit
+      let method = isEdit ? 'PUT' : 'POST';
 
       let url = '';
       let body = item;
 
       if (table === 'order_items') {
-        const id = isEdit ? editingItem.id_order : '';
-        url = isEdit ? `${API_BASE}/api/transaction/orders/${id}` : `${API_BASE}/api/transaction/orders`;
+        const id = item.id_order; // Get ID from the specific row item
+        const isItemEdit = !!id;
+        
+        method = isItemEdit ? 'PUT' : 'POST';
+        url = isItemEdit ? `${API_BASE}/api/transaction/orders/${id}` : `${API_BASE}/api/transaction/orders`;
 
-        if (!isEdit) {
+        if (!isItemEdit) {
           const { customer_name, customer_phone, bank_account, ...rest } = item;
           body = {
             orderData: { ...rest, id_customer: customerId },
             bookingData: { ...rest }
           };
         } else {
-          const customerId = editingItem.id_customer;
+          const customerId = item.id_customer || editingItem?.id_customer;
           if (customerId) {
             await fetch(`${API_BASE}/api/customers/${customerId}`, {
               method: 'PUT',

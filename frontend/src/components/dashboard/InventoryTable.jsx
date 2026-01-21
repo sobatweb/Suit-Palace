@@ -78,10 +78,41 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
         return {
           ...order,
           display_customer: customer.customer_name || 'Unknown',
-          display_package: packageData.package_name || 'No Package',
+          display_package: packageData.package_name || 'No Package', // This will be overridden if grouped
           customer_full: customer,
           package_full: packageData,
           booked_items: bookedItemsList
+        };
+      });
+    }
+
+    // GROUPING LOGIC FOR ORDER ITEMS TABLE
+    if (activeTab === 'order_items' && baseData.length > 0) {
+      const groups = {};
+      baseData.forEach(order => {
+        const key = `${order.id_customer}_${order.start_dates}`;
+        if (!groups[key]) {
+          groups[key] = { ...order, relatedOrders: [] };
+        }
+        groups[key].relatedOrders.push(order);
+      });
+
+      baseData = Object.values(groups).map(group => {
+        if (group.relatedOrders.length === 1) return group;
+
+        // Aggregate info for display
+        const packages = group.relatedOrders.map(o => o.display_package).join(' + ');
+        const totalPrice = group.relatedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+        const amountPaid = group.relatedOrders.reduce((sum, o) => sum + Number(o.amount_paid), 0);
+        const allBookedItems = group.relatedOrders.flatMap(o => o.booked_items);
+
+        return {
+          ...group,
+          display_package: packages,
+          total_price: totalPrice,
+          amount_paid: amountPaid,
+          booked_items: allBookedItems,
+          // relatedOrders is preserved for Edit
         };
       });
     }
