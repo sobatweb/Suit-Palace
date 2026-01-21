@@ -51,7 +51,8 @@ const usedCount = (db.order_items || []).filter(order => {
 
         if (
           item[nameField]?.toLowerCase().includes(stockSearch.toLowerCase()) ||
-          sizeValue.toString().toLowerCase().includes(stockSearch.toLowerCase())
+          sizeValue.toString().toLowerCase().includes(stockSearch.toLowerCase()) ||
+          colorValue.toString().toLowerCase().includes(stockSearch.toLowerCase())
         ) {
           results.push({
             id: item[idField],
@@ -96,7 +97,7 @@ const usedCount = (db.order_items || []).filter(order => {
             <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
             <input 
               type="text" 
-              placeholder="Cari Nama" 
+              placeholder="Cari Nama / Warna" 
               className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-xl text-[10px] font-black outline-none border-none ring-1 ring-gray-200 focus:ring-[#1A120B]"
               onChange={(e) => setStockSearch(e.target.value)}
             />
