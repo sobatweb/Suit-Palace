@@ -58,3 +58,29 @@ exports.deleteItem = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+exports.updateStock = async (req, res) => {
+    try {
+        const { table, id } = req.params;
+        const { change } = req.body; // +1 atau -1
+
+        // Validasi kategori yang diperbolehkan
+        const validCategories = ['jas', 'kemeja', 'celana', 'dasi', 'changshan', 'vest', 'tuxedo'];
+        if (!validCategories.includes(table)) {
+            return res.status(400).json({ message: 'Invalid category for stock update' });
+        }
+
+        // Tentukan field ID dan stock berdasarkan tabel
+        const idField = `id_${table}`;
+        const stockField = `stock_${table}`;
+
+        // Query untuk update stock
+        const query = `UPDATE ${table} SET ${stockField} = ${stockField} + ? WHERE ${idField} = ?`;
+        
+        await InventoryModel.executeQuery(query, [change, id]);
+
+        res.json({ message: 'Stock updated successfully', change });
+    } catch (error) {
+        console.error('Error updating stock:', error);
+        res.status(500).json({ message: error.message });
+    }
+};

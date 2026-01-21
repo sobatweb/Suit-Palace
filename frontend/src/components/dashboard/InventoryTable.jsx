@@ -12,7 +12,8 @@ const tableSchemas = {
   tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
-  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
+  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return'],
+  laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry'] 
 };
 
 
@@ -420,6 +421,9 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                 {(tableSchemas[activeTab] || (data.length > 0 ? Object.keys(data[0]).filter(key => !key.startsWith('id_')) : []))
                   .map(key => {
                     let displayName = key.replace('_', ' ');
+                    if (key.startsWith('id_')) {
+                        displayName = key.replace('id_', '');
+                      }
                     if (activeTab === 'history_orders') {
                       if (key === 'omset_order') displayName = 'Package Price';
                       if (key === 'return_date') displayName = 'Finish Order';
@@ -432,82 +436,130 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
             )}
           </thead>
 
-          <tbody className={`${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-bold text-gray-800`}>
-            {filteredData.map((item, idx) => (
-              <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
-                {activeTab === 'order_items' ? (
-                  <>
-                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.order_date)}</td>
-                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
-                      const currentDisc = item.customer_full?.discount;
-                      // Normalisasi: "5.00" -> 5 -> "5" agar match dengan <option value="5">
-                      const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
-                      setSelectedInfo({ type: 'customer', data: item.customer_full });
-                      setTempDiscount(normalizedDisc);
-                    }}>
-                      {item.display_customer}
-                    </td>
-                    <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', data: item.package_full })}>
-                      {item.display_package}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.condition_return })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
-                        <ShoppingBag size={12} /> Detail
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
-                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.end_dates)}</td>
-                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        onClick={() => setPriceDetails(item)}
-                        className="text-blue-600 cursor-pointer hover:underline font-black text-[12px] uppercase tracking-tighter decoration-blue-300 underline-offset-4"
-                      >
-                        Lihat Harga
-                      </span>
-                    </td>
-                  </>
-                ) : (
-                  (tableSchemas[activeTab] || Object.keys(item).filter(k => !k.startsWith('id_')))
-                    .map((key, i) => {
-                      const val = item[key];
-                      return (
-                        <td key={i} className="px-6 py-4">
-                          {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
-                            ? formatIDR(val)
-                            : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
-                              ? formatDateFull(val) : val?.toString() || '-'}
-                        </td>
-                      );
-                    })
-                )}
-                {activeTab !== 'history_orders' && (
-                  <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
-                    <div className="flex justify-end gap-10">
-                      <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
-                      {activeTab === 'order_items' ? (
-                        <CheckCircle
-                          size={16}
-                          className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
-                            ? "text-emerald-500 hover:text-emerald-700"
-                            : "text-gray-300 cursor-not-allowed opacity-50"
-                            }`}
-                          onClick={() => {
-                            if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
-                              setFinishOrderData(item);
-                            }
-                          }}
-                          title={(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel"}
-                        />
-                      ) : (
-                        <Trash2 size={16} className="text-gray-400 hover:text-rose-500 cursor-pointer" onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} />
-                      )}
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
+          
+<tbody className={`${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-bold text-gray-800`}>
+  {filteredData.map((item, idx) => (
+    <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
+      {activeTab === 'order_items' ? (
+        <>
+          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.order_date)}</td>
+          <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
+            const currentDisc = item.customer_full?.discount;
+            const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
+            setSelectedInfo({ type: 'customer', data: item.customer_full });
+            setTempDiscount(normalizedDisc);
+          }}>
+            {item.display_customer}
+          </td>
+          <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', data: item.package_full })}>
+            {item.display_package}
+          </td>
+          <td className="px-6 py-4">
+            <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.condition_return })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
+              <ShoppingBag size={12} /> Detail
+            </button>
+          </td>
+          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
+          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.end_dates)}</td>
+          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
+          <td className="px-6 py-4">
+            <span
+              onClick={() => setPriceDetails(item)}
+              className="text-blue-600 cursor-pointer hover:underline font-black text-[12px] uppercase tracking-tighter decoration-blue-300 underline-offset-4"
+            >
+              Lihat Harga
+            </span>
+          </td>
+        </>
+      ) : (
+        (tableSchemas[activeTab] || Object.keys(item).filter(k => !k.startsWith('id_laundry')))
+          .map((key, i) => {
+           const val = item[key];
+
+// LOGIKA KHUSUS LAUNDRY - Foreign Keys
+if (activeTab === 'laundry' && key.startsWith('id_') && key !== 'id_laundry') {
+  const category = key.replace('id_', '');
+  const targetTable = db[category] || [];
+  const found = targetTable.find(t => String(t[`id_${category}`]) === String(val));
+  
+  if (!found || !val) {
+    return <td key={i} className="px-6 py-4 text-gray-300 italic text-[11px]">--</td>;
+  }
+  
+  return (
+    <td key={i} className="px-6 py-4">
+      <div className="flex flex-col leading-tight">
+        <span className="font-black text-[12px] text-gray-900">
+          {found[`name_${category}`] || found[`kode_${category}`]}
+        </span>
+        <span className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">
+          {found[`size_${category}`]} • {found[`color_${category}`]}
+        </span>
+      </div>
+    </td>
+  );
+}
+
+// LOGIKA KHUSUS STATUS LAUNDRY
+if (key === 'status_laundry') {
+  return (
+    <td key={i} className="px-6 py-4">
+      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${
+        val === 'Selesai' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+      }`}>
+        {val || 'Belum Selesai'}
+      </span>
+    </td>
+  );
+}
+
+// LOGIKA DEFAULT
+return (
+              <td key={i} className="px-6 py-4">
+                {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
+                  ? formatIDR(val)
+                  : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
+                    ? formatDateFull(val) 
+                    : val?.toString() || '-'}
+              </td>
+            );
+          })
+      )}
+      {activeTab !== 'history_orders' && (
+        <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
+          <div className="flex justify-end gap-10">
+            <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
+            {activeTab === 'order_items' ? (
+              <CheckCircle
+                size={16}
+                className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
+                  ? "text-emerald-500 hover:text-emerald-700"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+                  }`}
+                onClick={() => {
+                  if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
+                    setFinishOrderData(item);
+                  }
+                }}
+                title={(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel"}
+              />
+            ) :(
+        /* Tombol Delete: Hanya muncul JIKA bukan tab laundry */
+        activeTab !== 'laundry' && (
+          <Trash2 
+            size={16} 
+            className="text-gray-400 hover:text-rose-500 cursor-pointer" 
+            onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} 
+          />
+        )
+      )}
+    </div>
+        </td>
+      )}
+    </tr>
+  ))}
+</tbody>
+          
         </table>
       </div>
 

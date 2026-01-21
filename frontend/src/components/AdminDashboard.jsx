@@ -37,7 +37,8 @@ const AdminDashboard = () => {
     order_items: [],
     history_orders: [],
     notes: [],
-    marks: []
+    marks: [],
+    laundry: []
   });
 
   const navigate = useNavigate();
@@ -82,7 +83,7 @@ const AdminDashboard = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
 
     try {
-      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes, vestRes, tuxedoRes] = await Promise.all([
+      const [dashboardRes, customersRes, jasRes, kemejaRes, celanaRes, changshanRes, dasiRes, packagesRes, ordersRes, bookedRes, vestRes, tuxedoRes,laundryRes] = await Promise.all([
         fetch(`${API_BASE}/api/dashboard`, { headers }).then(res => res.json()),
         fetch(`${API_BASE}/api/customers`, { headers }).then(res => res.json()),
         fetch(`${API_BASE}/api/inventory/jas`, { headers }).then(res => res.json()),
@@ -94,7 +95,8 @@ const AdminDashboard = () => {
         fetch(`${API_BASE}/api/transaction/orders`, { headers }).then(res => res.json()),
         fetch(`${API_BASE}/api/inventory/booked`, { headers }).then(res => res.json()),
         fetch(`${API_BASE}/api/inventory/vest`, { headers }).then(res => res.json()),
-        fetch(`${API_BASE}/api/inventory/tuxedo`, { headers }).then(res => res.json())
+        fetch(`${API_BASE}/api/inventory/tuxedo`, { headers }).then(res => res.json()),
+       fetch(`${API_BASE}/api/inventory/laundry`, { headers }).then(res => res.json())  
       ]);
 
       setDb(prev => ({
@@ -112,7 +114,8 @@ const AdminDashboard = () => {
         tuxedo: Array.isArray(tuxedoRes) ? tuxedoRes : [],
         packages: Array.isArray(packagesRes) ? packagesRes : [],
         order_items: Array.isArray(ordersRes) ? ordersRes : [],
-        booked: Array.isArray(bookedRes) ? bookedRes : []
+        booked: Array.isArray(bookedRes) ? bookedRes : [],
+        laundry: Array.isArray(laundryRes) ? laundryRes : []
       }));
     } catch (error) {
       console.error("Failed to fetch data", error);
@@ -125,120 +128,188 @@ const AdminDashboard = () => {
   React.useEffect(() => {
     fetchData();
   }, []);
+const handleSaveItem = async (items) => {
+  try {
+    const table = editingItem?.fromTable || activeTab;
+    const isEdit = !!editingItem;
 
-  const handleSaveItem = async (items) => {
-    try {
-      const table = editingItem?.fromTable || activeTab;
-      const isEdit = !!editingItem;
+    let customerId = null;
 
-      let customerId = null;
+    // Jika membuat order baru, simpan data customer terlebih dahulu ke tabel customers
+    if (table === 'order_items' && !isEdit && items.length > 0) {
+      if (items[0].id_customer) {
+        customerId = items[0].id_customer;
+      } else {
+        const customerResponse = await fetch(`${API_BASE}/api/customers`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            customer_name: items[0].customer_name,
+            customer_phone: items[0].customer_phone,
+            bank_account: items[0].bank_account
+          }),
+        });
 
-      // Jika membuat order baru, simpan data customer terlebih dahulu ke tabel customers
-      if (table === 'order_items' && !isEdit && items.length > 0) {
-        if (items[0].id_customer) {
-          // Gunakan ID customer yang sudah ada
-          customerId = items[0].id_customer;
+        if (!customerResponse.ok) {
+          const errData = await customerResponse.json();
+          throw new Error(errData.message || 'Gagal menyimpan data customer');
+        }
+
+        const customerData = await customerResponse.json();
+        customerId = customerData.id_customer || customerData.id;
+      }
+    }
+
+    // items adalah array yang dikirim dari FormModal
+    for (const item of items) {
+      const method = isEdit ? 'PUT' : 'POST';
+
+      let url = '';
+      let body = item;
+
+      if (table === 'order_items') {
+        const id = isEdit ? editingItem.id_order : '';
+        url = isEdit ? `${API_BASE}/api/transaction/orders/${id}` : `${API_BASE}/api/transaction/orders`;
+
+        if (!isEdit) {
+          const { customer_name, customer_phone, bank_account, ...rest } = item;
+          body = {
+            orderData: { ...rest, id_customer: customerId },
+            bookingData: { ...rest }
+          };
         } else {
-          // Buat customer baru
-          const customerResponse = await fetch(`${API_BASE}/api/customers`, {
+          const customerId = editingItem.id_customer;
+          if (customerId) {
+            await fetch(`${API_BASE}/api/customers/${customerId}`, {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                customer_name: item.customer_name,
+                customer_phone: item.customer_phone,
+                bank_account: item.bank_account,
+                discount: item.discount || 0
+              })
+            });
+          }
+
+          const cleanedBody = {};
+          Object.keys(item).forEach(key => {
+            if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order' && key !== 'order_date') {
+              cleanedBody[key] = item[key];
+            }
+          });
+          body = cleanedBody;
+        }
+      } else if (table === 'customers') {
+        const id = isEdit ? editingItem.id_customer : '';
+        url = isEdit ? `${API_BASE}/api/customers/${id}` : `${API_BASE}/api/customers`;
+
+        const { fromTable, id_customer, ...rest } = item;
+        body = rest;
+      } else if (table === 'notes' || table === 'marks') {
+        const idField = table === 'notes' ? 'id_note' : 'id_marks';
+        const id = isEdit ? editingItem[idField] : '';
+        url = isEdit ? `${API_BASE}/api/inventory/${table}/${id}` : `${API_BASE}/api/inventory/${table}`;
+
+        const cleanedBody = {};
+        Object.keys(item).forEach(key => {
+          if (key !== 'fromTable' && key !== idField && key !== 'created_at') {
+            cleanedBody[key] = item[key];
+          }
+        });
+        body = cleanedBody;
+      } else if (table === 'laundry') {
+        // === LOGIKA KHUSUS LAUNDRY ===
+        const categories = ['jas', 'kemeja', 'celana', 'dasi', 'changshan', 'vest', 'tuxedo'];
+        
+        // A. Jika TAMBAH BARU: POST dulu, lalu kurangi stock (-1)
+        if (!isEdit) {
+          url = `${API_BASE}/api/inventory/${table}`;
+          
+          const { fromTable, ...cleanBody } = item;
+          body = cleanBody;
+
+          const laundryResponse = await fetch(url, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({
-              customer_name: items[0].customer_name,
-              customer_phone: items[0].customer_phone,
-              bank_account: items[0].bank_account
-            }),
+            body: JSON.stringify(body),
           });
 
-          if (!customerResponse.ok) {
-            const errData = await customerResponse.json();
-            throw new Error(errData.message || 'Gagal menyimpan data customer');
+          if (!laundryResponse.ok) {
+            const errData = await laundryResponse.json();
+            throw new Error(errData.message || 'Failed to save laundry item');
           }
 
-          const customerData = await customerResponse.json();
-          customerId = customerData.id_customer || customerData.id;
-        }
-      }
-
-      // items adalah array yang dikirim dari FormModal
-      for (const item of items) {
-        const method = isEdit ? 'PUT' : 'POST';
-
-        let url = '';
-        let body = item;
-
-        if (table === 'order_items') {
-          const id = isEdit ? editingItem.id_order : '';
-          url = isEdit ? `${API_BASE}/api/transaction/orders/${id}` : `${API_BASE}/api/transaction/orders`;
-
-          if (!isEdit) {
-            const { customer_name, customer_phone, bank_account, ...rest } = item;
-            body = {
-              orderData: { ...rest, id_customer: customerId },
-              bookingData: { ...rest }
-            };
-          } else {
-            // Update Customer Info first if it's an order edit
-            const customerId = editingItem.id_customer;
-            if (customerId) {
-              await fetch(`${API_BASE}/api/customers/${customerId}`, {
+          // Setelah POST sukses, kurangi stock
+          for (const cat of categories) {
+            const productId = item[`id_${cat}`];
+            if (productId) {
+              await fetch(`${API_BASE}/api/inventory/${cat}/${productId}/stock`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({
-                  customer_name: item.customer_name,
-                  customer_phone: item.customer_phone,
-                  bank_account: item.bank_account,
-                   discount: item.discount || 0
-                })
+                body: JSON.stringify({ change: -1 })
               });
             }
-
-            // For Edit, strip synthetic fields
-            const cleanedBody = {};
-            Object.keys(item).forEach(key => {
-              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order' && key !== 'order_date') {
-                cleanedBody[key] = item[key];
-              }
-            });
-            body = cleanedBody;
           }
-        } else if (table === 'customers') {
-          const id = isEdit ? editingItem.id_customer : '';
-          url = isEdit ? `${API_BASE}/api/customers/${id}` : `${API_BASE}/api/customers`;
-
-          // Strip fromTable
-          const { fromTable, id_customer, ...rest } = item;
-          body = rest;
-        } else if (table === 'notes' || table === 'marks') {
-          const idField = table === 'notes' ? 'id_note' : 'id_marks';
-          const id = isEdit ? editingItem[idField] : '';
-          url = isEdit ? `${API_BASE}/api/inventory/${table}/${id}` : `${API_BASE}/api/inventory/${table}`;
-
-          const cleanedBody = {};
-          Object.keys(item).forEach(key => {
-            if (key !== 'fromTable' && key !== idField && key !== 'created_at') {
-              cleanedBody[key] = item[key];
-            }
-          });
-          body = cleanedBody;
-        } else {
-          // Inventory tables (jas, kemeja, etc.)
-          const idField = editingItem ? Object.keys(editingItem)[0] : '';
-          const id = isEdit ? editingItem[idField] : '';
-          url = isEdit
-            ? `${API_BASE}/api/inventory/${table}/${id}`
-            : `${API_BASE}/api/inventory/${table}`;
-
-          // Strip fromTable and the primary key ID field
-          const cleanedBody = {};
-          Object.keys(item).forEach(key => {
-            if (key !== 'fromTable' && key !== idField) {
-              cleanedBody[key] = item[key];
-            }
-          });
-          body = cleanedBody;
+          
+          continue; // Skip fetch biasa di bawah
         }
+        
+        // B. Jika EDIT dan STATUS BERUBAH JADI "Selesai"
+        if (isEdit && item.status_laundry === 'Selesai' && editingItem.status_laundry !== 'Selesai') {
+          // Kembalikan stock (+1)
+          for (const cat of categories) {
+            const productId = editingItem[`id_${cat}`];
+            if (productId) {
+              await fetch(`${API_BASE}/api/inventory/${cat}/${productId}/stock`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ change: 1 })
+              });
+            }
+          }
+          
+          // Delete laundry record
+          await fetch(`${API_BASE}/api/inventory/laundry/${editingItem.id_laundry}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
+          
+          fetchData();
+          showToast('Laundry selesai! Stock telah dikembalikan dan data dihapus');
+          setModalType(null);
+          setEditingItem(null);
+          return; // Stop eksekusi
+        }
+        
+        // C. Jika EDIT biasa (status tetap "Belum Selesai")
+        if (isEdit && item.status_laundry !== 'Selesai') {
+          const id = editingItem.id_laundry;
+          url = `${API_BASE}/api/inventory/${table}/${id}`;
+          
+          const { fromTable, id_laundry, ...cleanBody } = item;
+          body = cleanBody;
+        }
+        
+      } else {
+        // Inventory tables (jas, kemeja, etc.)
+        const idField = editingItem ? Object.keys(editingItem)[0] : '';
+        const id = isEdit ? editingItem[idField] : '';
+        url = isEdit
+          ? `${API_BASE}/api/inventory/${table}/${id}`
+          : `${API_BASE}/api/inventory/${table}`;
 
+        const cleanedBody = {};
+        Object.keys(item).forEach(key => {
+          if (key !== 'fromTable' && key !== idField) {
+            cleanedBody[key] = item[key];
+          }
+        });
+        body = cleanedBody;
+      }
+
+      // Fetch untuk tabel selain laundry add (karena laundry add sudah di-handle di atas)
+      if (!(table === 'laundry' && !isEdit)) {
         const response = await fetch(url, {
           method,
           headers: getAuthHeaders(),
@@ -250,16 +321,17 @@ const AdminDashboard = () => {
           throw new Error(errData.message || 'Failed to save item');
         }
       }
-
-      fetchData(); // Refresh data
-      showToast(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil disimpan');
-      setModalType(null);
-      setEditingItem(null);
-    } catch (error) {
-      console.error("Gagal menyimpan data:", error);
-      showToast(error.message, 'error');
     }
-  };
+
+    fetchData(); // Refresh data
+    showToast(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil disimpan');
+    setModalType(null);
+    setEditingItem(null);
+  } catch (error) {
+    console.error("Gagal menyimpan data:", error);
+    showToast(error.message, 'error');
+  }
+};
 
   const handleSaveMarkNote = async (table, newData) => {
     // Determine endpoint based on table

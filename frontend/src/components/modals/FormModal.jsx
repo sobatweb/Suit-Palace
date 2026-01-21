@@ -79,7 +79,8 @@ const tableSchemas = {
   tuxedo: ['name_tuxedo', 'size_tuxedo', 'color_tuxedo', 'stock_tuxedo', 'condition_tuxedo'],
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
-  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return']
+  history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return'],
+   laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry']
 };
 
 const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
@@ -434,7 +435,90 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         />
                       </div>
                     </>
-                  ) : (
+                  ) :  table === 'laundry' ? (
+  <>
+    {editingItem ? (
+      /* === TAMPILAN KHUSUS SAAT EDIT (Hanya Status) === */
+      <div className="col-span-1 md:col-span-3 space-y-4">
+        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-2">
+          <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest">Update Laundry</p>
+          <p className="text-[13px] font-bold text-gray-600">Anda sedang mengubah status pencucian item.</p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">STATUS LAUNDRY</label>
+          <select
+            value={row.status_laundry || 'Belum Selesai'}
+            onChange={(e) => handleInputChange(index, 'status_laundry', e.target.value)}
+            className="w-full px-4 py-4 bg-white border-2 border-slate-900 rounded-2xl text-[14px] font-black focus:ring-4 focus:ring-slate-100 outline-none transition-all"
+          >
+            <option value="Belum Selesai">BELUM SELESAI</option>
+            <option value="Selesai">SELESAI</option>
+          </select>
+        </div>
+      </div>
+    ) : (
+      /* === TAMPILAN SAAT TAMBAH BARU (Input Produk) === */
+      <div className="col-span-1 md:col-span-3 space-y-3">
+        {/* Baris 1: 4 Produk */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {['jas', 'kemeja', 'celana', 'dasi'].map(prod => {
+            const options = (db[prod] || []).slice().sort((a, b) => {
+              const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+              const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+              return nameA.localeCompare(nameB);
+            }).map(p => ({
+              value: p[`id_${prod}`],
+              label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
+            }));
+
+            const selectId = `${index}-${prod}`;
+            return (
+              <SearchableSelect
+                key={prod}
+                label={prod.toUpperCase()}
+                options={options}
+                value={row[`id_${prod}`] || ''}
+                onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
+                isOpen={openSelectId === selectId}
+                onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                placeholder="-- Kosong --"
+              />
+            );
+          })}
+        </div>
+
+        {/* Baris 2: 3 Produk */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {['vest', 'tuxedo', 'changshan'].map(prod => {
+            const options = (db[prod] || []).slice().sort((a, b) => {
+              const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+              const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+              return nameA.localeCompare(nameB);
+            }).map(p => ({
+              value: p[`id_${prod}`],
+              label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
+            }));
+
+            const selectId = `${index}-${prod}`;
+            return (
+              <SearchableSelect
+                key={prod}
+                label={prod.toUpperCase()}
+                options={options}
+                value={row[`id_${prod}`] || ''}
+                onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
+                isOpen={openSelectId === selectId}
+                onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                placeholder="-- Kosong --"
+              />
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </>
+) : (
                     (tableSchemas[table] || Object.keys(db[table]?.[0] || {}).filter((key, i) => i !== 0 && key !== 'actual_return_date'))
                       .map((key) => {
                         // 1. Tentukan Tipe Input
