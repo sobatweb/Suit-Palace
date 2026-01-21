@@ -222,7 +222,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                       }}
                       className="text-[9px] font-black uppercase text-blue-600 hover:underline"
                     >
-                      {isNewCustomer ? 'Pilih Pelanggan Lama' : 'Input Pelanggan Baru'}
+                      {isNewCustomer ? 'Pelanggan Yang Sedang Order' : 'Input Pelanggan Baru'}
                     </button>
                   )}
                 </div>
