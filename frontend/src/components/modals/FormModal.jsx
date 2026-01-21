@@ -114,26 +114,30 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   // State Rows (Berbagi untuk Order maupun Master)
   const [rows, setRows] = useState(() => {
     if (editingItem) {
-      // Buat salinan data agar tidak merubah data asli secara langsung
-      const rowData = { ...editingItem };
+      // Handle Grouped Orders: If relatedOrders exists, use it. Otherwise use editingItem as single array.
+      const sourceData = editingItem.relatedOrders || [editingItem];
+      
+      return sourceData.map(item => {
+        const rowData = { ...item };
 
-      // Format data agar ramah input form
-      Object.keys(rowData).forEach(key => {
-        // 1. Hilangkan desimal pada semua angka (termasuk yang datang sebagai string dari DB)
-        const isNumberField = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
-        if (isNumberField && rowData[key] !== null && rowData[key] !== undefined) {
-          rowData[key] = Math.round(Number(rowData[key]));
-        }
-        // 2. Format tanggal (YYYY-MM-DD) agar muncul di input type="date"
-        if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
-          rowData[key] = rowData[key].split('T')[0];
-        }
-        // 3. Ubah ukuran (size) menjadi UPPERCASE saat load data edit
-        if (key.includes('size') && rowData[key] && typeof rowData[key] === 'string') {
-          rowData[key] = rowData[key].toUpperCase();
-        }
+        // Format data agar ramah input form
+        Object.keys(rowData).forEach(key => {
+          // 1. Hilangkan desimal pada semua angka
+          const isNumberField = key.includes('price') || key.includes('stock') || key.includes('paid') || key.includes('pendapatan') || key.includes('denda') || key.includes('fee') || key.includes('omset');
+          if (isNumberField && rowData[key] !== null && rowData[key] !== undefined) {
+            rowData[key] = Math.round(Number(rowData[key]));
+          }
+          // 2. Format tanggal (YYYY-MM-DD)
+          if (key.includes('date') && rowData[key] && typeof rowData[key] === 'string') {
+            rowData[key] = rowData[key].split('T')[0];
+          }
+          // 3. Ubah ukuran (size) menjadi UPPERCASE
+          if (key.includes('size') && rowData[key] && typeof rowData[key] === 'string') {
+            rowData[key] = rowData[key].toUpperCase();
+          }
+        });
+        return rowData;
       });
-      return [rowData];
     }
     return [{}];
   });
@@ -292,21 +296,6 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                   />
                 </div>
               </div>
-              {editingItem && (
-                <div className="space-y-1">
-                  <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Status Rent</label>
-                  <select
-                    value={rows[0].status_rent || 'Booked'}
-                    onChange={(e) => handleInputChange(0, 'status_rent', e.target.value)}
-                    className="w-full px-4 py-3 bg-amber-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
-                  >
-                    <option value="Booked">Booked</option>
-                    <option value="Diambil">Diambil</option>
-                    <option value="Dikembalikan">Dikembalikan</option>
-                    <option value="Cancel">Cancel</option>
-                  </select>
-                </div>
-              )}
             </div>
           )}
 
@@ -333,7 +322,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {isOrderTable ? (
                     <>
-                      {!editingItem && (
+                      {(
                         <div className="space-y-1">
                           <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Pilih Paket</label>
                           <select required value={row.id_package || ''} onChange={(e) => handleInputChange(index, 'id_package', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black">
@@ -365,7 +354,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         </div>
                       )}
                       {/* Grid Item Barang */}
-                      {!editingItem && (
+                      {(
                         <div className="col-span-1 md:col-span-3 space-y-3 pt-2">
                           {/* Baris 1: 4 Item */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -422,6 +411,21 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                               );
                             })}
                           </div>
+                        </div>
+                      )}
+                      {editingItem && (
+                        <div className="space-y-1">
+                          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Status Rent</label>
+                          <select
+                            value={row.status_rent || 'Booked'}
+                            onChange={(e) => handleInputChange(index, 'status_rent', e.target.value)}
+                            className="w-full px-4 py-3 bg-amber-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
+                          >
+                            <option value="Booked">Booked</option>
+                            <option value="Diambil">Diambil</option>
+                            <option value="Dikembalikan">Dikembalikan</option>
+                            <option value="Cancel">Cancel</option>
+                          </select>
                         </div>
                       )}
                       {/* Description input */}
