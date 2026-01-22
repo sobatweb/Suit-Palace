@@ -16,6 +16,8 @@ const CalendarView = ({ db, viewDate, setViewDate, selectedDay, setSelectedDay, 
 
     if (status === 'Dikembalikan') return 'bg-blue-500';
 
+    if (status === 'Cancel') return 'bg-gray-500';
+
     // Logika Overdue (Merah)
     if (status !== 'Dikembalikan' && endDate && today > endDate) return 'bg-rose-600';
 
