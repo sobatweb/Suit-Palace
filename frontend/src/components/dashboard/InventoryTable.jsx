@@ -702,9 +702,23 @@ return (
 
             <div className="space-y-4">
               {/* Nama Paket */}
-              <div className="text-center mb-4">
-                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Paket Terpilih</p>
-                <p className="text-lg font-black text-slate-900">{priceDetails.display_package}</p>
+              <div className="mb-6">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-3">Paket Terpilih</p>
+                <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
+                  {priceDetails.package_details?.map((pkg, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-sm">
+                      <div className="w-6 h-6 shrink-0 rounded-full bg-[#1A120B] text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                        {idx + 1}
+                      </div>
+                      <p className="text-[13px] font-black text-gray-800 uppercase tracking-tight">{pkg.name}</p>
+                    </div>
+                  ))}
+                  {(!priceDetails.package_details || priceDetails.package_details.length === 0) && (
+                    <div className="text-center p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                      <p className="text-sm font-black text-slate-900 uppercase">{priceDetails.display_package}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Harga Sewa */}
