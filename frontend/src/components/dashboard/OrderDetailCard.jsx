@@ -32,7 +32,7 @@ const OrderDetailCard = ({
     );
   });
 
-  // GROUPING LOGIC: Group by Customer ID + Start Date
+ // GROUPING LOGIC: Group by Customer ID + Start Date
   const groupedOrders = useMemo(() => {
     const groups = {};
     filteredOrders.forEach(order => {
@@ -43,7 +43,19 @@ const OrderDetailCard = ({
           Number(o.id_customer) === Number(order.id_customer) &&
           getDateString(o.start_dates) === getDateString(order.start_dates)
         );
-        groups[key] = { ...order, relatedOrders: allRelated };
+
+        // --- TAMBAHKAN LOGIK UNTUK MENCARI TANGGAL TERJAUH ---
+        const maxEndDate = allRelated.reduce((max, curr) => {
+          const currentEnd = getDateString(curr.end_dates);
+          return currentEnd > max ? currentEnd : max;
+        }, getDateString(order.end_dates));
+        // ----------------------------------------------------
+
+        groups[key] = { 
+          ...order, 
+          relatedOrders: allRelated,
+          maxEndDate: maxEndDate // Simpan tanggal terjauh di sini
+        };
       }
     });
     return Object.values(groups);
@@ -158,10 +170,10 @@ const OrderDetailCard = ({
                 </div>
 
                 {/* Bagian Tanggal (SUDAH DIUBAH) */}
-                <div className="flex items-center gap-3">
+               <div className="flex items-center gap-3">
                   <CalendarDays size={14} className="text-gray-400" />
                   <div className="text-[12px] font-bold text-[#8D775F]">
-                    {formatDisplayDate(order.start_dates)} - {formatDisplayDate(order.end_dates)}
+                    {formatDisplayDate(order.start_dates)} - {formatDisplayDate(order.maxEndDate)}
                   </div>
                 </div>
               </div>
