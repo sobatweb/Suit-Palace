@@ -607,16 +607,16 @@ return (
             {activeTab === 'order_items' ? (
               <CheckCircle
                 size={16}
-                className={`cursor-pointer transition-colors ${(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel')
+                className={`cursor-pointer transition-colors ${item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')
                   ? "text-emerald-500 hover:text-emerald-700"
                   : "text-gray-300 cursor-not-allowed opacity-50"
                   }`}
                 onClick={() => {
-                  if (item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') {
+                  if (item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')) {
                     setFinishOrderData(item);
                   }
                 }}
-                title={(item.status_rent === 'Dikembalikan' || item.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel"}
+                title={item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Semua paket harus berstatus Dikembalikan atau Cancel"}
               />
             ) :(
         /* Tombol Delete: Hanya muncul JIKA bukan tab laundry */
@@ -669,7 +669,8 @@ return (
         
         allOrders.forEach(order => {
           if (order.status_rent === 'Cancel') {
-            return; // Tidak tambah ke omset
+            itemTotal += Number(order.amount_paid || 0);
+            return; 
           }
           
           const hargaDasar = Number(order.total_price || 0);
@@ -781,16 +782,12 @@ return (
                   : today;
                 calculationDate.setHours(0, 0, 0, 0);
 
-                const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg) => {
+                const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
 
-                   if (priceDetails.relatedOrders) {
-                    const relatedOrder = priceDetails.relatedOrders.find(o => {
-                      const orderPkg = db.packages?.find(p => Number(p.id_package) === Number(o.id_package));
-                      return orderPkg?.package_name === pkg.name;
-                    });
-                    if (relatedOrder?.status_rent === 'Cancel') {
-                      return sum; // Tidak tambah penalty
-                    }
+                  // Gunakan index karena package_details dipetakan dari relatedOrders yang sudah di-sort
+                  const relatedOrder = priceDetails.relatedOrders?.[idx];
+                  if (relatedOrder?.status_rent === 'Cancel') {
+                    return sum + Number(relatedOrder.amount_paid || 0); // Tambahkan amount_paid sebagai penalty jika cancel
                   }
 
                   if (!pkg.endDate) return sum;
@@ -831,7 +828,8 @@ return (
         
         // SKIP jika status Cancel - tidak masuk ke omset
         if (relatedOrder?.status_rent === 'Cancel') {
-          return; // Lanjut ke package berikutnya
+          totalOmset += Number(relatedOrder.amount_paid || 0);
+          return; 
         }
         
         // 1. Hitung Harga Paket
@@ -905,8 +903,9 @@ return (
 
         const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
           const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-          // Jika Cancel atau tidak ada tanggal selesai, denda 0
-          if (isCancel || !pkg.endDate) return sum;
+          // Jika Cancel, gunakan amount_paid sebagai penalty
+          if (isCancel) return sum + Number(priceDetails.relatedOrders?.[idx]?.amount_paid || 0);
+          if (!pkg.endDate) return sum;
 
           const endDate = new Date(pkg.endDate.split('T')[0]);
           endDate.setHours(0, 0, 0, 0);

@@ -52,6 +52,7 @@ const AdminDashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [finalConfirmData, setFinalConfirmData] = useState(null);
+  const [cancelAmounts, setCancelAmounts] = useState({});
   const [finishOrderData, setFinishOrderData] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [toast, setToast] = useState(null);
@@ -360,46 +361,81 @@ const handleSaveItem = async (items) => {
   };
 
   const handleFinishRequest = (orderId, condition) => {
+    const order = db.order_items.find(o => String(o.id_order) === String(orderId));
+    const initialAmounts = {};
+
+    if (order) {
+      const dateStr = order.start_dates ? (order.start_dates.includes('T') ? order.start_dates.split('T')[0] : order.start_dates) : '';
+      const related = db.order_items.filter(o => 
+        String(o.id_customer) === String(order.id_customer) && 
+        (o.start_dates ? (o.start_dates.includes('T') ? o.start_dates.split('T')[0] : o.start_dates) : '') === dateStr
+      );
+      
+      related.forEach(o => {
+        if (o.status_rent === 'Cancel') {
+          initialAmounts[String(o.id_order)] = Number(o.amount_paid) || 0;
+        }
+      });
+    }
+    setCancelAmounts(initialAmounts);
     setFinalConfirmData({ orderId, condition });
     setFinishOrderData(null);
   };
 
-  const executeFinish = async (orderId, condition) => {
+  const executeFinish = async (orderId, condition, amountsMap = null) => {
     try {
-      // 1. Selesaikan pesanan (memicu trigger history di database)
-      const response = await fetch(`${API_BASE}/api/transaction/orders/${orderId}/finish`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          condition_return: condition
-        })
-      });
+      // 1. Cari data order utama untuk referensi grouping
+      const mainOrder = db.order_items.find(o => String(o.id_order) === String(orderId));
+      if (!mainOrder) throw new Error("Order data not found");
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Gagal menyelesaikan pesanan');
+      // Helper untuk normalisasi tanggal (ambil YYYY-MM-DD)
+      const getDateString = (dateStr) => (dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr) : '');
+      const mainStartDate = getDateString(mainOrder.start_dates);
+
+      // 2. Cari semua order yang satu grup (Customer sama & Start Date sama)
+      const relatedOrders = db.order_items.filter(o => 
+        String(o.id_customer) === String(mainOrder.id_customer) &&
+        getDateString(o.start_dates) === mainStartDate
+      );
+
+      // 3. Loop eksekusi finish & delete untuk setiap order
+      for (const order of relatedOrders) {
+        const payload = { condition_return: condition };
+        
+        // Jika ada map amount (khusus Cancel), ambil nilai spesifik untuk order ini
+        if (amountsMap && amountsMap[String(order.id_order)] !== undefined) {
+          payload.amount_paid = amountsMap[String(order.id_order)];
+        }
+
+        // A. Finish Order
+        const response = await fetch(`${API_BASE}/api/transaction/orders/${order.id_order}/finish`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || `Gagal menyelesaikan pesanan ${order.id_order}`);
+        }
+
+        // B. Hapus order_items secara otomatis
+        await fetch(`${API_BASE}/api/transaction/orders/${order.id_order}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
       }
 
-      // 2. Cari id_customer untuk pembersihan otomatis
-      const orderData = db.order_items.find(o => String(o.id_order) === String(orderId));
-      const customerId = orderData?.id_customer;
-
-      // 3. Hapus order_items secara otomatis
-      await fetch(`${API_BASE}/api/transaction/orders/${orderId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      // 4. Hapus customer secara otomatis
-      if (customerId) {
-        await fetch(`${API_BASE}/api/customers/${customerId}`, {
+      // 4. Hapus customer secara otomatis (jika ada)
+      if (mainOrder.id_customer) {
+        await fetch(`${API_BASE}/api/customers/${mainOrder.id_customer}`, {
           method: 'DELETE',
           headers: getAuthHeaders()
         });
       }
 
       fetchData();
-      showToast('Pesanan berhasil diselesaikan');
+      showToast('Semua pesanan terkait berhasil diselesaikan');
       setFinishOrderData(null);
     } catch (error) {
       console.error("Finish order failed", error);
@@ -586,6 +622,61 @@ const handleSaveItem = async (items) => {
                 Apakah Anda yakin ingin menyelesaikan pesanan ini? <br/>
                 <span className="text-rose-500">Data akan dipindahkan ke History dan dihapus dari daftar aktif secara permanen.</span>
               </p>
+
+              {/* INPUT AMOUNT PAID KHUSUS CANCEL */}
+              {(() => {
+                const order = db.order_items.find(o => String(o.id_order) === String(finalConfirmData.orderId));
+                if (!order) return null;
+
+                // Cek apakah ada order dalam grup yang statusnya Cancel
+                const dateStr = order.start_dates ? (order.start_dates.includes('T') ? order.start_dates.split('T')[0] : order.start_dates) : '';
+                const related = db.order_items.filter(o => 
+                  String(o.id_customer) === String(order.id_customer) && 
+                  (o.start_dates ? (o.start_dates.includes('T') ? o.start_dates.split('T')[0] : o.start_dates) : '') === dateStr
+                );
+                const hasCancel = related.some(o => o.status_rent === 'Cancel');
+
+                if (hasCancel) {
+                  // Filter hanya yang cancel untuk ditampilkan inputnya
+                  const cancelOrders = related.filter(o => o.status_rent === 'Cancel');
+                  
+                  return (
+                    <div className="mb-6 text-left bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                      <label className="text-[11px] font-black uppercase text-slate-500 mb-2 block">
+                        Input Amount Paid (Penalty) per Order Cancel
+                      </label>
+                      
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scroll">
+                        {cancelOrders.map((co, idx) => {
+                          const pkg = db.packages.find(p => String(p.id_package) === String(co.id_package));
+                          return (
+                            <div key={co.id_order} className="relative">
+                              <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">
+                                {idx + 1}. {pkg?.package_name || 'Unknown Package'}
+                              </p>
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-400">Rp</span>
+                                <input 
+                                  type="text" 
+                                  value={Number(cancelAmounts[co.id_order] || 0).toLocaleString('id-ID')}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    setCancelAmounts(prev => ({ ...prev, [String(co.id_order)]: val === '' ? 0 : parseInt(val, 10) }));
+                                  }}
+                                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-black outline-none focus:border-slate-900 transition-all"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-3 italic">* Masukkan nominal akhir yang dibayarkan untuk setiap paket yang dicancel.</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <div className="flex gap-3">
                 <button 
                   onClick={() => setFinalConfirmData(null)}
@@ -595,7 +686,16 @@ const handleSaveItem = async (items) => {
                 </button>
                 <button 
                   onClick={() => {
-                    executeFinish(finalConfirmData.orderId, finalConfirmData.condition);
+                    const order = db.order_items.find(o => String(o.id_order) === String(finalConfirmData.orderId));
+                    
+                    const dateStr = order?.start_dates ? (order.start_dates.includes('T') ? order.start_dates.split('T')[0] : order.start_dates) : '';
+                    const related = db.order_items.filter(o => 
+                      String(o.id_customer) === String(order.id_customer) && 
+                      (o.start_dates ? (o.start_dates.includes('T') ? o.start_dates.split('T')[0] : o.start_dates) : '') === dateStr
+                    );
+                    const hasCancel = related.some(o => o.status_rent === 'Cancel');
+
+                    executeFinish(finalConfirmData.orderId, finalConfirmData.condition, hasCancel ? cancelAmounts : null);
                     setFinalConfirmData(null);
                   }}
                   className="flex-1 py-4 bg-rose-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all"

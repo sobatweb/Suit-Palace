@@ -84,9 +84,12 @@ const OrderDetailCard = ({
           let totalGroupSisa = 0;
           let isGroupLate = false;
           let totalGroupHargaPaket = 0;
+          let totalGroupHargaPaketCancel = 0;
           let totalGroupDiscount = 0;
           let totalGroupDeposit = 0;
+          let totalGroupDepositCancel = 0;
           let totalGroupPenalty = 0;
+          let totalGroupCancelFee = 0;
 
           // Iterate related orders to calculate totals and build item list
           const groupDetails = order.relatedOrders.map(subOrder => {
@@ -97,12 +100,21 @@ const OrderDetailCard = ({
             const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
             totalGroupPaid += amountPaid;
 
+            // Ambil harga paket dan deposit (untuk cancel maupun aktif)
+            const hargaPaketRaw = Math.round(Number(subOrder.total_price));
+            const depositRaw = Math.round(Number(pkg?.deposit || 0));
+
             // 1. CEK CANCEL
             if (subOrder.status_rent === 'Cancel') {
-              // Jika cancel, sisa bayar menjadi minus (karena tagihan 0 tapi ada uang masuk)
-              // Ini yang membuat tampilan di Card jadi update
-              const sisaBayar = 0 - amountPaid;
+              // Jika cancel, amountPaid dianggap sebagai penalty/biaya cancel
+              // Tagihan = amountPaid (biaya cancel), Bayar = amountPaid. Sisa = 0.
+              const sisaBayar = 0;
               totalGroupSisa += sisaBayar;
+              totalGroupTagihan += amountPaid;
+              totalGroupCancelFee += amountPaid;
+
+              totalGroupHargaPaketCancel += hargaPaketRaw;
+              totalGroupDepositCancel += depositRaw;
 
               return {
                 pkgName: pkg?.package_name || 'Unknown Package',
@@ -135,10 +147,10 @@ const OrderDetailCard = ({
               isGroupLate = true;
             }
 
-            const hargaPaket = Math.round(Number(subOrder.total_price));
+            const hargaPaket = hargaPaketRaw;
             const discount = Number(cust?.discount || 0);
             const discountAmount = Math.round(hargaPaket * (discount / 100));
-            const deposit = Math.round(Number(pkg?.deposit || 0));
+            const deposit = depositRaw;
             const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
 
             // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
@@ -217,14 +229,23 @@ const OrderDetailCard = ({
               {/* Rincian Biaya */}
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-1 my-4 font-bold border border-gray-100 shadow-inner">
                 <div className="flex justify-between text-gray-500"><span>Total Harga Paket</span><span>Rp {totalGroupHargaPaket.toLocaleString('id-ID')}</span></div>
+                {totalGroupHargaPaketCancel > 0 && (
+                  <div className="flex justify-between text-rose-400"><span>Total Harga Paket (Cancel)</span><span>Rp {totalGroupHargaPaketCancel.toLocaleString('id-ID')}</span></div>
+                )}
                 {totalGroupDiscount > 0 && (
                   <div className="flex justify-between text-emerald-600"><span>Diskon ({cust?.discount}%)</span><span>- Rp {totalGroupDiscount.toLocaleString('id-ID')}</span></div>
                 )}
                 {totalGroupDeposit > 0 && (
                   <div className="flex justify-between text-gray-500"><span>Deposit</span><span>Rp {totalGroupDeposit.toLocaleString('id-ID')}</span></div>
                 )}
+                {totalGroupDepositCancel > 0 && (
+                  <div className="flex justify-between text-rose-400"><span>Deposit (Cancel)</span><span>Rp {totalGroupDepositCancel.toLocaleString('id-ID')}</span></div>
+                )}
                 {totalGroupPenalty > 0 && (
                   <div className="flex justify-between text-rose-600"><span>Denda Keterlambatan</span><span>+ Rp {totalGroupPenalty.toLocaleString('id-ID')}</span></div>
+                )}
+                {totalGroupCancelFee > 0 && (
+                  <div className="flex justify-between text-rose-600"><span>Biaya Cancel (Penalty)</span><span>+ Rp {totalGroupCancelFee.toLocaleString('id-ID')}</span></div>
                 )}
                 <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Tagihan ({order.relatedOrders.length} Order)</span><span>Rp {totalGroupTagihan.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between text-emerald-600"><span>Total Dibayar</span><span>- Rp {totalGroupPaid.toLocaleString('id-ID')}</span></div>
@@ -297,25 +318,14 @@ const OrderDetailCard = ({
                 >
                   Edit
                 </button>
-                <button
-                  onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
-                  disabled={(() => {
-                    const allDone = order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
-                    return !allDone;
-                  })()}
-                  title={(() => {
-                    const allDone = order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
-                    return !allDone ? "Semua paket dalam pesanan ini harus berstatus Dikembalikan atau Cancel" : "";
-                  })()}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(() => {
-                    return order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
-                  })()
-                    ? "bg-[#1A120B] text-white hover:bg-black"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
-                    }`}
-                >
-                  <CheckCircle size={12} /> {order.relatedOrders.length > 1 ? 'Selesaikan Semua' : 'Selesai'}
-                </button>
+                {order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel') && (
+                  <button
+                    onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
+                    className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg bg-[#1A120B] text-white hover:bg-black"
+                  >
+                    <CheckCircle size={12} /> {order.relatedOrders.length > 1 ? 'Selesaikan Semua' : 'Selesai'}
+                  </button>
+                )}
               </div>
             </motion.div>
           );

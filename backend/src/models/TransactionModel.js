@@ -127,14 +127,23 @@ class TransactionModel {
 
     // Special method for "Finish Order" which might involve penalties and status changes
     // Triggers in SQL handle history insertion and stock return if status changes appropriately
-    static async finishOrder(id, condition_return) {
+    static async finishOrder(id, data) {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
 
+            // Handle flexible input (string or object)
+            const condition_return = typeof data === 'object' ? data.condition_return : data;
+            
+            // Fix: Pastikan amount_paid diambil dengan benar jika ada (termasuk 0)
+            let amount_paid = undefined;
+            if (typeof data === 'object' && data !== null && data.amount_paid !== undefined && data.amount_paid !== null && data.amount_paid !== '') {
+                 amount_paid = Number(data.amount_paid);
+            }
+
             // 1. Ambil data order & package untuk hitung denda otomatis
             const [orderRows] = await connection.query(
-                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date, status_rent 
+                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date, status_rent, amount_paid 
                  FROM order_items WHERE id_order = ?`, 
                 [id]
             );
@@ -161,21 +170,36 @@ class TransactionModel {
                     finalPenalty = diffDays * (pkg[0].penalty_fee || 0);
                 }
             } else if (order.status_rent === 'Cancel') {
-                finalPenalty = 0; // Pastikan denda 0 jika cancel
+                // JIKA CANCEL: Gunakan amount_paid sebagai penalty (biaya pembatalan)
+                if (amount_paid !== undefined) {
+                    finalPenalty = amount_paid;
+                } else {
+                    // Fallback: jika tidak ada input baru, gunakan amount_paid yang ada di DB sebagai penalty
+                    finalPenalty = Number(order.amount_paid) || 0;
+                }
             }
 
             // 2. Update order_items (Set status dan denda)
             const newStatusRent = order.status_rent === 'Cancel' ? 'Cancel' : 'Dikembalikan';
-            const [result] = await connection.query(
-                `UPDATE order_items 
+            
+            let query = `UPDATE order_items 
                  SET status_rent = ?, 
                      status_order = 'Sudah Selesai', 
                      actual_return_date = ?,
                      penalty_paid = ?,
-                     condition_return = ?
-                 WHERE id_order = ?`,
-                [newStatusRent, returnDate, finalPenalty, condition_return || '', id]
-            );
+                     condition_return = ?`;
+            
+            const params = [newStatusRent, returnDate, finalPenalty, condition_return || ''];
+
+            if (amount_paid !== undefined) {
+                query += `, amount_paid = ?`;
+                params.push(amount_paid);
+            }
+
+            query += ` WHERE id_order = ?`;
+            params.push(id);
+
+            const [result] = await connection.query(query, params);
 
             // 3. Tambahkan denda ke total denda di tabel customers (Akumulasi)
             if (finalPenalty > 0) {
