@@ -127,13 +127,24 @@ const OrderDetailCard = ({
               }
             });
 
-            return { pkgName: pkg?.package_name, items, status: subOrder.status_rent };
+            return {
+              pkgName: pkg?.package_name,
+              items,
+              status: subOrder.status_rent,
+              description: subOrder.condition_return || subOrder.description
+            };
           });
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={order.id_order} className="bg-white p-5 rounded-4xl shadow-xl border relative overflow-hidden">
-              <div className={`absolute top-0 right-0 px-4 py-1 text-[13px] font-black text-white rounded-bl-xl ${isGroupLate ? 'bg-rose-600' : getStatusColor(order.status_rent)}`}>
-                {order.relatedOrders.length > 1 ? `${order.relatedOrders.length} Orders` : order.status_rent}
+              <div className="absolute top-3 right-4 flex gap-1.5">
+                {order.relatedOrders.map((subOrder, i) => (
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full shadow-sm ${getStatusColor(subOrder.status_rent, subOrder.end_dates)}`}
+                    title={`${subOrder.status_rent}${subOrder.status_rent !== 'Dikembalikan' && subOrder.end_dates && new Date().toISOString().split('T')[0] > subOrder.end_dates.split('T')[0] ? ' (Overdue)' : ''}`}
+                  />
+                ))}
               </div>
 
               <div className="space-y-3 mt-4">
@@ -187,11 +198,11 @@ const OrderDetailCard = ({
                       <tbody>
                         {detail.items.map((item, i) => (
                           <tr key={i} className="text-[12px] font-bold">
-                            <td className="bg-slate-100 pl-3 py-1.5 rounded-l-xl w-24 uppercase text-gray-500 tracking-tighter">
+                            <td className="pl-3 py-1.5 w-24 uppercase text-gray-500 tracking-tighter border-b border-gray-50">
                               {item.category}
                             </td>
-                            <td className="bg-slate-100 py-1.5 text-center text-gray-400 w-4">:</td>
-                            <td className="bg-slate-100 pr-3 py-1.5 rounded-r-xl text-gray-800">
+                            <td className="py-1.5 text-center text-gray-400 w-4 border-b border-gray-50">:</td>
+                            <td className="pr-3 py-1.5 text-gray-800 border-b border-gray-50">
                               {item.category === 'DASI'
                                 ? `${item.name} (${item.color})`
                                 : `${item.name} (${item.color} - ${item.size})`}
@@ -201,34 +212,20 @@ const OrderDetailCard = ({
                       </tbody>
                     </table>
                     {detail.items.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
+
+                    {detail.description && (
+                      <div className="mt-2 pl-1 border-l-2 border-rose-200">
+                        <div className="text-[10px] font-black uppercase text-gray-400 mb-0.5">Deskripsi:</div>
+                        <p className="text-[12px] font-bold text-gray-700 leading-relaxed italic">
+                          * {detail.description}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                {/* Deskripsi Order (Iterasi semua related orders) */}
-                <div className="pt-2 border-t">
-                  <div className="text-[13px] font-black uppercase text-gray-400 mb-2">Deskripsi Order:</div>
-                  {order.relatedOrders.map((subOrder, idx) => {
-                    const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
-                    const description = subOrder.condition_return || subOrder.description;
-
-                    if (!description) return null;
-
-                    return (
-                      <div key={idx} className="mb-2 last:mb-0">
-                        <div className="text-[11px] font-black text-rose-800 uppercase bg-rose-50 px-2 py-0.5 rounded-md inline-block mb-1">
-                          Paket {pkg?.package_name || 'Tidak Diketahui'}
-                        </div>
-                        <p className="text-[12px] font-bold text-gray-700 leading-relaxed pl-1">
-                          * {description}
-                        </p>
-                      </div>
-                    );
-                  })}
-                  {!order.relatedOrders.some(so => so.condition_return || so.description) && (
-                    <p className="text-[12px] italic text-gray-400">Tidak ada deskripsi</p>
-                  )}
-                </div>
               </div>
+
 
               {/* AKSI */}
               <div className="flex gap-2 mt-5 ">
@@ -254,14 +251,22 @@ const OrderDetailCard = ({
                 </button>
                 <button
                   onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
-                  disabled={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel'}
-                  title={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel' ? "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel" : ""}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(order.status_rent === 'Dikembalikan' || order.status_rent === 'Cancel')
-                    ? "bg-[#1A120B] text-white hover:bg-black"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                  disabled={(() => {
+                    const allDone = order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
+                    return !allDone;
+                  })()}
+                  title={(() => {
+                    const allDone = order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
+                    return !allDone ? "Semua paket dalam pesanan ini harus berstatus Dikembalikan atau Cancel" : "";
+                  })()}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(() => {
+                      return order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
+                    })()
+                      ? "bg-[#1A120B] text-white hover:bg-black"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
                     }`}
                 >
-                  <CheckCircle size={12} /> Selesai
+                  <CheckCircle size={12} /> {order.relatedOrders.length > 1 ? 'Selesaikan Semua' : 'Selesai'}
                 </button>
               </div>
             </motion.div>
