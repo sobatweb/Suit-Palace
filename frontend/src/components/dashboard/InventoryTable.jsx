@@ -752,30 +752,30 @@ return (
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && priceDetails.actual_return_date)
+                const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
+                const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
                   ? new Date(priceDetails.actual_return_date.split('T')[0])
                   : today;
+                calculationDate.setHours(0, 0, 0, 0);
 
-                const endDate = new Date(priceDetails.end_dates.split('T')[0]);
-                endDate.setHours(0, 0, 0, 0);
+                const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg) => {
+                  if (!pkg.endDate) return sum;
+                  const endDate = new Date(pkg.endDate.split('T')[0]);
+                  endDate.setHours(0, 0, 0, 0);
 
-                let penaltyFee = 0;
-                let daysLate = 0;
+                  if (calculationDate > endDate) {
+                    const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                    return sum + (daysLate * (Number(pkg.penalty) || 0));
+                  }
+                  return sum;
+                }, 0) || 0;
 
-                if (calculationDate > endDate) {
-                  daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-                  penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
-                }
-
-                if (penaltyFee > -1) {
+                if (totalPenaltyFee > 0) {
                   return (
                     <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
-                      <div>
-                        <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
-                        <p className="text-[11px] text-rose-400 font-bold">({daysLate} hari keterlambatan)</p>
-                      </div>
+                      <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
                       <span className="text-sm font-black text-rose-900">
-                        + {formatIDR(penaltyFee)}
+                        + {formatIDR(totalPenaltyFee)}
                       </span>
                     </div>
                   );
@@ -798,8 +798,6 @@ return (
                     // 3. Hitung Denda (Tanpa Deposit)
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const endDate = new Date(priceDetails.end_dates.split('T')[0]);
-                    endDate.setHours(0, 0, 0, 0);
 
                     const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
                     const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
@@ -807,14 +805,19 @@ return (
                       : today;
                     calculationDate.setHours(0, 0, 0, 0);
 
-                    let penaltyFee = 0;
-                    if (calculationDate > endDate) {
-                      const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-                      penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
-                    }
+                    const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg) => {
+                      if (!pkg.endDate) return sum;
+                      const endDate = new Date(pkg.endDate.split('T')[0]);
+                      endDate.setHours(0, 0, 0, 0);
+                      if (calculationDate > endDate) {
+                        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                        return sum + (daysLate * (Number(pkg.penalty) || 0));
+                      }
+                      return sum;
+                    }, 0) || 0;
 
                     // RUMUS OMSET: Harga Paket - Diskon + Denda (TANPA DEPOSIT)
-                    const estimasiOmset = (hargaDasar - nominalDiskon) + penaltyFee;
+                    const estimasiOmset = (hargaDasar - nominalDiskon) + totalPenaltyFee;
 
                     return formatIDR(estimasiOmset);
                   })()}
@@ -840,10 +843,6 @@ return (
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
 
-                      // Ambil tanggal akhir (end_dates)
-                      const endDate = new Date(priceDetails.end_dates.split('T')[0]);
-                      endDate.setHours(0, 0, 0, 0);
-
                       // Gunakan tanggal kembali jika sudah ada, jika belum gunakan hari ini
                       const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
                       const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
@@ -851,14 +850,19 @@ return (
                         : today;
                       calculationDate.setHours(0, 0, 0, 0);
 
-                      let penaltyFee = 0;
-                      if (calculationDate > endDate) {
-                        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-                        penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
-                      }
+                      const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg) => {
+                        if (!pkg.endDate) return sum;
+                        const endDate = new Date(pkg.endDate.split('T')[0]);
+                        endDate.setHours(0, 0, 0, 0);
+                        if (calculationDate > endDate) {
+                          const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                          return sum + (daysLate * (Number(pkg.penalty) || 0));
+                        }
+                        return sum;
+                      }, 0) || 0;
 
                       // RUMUS SESUAI REQUEST: Harga Paket - Diskon + Deposit + Denda
-                      const totalAkhir = (hargaDasar - nominalDiskon) + deposit + penaltyFee;
+                      const totalAkhir = (hargaDasar - nominalDiskon) + deposit + totalPenaltyFee;
 
                       return formatIDR(totalAkhir);
                     })()}
