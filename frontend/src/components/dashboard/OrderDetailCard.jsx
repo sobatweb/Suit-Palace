@@ -13,15 +13,15 @@ const OrderDetailCard = ({
   setFinishOrderData // Gunakan prop ini, bukan handleFinishOrder
 }) => {
   const formatDisplayDate = (dateStr) => {
-  if (!dateStr) return '';
-  const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-  const date = new Date(cleanDate);
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-};
+    if (!dateStr) return '';
+    const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const date = new Date(cleanDate);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
   const filteredOrders = db.order_items.filter(o => {
     const startDate = getDateString(o.start_dates);
     const endDate = getDateString(o.end_dates);
@@ -56,7 +56,7 @@ const OrderDetailCard = ({
       ) : (
         groupedOrders.map(order => {
           const cust = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
-          
+
           // Calculate Totals for the Group
           let totalGroupTagihan = 0;
           let totalGroupPaid = 0;
@@ -66,20 +66,20 @@ const OrderDetailCard = ({
           // Iterate related orders to calculate totals and build item list
           const groupDetails = order.relatedOrders.map(subOrder => {
             const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
-            
+
             // Hitung Penalty Fee per order
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
               ? new Date(getDateString(subOrder.actual_return_date))
               : today;
 
             const endDate = new Date(getDateString(subOrder.end_dates));
             endDate.setHours(0, 0, 0, 0);
-            
+
             let penaltyFee = 0;
-            
+
             if (calculationDate > endDate) {
               const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
               penaltyFee = daysLate * (pkg?.penalty_fee || 0);
@@ -129,7 +129,7 @@ const OrderDetailCard = ({
                 <div className="flex items-center gap-3">
                   <User size={14} className="text-gray-400" />
                   <div className="text-[17px] font-black tracking-tighter">
-                    {cust?.customer_name} 
+                    {cust?.customer_name}
                     <span className="text-gray-600 ml-2">({cust?.customer_phone})</span>
                   </div>
                 </div>
@@ -170,8 +170,8 @@ const OrderDetailCard = ({
                             </td>
                             <td className="bg-slate-100 py-1.5 text-center text-gray-400 w-4">:</td>
                             <td className="bg-slate-100 pr-3 py-1.5 rounded-r-xl text-gray-800">
-                              {item.category === 'DASI' 
-                                ? `${item.name} (${item.color})` 
+                              {item.category === 'DASI'
+                                ? `${item.name} (${item.color})`
                                 : `${item.name} (${item.color} - ${item.size})`}
                             </td>
                           </tr>
@@ -181,13 +181,31 @@ const OrderDetailCard = ({
                     {detail.items.length === 0 && <span className="text-[9px] italic text-gray-400">Tidak ada item</span>}
                   </div>
                 ))}
-                
-                {order.condition_return && (
-                  <div className="pt-2 border-t ">
-                    <div className="text-[13px] font-black uppercase text-gray-400 mb-1">Deskripsi Order:</div>
-                    <p className="text-[12px] font-bold text-gray-700 mb-text-gray-600 leading-relaxed">{order.condition_return}</p>
-                  </div>
-                )}
+
+                {/* Deskripsi Order (Iterasi semua related orders) */}
+                <div className="pt-2 border-t">
+                  <div className="text-[13px] font-black uppercase text-gray-400 mb-2">Deskripsi Order:</div>
+                  {order.relatedOrders.map((subOrder, idx) => {
+                    const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
+                    const description = subOrder.condition_return || subOrder.description;
+
+                    if (!description) return null;
+
+                    return (
+                      <div key={idx} className="mb-2 last:mb-0">
+                        <div className="text-[11px] font-black text-rose-800 uppercase bg-rose-50 px-2 py-0.5 rounded-md inline-block mb-1">
+                          Paket {pkg?.package_name || 'Tidak Diketahui'}
+                        </div>
+                        <p className="text-[12px] font-bold text-gray-700 leading-relaxed pl-1">
+                          * {description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {!order.relatedOrders.some(so => so.condition_return || so.description) && (
+                    <p className="text-[12px] italic text-gray-400">Tidak ada deskripsi</p>
+                  )}
+                </div>
               </div>
 
               {/* AKSI */}
@@ -196,17 +214,17 @@ const OrderDetailCard = ({
                   onClick={() => {
                     // Cari data customer dan package terlebih dahulu untuk dikirim ke modal
                     const currentCustomer = db.customers.find(c => Number(c.id_customer) === Number(order.id_customer));
-                    
-                    setEditingItem({ 
-                      ...order, 
+
+                    setEditingItem({
+                      ...order,
                       fromTable: 'order_items',
                       // Tambahkan field ini agar FormModal bisa langsung melakukan pre-fill
                       customer_name: currentCustomer?.customer_name || '',
                       customer_phone: currentCustomer?.customer_phone || '',
                       bank_account: currentCustomer?.bank_account || '',
                       customer_full: currentCustomer, // TAMBAHKAN INI (untuk akses discount)
-                    }); 
-                    setModalType('form_db'); 
+                    });
+                    setModalType('form_db');
                   }}
                   className="flex-1 py-3 bg-gray-100 rounded-xl text-[10px] font-black uppercase hover:bg-gray-200 transition-all"
                 >
@@ -216,11 +234,10 @@ const OrderDetailCard = ({
                   onClick={() => setFinishOrderData(order)} // Membuka FinishOrderModal
                   disabled={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel'}
                   title={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel' ? "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel" : ""}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${
-                    (order.status_rent === 'Dikembalikan' || order.status_rent === 'Cancel')
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(order.status_rent === 'Dikembalikan' || order.status_rent === 'Cancel')
                       ? "bg-[#1A120B] text-white hover:bg-black"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
-                  }`}
+                    }`}
                 >
                   <CheckCircle size={12} /> Selesai
                 </button>

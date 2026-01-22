@@ -80,7 +80,7 @@ const tableSchemas = {
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
   history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return'],
-   laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry']
+  laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry']
 };
 
 const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
@@ -108,7 +108,10 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
     customer_name: editingItem?.customer_name || editingItem?.display_customer || '',
     customer_phone: editingItem?.customer_phone || editingItem?.customer_full?.customer_phone || '',
     bank_account: editingItem?.bank_account || editingItem?.customer_full?.bank_account || '',
-    discount: editingItem?.customer_full?.discount || 0
+    discount: editingItem?.customer_full?.discount || 0,
+    amount_paid: editingItem?.relatedOrders
+      ? editingItem.relatedOrders.reduce((sum, order) => sum + Math.round(Number(order.amount_paid || 0)), 0)
+      : Math.round(Number(editingItem?.amount_paid || 0))
   });
 
   // State Rows (Berbagi untuk Order maupun Master)
@@ -116,7 +119,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
     if (editingItem) {
       // Handle Grouped Orders: If relatedOrders exists, use it. Otherwise use editingItem as single array.
       const sourceData = editingItem.relatedOrders || [editingItem];
-      
+
       return sourceData.map(item => {
         const rowData = { ...item };
 
@@ -164,8 +167,22 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
         focusableElements[index + 1].focus();
       } else {
         // Jika sudah di input terakhir, jalankan fungsi simpan
-        onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows);
+        handlePreSave();
       }
+    }
+  };
+
+  const handlePreSave = () => {
+    if (isOrderTable) {
+      const distributedRows = rows.map((r, i) => ({
+        ...r,
+        ...customerInfo,
+        // Alokasikan total amount_paid ke baris pertama, sisanya 0
+        amount_paid: i === 0 ? customerInfo.amount_paid : 0
+      }));
+      onSave(distributedRows);
+    } else {
+      onSave(rows);
     }
   };
 
@@ -283,7 +300,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Rekening</label>
+                <label className="text-[12px] font-black uppercase text-slate-500 ml-1 font-bold">Rekening</label>
                 <div className="relative">
                   <CreditCard size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
@@ -296,6 +313,24 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                   />
                 </div>
               </div>
+              {editingItem && (
+                <div className="space-y-1">
+                  <label className="text-[12px] font-black uppercase text-emerald-600 ml-1 font-black">Total Dibayar (Amount Paid)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-black text-emerald-600">Rp</span>
+                    <input
+                      type="text"
+                      placeholder="0"
+                      value={Number(customerInfo.amount_paid || 0).toLocaleString('id-ID')}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, '');
+                        setCustomerInfo({ ...customerInfo, amount_paid: rawValue === '' ? 0 : parseInt(rawValue, 10) });
+                      }}
+                      className="w-full pl-12 pr-4 py-3 bg-emerald-50 border-2 border-emerald-500 rounded-2xl text-[14px] font-black text-emerald-700 outline-none focus:ring-4 focus:ring-emerald-100 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -313,7 +348,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
             {rows.map((row, index) => (
               <div key={index} className={isOrderTable ? "p-6 rounded-2rem border-2 border-gray-900 bg-gray-100 relative" : "p-6 rounded-2rem border-2 border-slate-50 bg-slate-50/30 relative"}>
-                {rows.length > 1 && (
+                {rows.length > 1 && !editingItem && (
                   <button type="button" onClick={() => removeRow(index)} className="absolute -right-2 -top-2 p-2 bg-white text-rose-500 rounded-full shadow-md border border-slate-100 hover:bg-rose-50 transition-all">
                     <Trash2 size={16} />
                   </button>
@@ -339,20 +374,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Tanggal Selesai (Auto)</label>
                         <input readOnly type="date" value={row.end_dates || ''} className="w-full px-4 py-3 bg-slate-100 border border-slate-900 rounded-2xl text-sm font-bold text-slate-500" />
                       </div>
-                      {editingItem && (
-                        <div className="space-y-1">
-                          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Total Dibayar (Amount Paid)</label>
-                          <input
-                            type="text"
-                            value={row.amount_paid !== undefined ? Number(row.amount_paid).toLocaleString('id-ID') : '0'}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.replace(/\D/g, '');
-                              handleInputChange(index, `amount_paid`, rawValue === '' ? 0 : parseInt(rawValue, 10));
-                            }}
-                            className="w-full px-4 py-3 bg-emerald-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black"
-                          />
-                        </div>
-                      )}
+
                       {/* Grid Item Barang */}
                       {(
                         <div className="col-span-1 md:col-span-3 space-y-3 pt-2">
@@ -439,90 +461,90 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         />
                       </div>
                     </>
-                  ) :  table === 'laundry' ? (
-  <>
-    {editingItem ? (
-      /* === TAMPILAN KHUSUS SAAT EDIT (Hanya Status) === */
-      <div className="col-span-1 md:col-span-3 space-y-4">
-        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-2">
-          <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest">Update Laundry</p>
-          <p className="text-[13px] font-bold text-gray-600">Anda sedang mengubah status pencucian item.</p>
-        </div>
+                  ) : table === 'laundry' ? (
+                    <>
+                      {editingItem ? (
+                        /* === TAMPILAN KHUSUS SAAT EDIT (Hanya Status) === */
+                        <div className="col-span-1 md:col-span-3 space-y-4">
+                          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-2">
+                            <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest">Update Laundry</p>
+                            <p className="text-[13px] font-bold text-gray-600">Anda sedang mengubah status pencucian item.</p>
+                          </div>
 
-        <div className="space-y-1">
-          <label className="text-[12px] font-black uppercase text-slate-500 ml-1">STATUS LAUNDRY</label>
-          <select
-            value={row.status_laundry || 'Belum Selesai'}
-            onChange={(e) => handleInputChange(index, 'status_laundry', e.target.value)}
-            className="w-full px-4 py-4 bg-white border-2 border-slate-900 rounded-2xl text-[14px] font-black focus:ring-4 focus:ring-slate-100 outline-none transition-all"
-          >
-            <option value="Belum Selesai">BELUM SELESAI</option>
-            <option value="Selesai">SELESAI</option>
-          </select>
-        </div>
-      </div>
-    ) : (
-      /* === TAMPILAN SAAT TAMBAH BARU (Input Produk) === */
-      <div className="col-span-1 md:col-span-3 space-y-3">
-        {/* Baris 1: 4 Produk */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {['jas', 'kemeja', 'celana', 'dasi'].map(prod => {
-            const options = (db[prod] || []).slice().sort((a, b) => {
-              const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
-              const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
-              return nameA.localeCompare(nameB);
-            }).map(p => ({
-              value: p[`id_${prod}`],
-              label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
-            }));
+                          <div className="space-y-1">
+                            <label className="text-[12px] font-black uppercase text-slate-500 ml-1">STATUS LAUNDRY</label>
+                            <select
+                              value={row.status_laundry || 'Belum Selesai'}
+                              onChange={(e) => handleInputChange(index, 'status_laundry', e.target.value)}
+                              className="w-full px-4 py-4 bg-white border-2 border-slate-900 rounded-2xl text-[14px] font-black focus:ring-4 focus:ring-slate-100 outline-none transition-all"
+                            >
+                              <option value="Belum Selesai">BELUM SELESAI</option>
+                              <option value="Selesai">SELESAI</option>
+                            </select>
+                          </div>
+                        </div>
+                      ) : (
+                        /* === TAMPILAN SAAT TAMBAH BARU (Input Produk) === */
+                        <div className="col-span-1 md:col-span-3 space-y-3">
+                          {/* Baris 1: 4 Produk */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {['jas', 'kemeja', 'celana', 'dasi'].map(prod => {
+                              const options = (db[prod] || []).slice().sort((a, b) => {
+                                const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+                                const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+                                return nameA.localeCompare(nameB);
+                              }).map(p => ({
+                                value: p[`id_${prod}`],
+                                label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
+                              }));
 
-            const selectId = `${index}-${prod}`;
-            return (
-              <SearchableSelect
-                key={prod}
-                label={prod.toUpperCase()}
-                options={options}
-                value={row[`id_${prod}`] || ''}
-                onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
-                isOpen={openSelectId === selectId}
-                onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
-                placeholder="-- Kosong --"
-              />
-            );
-          })}
-        </div>
+                              const selectId = `${index}-${prod}`;
+                              return (
+                                <SearchableSelect
+                                  key={prod}
+                                  label={prod.toUpperCase()}
+                                  options={options}
+                                  value={row[`id_${prod}`] || ''}
+                                  onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
+                                  isOpen={openSelectId === selectId}
+                                  onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                                  placeholder="-- Kosong --"
+                                />
+                              );
+                            })}
+                          </div>
 
-        {/* Baris 2: 3 Produk */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {['vest', 'tuxedo', 'changshan'].map(prod => {
-            const options = (db[prod] || []).slice().sort((a, b) => {
-              const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
-              const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
-              return nameA.localeCompare(nameB);
-            }).map(p => ({
-              value: p[`id_${prod}`],
-              label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
-            }));
+                          {/* Baris 2: 3 Produk */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {['vest', 'tuxedo', 'changshan'].map(prod => {
+                              const options = (db[prod] || []).slice().sort((a, b) => {
+                                const nameA = (a[`name_${prod}`] || a[`kode_${prod}`] || "").toString();
+                                const nameB = (b[`name_${prod}`] || b[`kode_${prod}`] || "").toString();
+                                return nameA.localeCompare(nameB);
+                              }).map(p => ({
+                                value: p[`id_${prod}`],
+                                label: `${p[`name_${prod}`] || p[`kode_${prod}`]} - ${p[`color_${prod}`]} (${(p[`size_${prod}`] || '').toString().toUpperCase()})`
+                              }));
 
-            const selectId = `${index}-${prod}`;
-            return (
-              <SearchableSelect
-                key={prod}
-                label={prod.toUpperCase()}
-                options={options}
-                value={row[`id_${prod}`] || ''}
-                onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
-                isOpen={openSelectId === selectId}
-                onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
-                placeholder="-- Kosong --"
-              />
-            );
-          })}
-        </div>
-      </div>
-    )}
-  </>
-) : (
+                              const selectId = `${index}-${prod}`;
+                              return (
+                                <SearchableSelect
+                                  key={prod}
+                                  label={prod.toUpperCase()}
+                                  options={options}
+                                  value={row[`id_${prod}`] || ''}
+                                  onChange={(val) => handleInputChange(index, `id_${prod}`, val === '' ? null : val)}
+                                  isOpen={openSelectId === selectId}
+                                  onToggle={() => setOpenSelectId(openSelectId === selectId ? null : selectId)}
+                                  placeholder="-- Kosong --"
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     (tableSchemas[table] || Object.keys(db[table]?.[0] || {}).filter((key, i) => i !== 0 && key !== 'actual_return_date'))
                       .map((key) => {
                         // 1. Tentukan Tipe Input
@@ -629,7 +651,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
 
         <div className={`p-6 ${table === 'notes' ? 'bg-[#FFFDF0]' : 'bg-white'} border-t border-slate-100 flex gap-4`}>
           <button type="button" onClick={onClose} className="px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl text-[11px] font-black uppercase hover:bg-slate-200 transition-all">Cancel</button>
-          <button type="button" onClick={() => onSave(isOrderTable ? rows.map(r => ({ ...r, ...customerInfo })) : rows)} className={`flex-1 py-4 ${table === 'notes' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 hover:bg-black'} text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all`}>
+          <button type="button" onClick={handlePreSave} className={`flex-1 py-4 ${table === 'notes' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 hover:bg-black'} text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all`}>
             {table === 'notes' ? 'Save Note' : (isOrderTable ? 'Simpan Transaksi Order' : 'Simpan Data')}
           </button>
         </div>
