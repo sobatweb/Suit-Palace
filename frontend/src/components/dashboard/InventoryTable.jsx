@@ -96,26 +96,32 @@ const getDisplayData = () => {
     });
 
     // TAHAP 3: Final Structure - Buat package_details
-   // TAHAP 3: Final Structure - Buat package_details
 displayData = Object.values(groups).map(group => {
   const packagesLabel = group.relatedOrders.map(o => o.display_package).join(' + ');
   const totalPrice = group.relatedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   
+  // SORT relatedOrders berdasarkan end_dates (ascending = paling cepat duluan)
+  const sortedOrders = [...group.relatedOrders].sort((a, b) => {
+    const dateA = new Date(a.end_dates);
+    const dateB = new Date(b.end_dates);
+    return dateA - dateB; // ascending (terkecil/tercepat duluan)
+  });
+  
   // Ambil end_date terjauh untuk kalkulasi penalty
-  const allEndDates = group.relatedOrders.map(o => o.end_dates).filter(Boolean);
+  const allEndDates = sortedOrders.map(o => o.end_dates).filter(Boolean);
   const latestEndDate = allEndDates.length > 0 
-    ? allEndDates.reduce((latest, current) => current > latest ? current : latest)
+    ? allEndDates[allEndDates.length - 1] // karena sudah sorted, yang terakhir = terjauh
     : group.end_dates;
   
-  // Buat display end_date per paket
-  const endDatesDisplay = group.relatedOrders.map((o, idx) => ({
+  // Buat display end_date per paket (sudah terurut)
+  const endDatesDisplay = sortedOrders.map((o, idx) => ({
     packageName: o.display_package,
     endDate: o.end_dates,
     index: idx + 1
   }));
   
-  // Susun detail per paket dengan data lengkap
-  const packageDetails = group.relatedOrders.map(o => {
+  // Susun detail per paket dengan data lengkap (GUNAKAN sortedOrders)
+  const packageDetails = sortedOrders.map(o => {
     const pkg = db.packages?.find(p => String(p.id_package) === String(o.id_package)) || {};
     const bookingRow = db.booked?.find(b => String(b.id_booked) === String(o.id_booked)) || {};
     
@@ -126,7 +132,8 @@ displayData = Object.values(groups).map(group => {
       price: o.total_price,
       deposit: pkg.deposit || 0,
       penalty: pkg.penalty_fee || 0,
-      duration: pkg.duration_day || 0
+      duration: pkg.duration_day || 0,
+      endDate: o.end_dates // Simpan juga end_date untuk referensi
     };
   });
 
@@ -134,13 +141,13 @@ displayData = Object.values(groups).map(group => {
     ...group,
     display_package: packagesLabel,
     total_price: totalPrice,
-    end_dates: latestEndDate, // Untuk kalkulasi penalty
-    end_dates_display: endDatesDisplay, // Array untuk tampilan
-    package_details: packageDetails
+    end_dates: latestEndDate,
+    end_dates_display: endDatesDisplay,
+    package_details: packageDetails,
+    relatedOrders: sortedOrders // Override dengan yang sudah sorted
   };
 });
   }
-
   // Logika pengurutan (Sorting) tetap sama
   const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
   if (sortTabs.includes(activeTab)) {
