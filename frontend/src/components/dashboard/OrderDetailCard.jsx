@@ -1,3 +1,5 @@
+
+
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { User, CalendarDays, X, CheckCircle } from 'lucide-react';
@@ -83,44 +85,69 @@ const OrderDetailCard = ({
           let totalGroupPenalty = 0;
 
           // Iterate related orders to calculate totals and build item list
-          const groupDetails = order.relatedOrders.map(subOrder => {
-            const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
+      const groupDetails = order.relatedOrders.map(subOrder => {
+    const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
 
-            // Hitung Penalty Fee per order
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+    // --- PINDAHKAN INI KE PALING ATAS ---
+    // Ambil nilai yang sudah dibayar supaya tetap tampil di Card walaupun di-cancel
+    const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
+    totalGroupPaid += amountPaid;
 
-            const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
-              ? new Date(getDateString(subOrder.actual_return_date))
-              : today;
+    // 1. CEK CANCEL
+    if (subOrder.status_rent === 'Cancel') {
+        // Jika cancel, sisa bayar menjadi minus (karena tagihan 0 tapi ada uang masuk)
+        // Ini yang membuat tampilan di Card jadi update
+        const sisaBayar = 0 - amountPaid;
+        totalGroupSisa += sisaBayar;
 
-            const endDate = new Date(getDateString(subOrder.end_dates));
-            endDate.setHours(0, 0, 0, 0);
+        return {
+            pkgName: pkg?.package_name || 'Unknown Package',
+            items: [], // Kosongkan item jika cancel
+            status: subOrder.status_rent,
+            description: subOrder.condition_return || subOrder.description,
+            price: 0,
+            deposit: 0,
+            penalty: 0,
+            duration: pkg?.duration_day || 0,
+            endDate: subOrder.end_dates
+        };
+    }
 
-            let penaltyFee = 0;
+    // 2. JIKA TIDAK CANCEL, LANJUT HITUNG NORMAL
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-            if (calculationDate > endDate) {
-              const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-              penaltyFee = daysLate * (pkg?.penalty_fee || 0);
-              isGroupLate = true;
-            }
+    const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
+        ? new Date(getDateString(subOrder.actual_return_date))
+        : today;
 
-            const hargaPaket = Math.round(Number(subOrder.total_price));
-            const discount = Number(cust?.discount || 0);
-            const discountAmount = Math.round(hargaPaket * (discount / 100));
-            const deposit = Math.round(Number(pkg?.deposit || 0));
-            const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
-            const sisaBayar = totalTagihan - Math.round(Number(subOrder.amount_paid));
+    const endDate = new Date(getDateString(subOrder.end_dates));
+    endDate.setHours(0, 0, 0, 0);
 
-            totalGroupTagihan += totalTagihan;
-            totalGroupPaid += Math.round(Number(subOrder.amount_paid));
-            totalGroupSisa += sisaBayar;
+    let penaltyFee = 0;
+    if (calculationDate > endDate) {
+        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+        penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+        isGroupLate = true;
+    }
 
-            totalGroupHargaPaket += hargaPaket;
-            totalGroupDiscount += discountAmount;
-            totalGroupDeposit += deposit;
-            totalGroupPenalty += penaltyFee;
+    const hargaPaket = Math.round(Number(subOrder.total_price));
+    const discount = Number(cust?.discount || 0);
+    const discountAmount = Math.round(hargaPaket * (discount / 100));
+    const deposit = Math.round(Number(pkg?.deposit || 0));
+    const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
+    
+    // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
+    totalGroupTagihan += totalTagihan;
+    
+    const sisaBayar = totalTagihan - amountPaid;
+    totalGroupSisa += sisaBayar;
 
+    totalGroupHargaPaket += hargaPaket;
+    totalGroupDiscount += discountAmount;
+    totalGroupDeposit += deposit;
+    totalGroupPenalty += penaltyFee;
+    
             // Ambil daftar item yang di-book
             const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
             const items = [];
@@ -143,7 +170,12 @@ const OrderDetailCard = ({
               pkgName: pkg?.package_name,
               items,
               status: subOrder.status_rent,
-              description: subOrder.condition_return || subOrder.description
+              description: subOrder.condition_return || subOrder.description,
+              price: hargaPaket,
+              deposit: deposit,
+              penalty: penaltyFee,
+              duration: pkg?.duration_day || 0,
+              endDate: subOrder.end_dates
             };
           });
 
