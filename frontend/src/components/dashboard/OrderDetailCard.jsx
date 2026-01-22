@@ -38,13 +38,16 @@ const OrderDetailCard = ({
     filteredOrders.forEach(order => {
       const key = `${order.id_customer}_${getDateString(order.start_dates)}`;
       if (!groups[key]) {
-        // Create group leader, add relatedOrders array
-        groups[key] = { ...order, relatedOrders: [] };
+        // Cari SEMUA order dalam grup yang sama dari database lengkap
+        const allRelated = db.order_items.filter(o =>
+          Number(o.id_customer) === Number(order.id_customer) &&
+          getDateString(o.start_dates) === getDateString(order.start_dates)
+        );
+        groups[key] = { ...order, relatedOrders: allRelated };
       }
-      groups[key].relatedOrders.push(order);
     });
     return Object.values(groups);
-  }, [filteredOrders]);
+  }, [filteredOrders, db.order_items]);
 
   return (
     <div className="space-y-4 max-h-270 overflow-y-auto pr-2 scrollbar-hide">
@@ -100,7 +103,7 @@ const OrderDetailCard = ({
             totalGroupTagihan += totalTagihan;
             totalGroupPaid += Math.round(Number(subOrder.amount_paid));
             totalGroupSisa += sisaBayar;
-                        
+
             totalGroupHargaPaket += hargaPaket;
             totalGroupDiscount += discountAmount;
             totalGroupDeposit += deposit;
@@ -155,15 +158,15 @@ const OrderDetailCard = ({
               {/* Rincian Biaya */}
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-1 my-4 font-bold border border-gray-100 shadow-inner">
                 <div className="flex justify-between text-gray-500"><span>Total Harga Paket</span><span>Rp {totalGroupHargaPaket.toLocaleString('id-ID')}</span></div>
-                    {totalGroupDiscount > 0 && (
-                      <div className="flex justify-between text-emerald-600"><span>Diskon ({cust?.discount}%)</span><span>- Rp {totalGroupDiscount.toLocaleString('id-ID')}</span></div>
-                    )}
-                    {totalGroupDeposit > 0 && (
-                      <div className="flex justify-between text-gray-500"><span>Deposit</span><span>Rp {totalGroupDeposit.toLocaleString('id-ID')}</span></div>
-                    )}
-                    {totalGroupPenalty > 0 && (
-                      <div className="flex justify-between text-rose-600"><span>Denda Keterlambatan</span><span>+ Rp {totalGroupPenalty.toLocaleString('id-ID')}</span></div>
-                    )}
+                {totalGroupDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600"><span>Diskon ({cust?.discount}%)</span><span>- Rp {totalGroupDiscount.toLocaleString('id-ID')}</span></div>
+                )}
+                {totalGroupDeposit > 0 && (
+                  <div className="flex justify-between text-gray-500"><span>Deposit</span><span>Rp {totalGroupDeposit.toLocaleString('id-ID')}</span></div>
+                )}
+                {totalGroupPenalty > 0 && (
+                  <div className="flex justify-between text-rose-600"><span>Denda Keterlambatan</span><span>+ Rp {totalGroupPenalty.toLocaleString('id-ID')}</span></div>
+                )}
                 <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Tagihan ({order.relatedOrders.length} Order)</span><span>Rp {totalGroupTagihan.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between text-emerald-600"><span>Total Dibayar</span><span>- Rp {totalGroupPaid.toLocaleString('id-ID')}</span></div>
                 <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${totalGroupSisa > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
@@ -254,8 +257,8 @@ const OrderDetailCard = ({
                   disabled={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel'}
                   title={order.status_rent !== 'Dikembalikan' && order.status_rent !== 'Cancel' ? "Hanya bisa diselesaikan jika status sudah Dikembalikan atau Cancel" : ""}
                   className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(order.status_rent === 'Dikembalikan' || order.status_rent === 'Cancel')
-                      ? "bg-[#1A120B] text-white hover:bg-black"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                    ? "bg-[#1A120B] text-white hover:bg-black"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
                     }`}
                 >
                   <CheckCircle size={12} /> Selesai
