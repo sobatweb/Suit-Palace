@@ -49,89 +49,112 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     const value = Math.floor(Number(amount || 0));
     return `Rp ${value.toLocaleString('id-ID')}`;
   };
+const getDisplayData = () => {
+  let displayData = data || [];
 
-  const getDisplayData = () => {
-    let baseData = data || [];
+  if (activeTab === 'order_items' && db) {
+    // TAHAP 1: Enrich Data (Pastikan menggunakan variabel let/tanpa const baru agar tidak shadowing)
+    displayData = displayData.map(order => {
+      const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
+      const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
+      const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
 
-    if (activeTab === 'order_items' && db) {
-      baseData = baseData.map(order => {
-        const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
-        const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
-        const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
-
-        const bookedItemsList = [];
-        ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
-          const productId = bookingRow[`id_${cat}`];
-          if (productId) {
-            const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
-            if (prod) {
-              bookedItemsList.push({
-                category: cat.toUpperCase(),
-                name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-                size: prod[`size_${cat}`] || '-',
-                color: prod[`color_${cat}`] || '-'
-              });
-            }
+      const bookedItemsList = [];
+      ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
+        const productId = bookingRow[`id_${cat}`];
+        if (productId) {
+          const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
+          if (prod) {
+            bookedItemsList.push({
+              category: cat.toUpperCase(),
+              name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+              size: prod[`size_${cat}`] || '-',
+              color: prod[`color_${cat}`] || '-'
+            });
           }
-        });
-
-        return {
-          ...order,
-          display_customer: customer.customer_name || 'Unknown',
-          display_package: packageData.package_name || 'No Package', // This will be overridden if grouped
-          customer_full: customer,
-          package_full: packageData,
-          booked_items: bookedItemsList
-        };
-      });
-    }
-
-    // GROUPING LOGIC FOR ORDER ITEMS TABLE
-    if (activeTab === 'order_items' && baseData.length > 0) {
-      const groups = {};
-      baseData.forEach(order => {
-        const key = `${order.id_customer}_${order.start_dates}`;
-        if (!groups[key]) {
-          groups[key] = { ...order, relatedOrders: [] };
         }
-        groups[key].relatedOrders.push(order);
       });
 
-      baseData = Object.values(groups).map(group => {
-        if (group.relatedOrders.length === 1) return group;
+      return {
+        ...order,
+        display_customer: customer.customer_name || 'Unknown',
+        display_package: packageData.package_name || 'No Package',
+        booked_items: bookedItemsList,
+        customer_full: customer,
+        package_full: packageData
+      };
+    });
 
-        // Aggregate info for display
-        const packages = group.relatedOrders.map(o => o.display_package).join(' + ');
-        const totalPrice = group.relatedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
-        const amountPaid = group.relatedOrders.reduce((sum, o) => sum + Number(o.amount_paid), 0);
-        const allBookedItems = group.relatedOrders.flatMap(o => o.booked_items);
+    // TAHAP 2: Grouping Logic
+    const groups = {};
+    displayData.forEach(order => {
+      const key = `${order.id_customer}_${order.start_dates}`;
+      if (!groups[key]) {
+        groups[key] = { ...order, relatedOrders: [] };
+      }
+      groups[key].relatedOrders.push(order);
+    });
 
-        return {
-          ...group,
-          display_package: packages,
-          total_price: totalPrice,
-          amount_paid: amountPaid,
-          booked_items: allBookedItems,
-          // relatedOrders is preserved for Edit
-        };
-      });
-    }
+    // TAHAP 3: Final Structure - Buat package_details
+   // TAHAP 3: Final Structure - Buat package_details
+displayData = Object.values(groups).map(group => {
+  const packagesLabel = group.relatedOrders.map(o => o.display_package).join(' + ');
+  const totalPrice = group.relatedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+  
+  // Ambil end_date terjauh untuk kalkulasi penalty
+  const allEndDates = group.relatedOrders.map(o => o.end_dates).filter(Boolean);
+  const latestEndDate = allEndDates.length > 0 
+    ? allEndDates.reduce((latest, current) => current > latest ? current : latest)
+    : group.end_dates;
+  
+  // Buat display end_date per paket
+  const endDatesDisplay = group.relatedOrders.map((o, idx) => ({
+    packageName: o.display_package,
+    endDate: o.end_dates,
+    index: idx + 1
+  }));
+  
+  // Susun detail per paket dengan data lengkap
+  const packageDetails = group.relatedOrders.map(o => {
+    const pkg = db.packages?.find(p => String(p.id_package) === String(o.id_package)) || {};
+    const bookingRow = db.booked?.find(b => String(b.id_booked) === String(o.id_booked)) || {};
+    
+    return {
+      name: o.display_package,
+      items: o.booked_items,
+      note: o.condition_return || bookingRow.noted || '-',
+      price: o.total_price,
+      deposit: pkg.deposit || 0,
+      penalty: pkg.penalty_fee || 0,
+      duration: pkg.duration_day || 0
+    };
+  });
 
-    // Logika pengurutan Ascending untuk tab tertentu
-    const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
-    if (sortTabs.includes(activeTab)) {
-      return [...baseData].sort((a, b) => {
-        const key = activeTab === 'packages' ? 'package_name' :
-          activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
-
-        const valA = (a[key] || "").toString();
-        const valB = (b[key] || "").toString();
-        return valA.localeCompare(valB);
-      });
-    }
-
-    return baseData;
+  return {
+    ...group,
+    display_package: packagesLabel,
+    total_price: totalPrice,
+    end_dates: latestEndDate, // Untuk kalkulasi penalty
+    end_dates_display: endDatesDisplay, // Array untuk tampilan
+    package_details: packageDetails
   };
+});
+  }
+
+  // Logika pengurutan (Sorting) tetap sama
+  const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
+  if (sortTabs.includes(activeTab)) {
+    return [...displayData].sort((a, b) => {
+      const key = activeTab === 'packages' ? 'package_name' :
+                  activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
+      const valA = (a[key] || "").toString();
+      const valB = (b[key] || "").toString();
+      return valA.localeCompare(valB);
+    });
+  }
+
+  return displayData;
+};
 
   const [priceDetails, setPriceDetails] = useState(null);
   const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
@@ -482,16 +505,28 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
           }}>
             {item.display_customer}
           </td>
-          <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', data: item.package_full })}>
+           <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', package_details: item.package_details })}>
             {item.display_package}
           </td>
           <td className="px-6 py-4">
-            <button onClick={() => setSelectedInfo({ type: 'items', data: item.booked_items, description: item.condition_return })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
+            <button onClick={() => setSelectedInfo({ type: 'items', package_details: item.package_details })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
               <ShoppingBag size={12} /> Detail
             </button>
           </td>
           <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
-          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.end_dates)}</td>
+          <td className="px-6 py-4 text-gray-800">
+            {item.end_dates_display && item.end_dates_display.length > 1 ? (
+              <div className="flex flex-col gap-0.5">
+                {item.end_dates_display.map((ed, idx) => (
+                  <div key={idx} className="text-[13px] font-bold">
+                    <span className="text-amber-600">•</span> {formatDateFull(ed.endDate)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              formatDateFull(item.end_dates)
+            )}
+          </td>
           <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
           <td className="px-6 py-4">
             <span
@@ -879,55 +914,89 @@ return (
               </div>
             )}
 
-            {/* DETAIL PACKAGE */}
-            {selectedInfo.type === 'package' && (
-              <div className="space-y-3">
-                <div className="text-center p-6 bg-amber-50 rounded-4xl border border-amber-100">
-                  <h3 className="text-lg font-black text-amber-900">{selectedInfo.data.package_name}</h3>
-                  <p className="text-[12px] font-bold text-amber-600 uppercase tracking-widest">{selectedInfo.data.duration_day} Hari Sewa</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-4 bg-gray-50 rounded-2xl">
-                    <p className="text-[11px] text-gray-600 uppercase">Harga</p>
-                    <p className="text-xs font-black">{formatIDR(selectedInfo.data.package_price)}</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-2xl">
-                    <p className="text-[11px] text-gray-600 uppercase">Deposit</p>
-                    <p className="text-xs font-black">{formatIDR(selectedInfo.data.deposit)}</p>
-                  </div>
-                  <div className="p-4 bg-rose-50 rounded-2xl col-span-2">
-                    <p className="text-[11px] text-rose-400 uppercase">Denda Keterlambatan</p>
-                    <p className="text-xs font-black text-rose-600">{formatIDR(selectedInfo.data.penalty_fee)} / Hari</p>
-                  </div>
-                </div>
-              </div>
-            )}
+          
 
-            {/* DETAIL BOOKED ITEMS */}
-            {selectedInfo.type === 'items' && (
-              <div className="space-y-15">
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scroll">
-                  {selectedInfo.data.length > 0 ? selectedInfo.data.map((p, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
-                      <div>
-                        <p className="text-[15px] font-black text-gray-900 tracking-tighter">{p.name}</p>
-                        <p className="text-[12px] text-gray-600 font-black">{p.category} • {p.color}</p>
-                      </div>
-                      <span className="text-[11px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE: {p.size}</span>
-                    </div>
-                  )) : <p className="text-center text-xs text-gray-400 py-10 font-bold uppercase italic tracking-widest">Tidak ada item terpilih</p>}
-                </div>
+{/* DETAIL PACKAGE */}
 
-                {selectedInfo.description && (
-                  <div className="pt-4 border-t border-dashed border-gray-200">
-                    <p className="text-[15px] font-black uppercase text-gray-500 mb-1">Deskripsi Order:</p>
-                    <p className="text-[13px] text-gray-900 italic leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
-                      {selectedInfo.description}
-                    </p>
-                  </div>
-                )}
+{selectedInfo.type === 'package' && (
+  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+    {selectedInfo.package_details?.map((pkg, idx) => (
+      <div key={idx} className="space-y-3 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Paket {idx + 1}</span>
+            <h3 className="text-lg font-black text-amber-900 uppercase">{pkg.name}</h3>
+          </div>
+        </div>
+        
+        {/* Grid Info Paket */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 bg-white rounded-2xl shadow-sm">
+            <p className="text-[11px] text-gray-400 uppercase font-black">Harga Paket</p>
+            <p className="text-sm font-black text-gray-900">{formatIDR(pkg.price)}</p>
+          </div>
+          
+          <div className="p-4 bg-white rounded-2xl shadow-sm">
+            <p className="text-[11px] text-gray-400 uppercase font-black">Durasi</p>
+            <p className="text-sm font-black text-gray-900">{pkg.duration} Hari</p>
+          </div>
+          
+          <div className="p-4 bg-amber-100 rounded-2xl shadow-sm">
+            <p className="text-[11px] text-amber-600 uppercase font-black">Deposit</p>
+            <p className="text-sm font-black text-amber-900">{formatIDR(pkg.deposit)}</p>
+          </div>
+          
+          <div className="p-4 bg-rose-50 rounded-2xl shadow-sm">
+            <p className="text-[11px] text-rose-600 uppercase font-black">Penalty/Hari</p>
+            <p className="text-sm font-black text-rose-900">{formatIDR(pkg.penalty)}</p>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
+{/* DETAIL BOOKED ITEMS */}
+
+{selectedInfo.type === 'items' && (
+  <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
+    {selectedInfo.package_details?.map((pkg, idx) => (
+      <div key={idx} className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="px-4 py-1 bg-slate-900 rounded-full">
+            <span className="text-[10px] font-black text-white uppercase tracking-tighter">
+              Paket {idx + 1}: {pkg.name}
+            </span>
+          </div>
+          <div className="h-[1px] flex-1 bg-slate-200"></div>
+        </div>
+
+        {/* Items List */}
+        <div className="space-y-2">
+          {pkg.items && pkg.items.length > 0 ? pkg.items.map((p, i) => (
+            <div key={i} className="p-3 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
+              <div>
+                <p className="text-[15px] font-black text-gray-900 tracking-tighter uppercase">{p.name}</p>
+                <p className="text-[12px] text-gray-600 font-black">{p.category} • {p.color}</p>
               </div>
-            )}
+              <span className="text-[11px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE: {p.size}</span>
+            </div>
+          )) : (
+            <p className="text-center text-xs text-gray-400 py-4 italic">Tidak ada item di paket ini</p>
+          )}
+        </div>
+        
+        {/* Catatan Paket */}
+        <div className="pt-2">
+          <p className="text-[11px] font-black uppercase text-amber-600 mb-1">Catatan Paket:</p>
+          <div className="text-[12px] text-gray-700 bg-amber-50/50 p-3 rounded-xl border border-dashed border-amber-200 leading-relaxed">
+            {pkg.note && pkg.note !== '-' ? pkg.note : 'Tidak ada catatan'}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
           </div>
         </div>
       )}
