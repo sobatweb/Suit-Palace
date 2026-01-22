@@ -145,7 +145,10 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
     return [{}];
   });
 
-  const addRow = () => setRows([...rows, {}]);
+  const addRow = () => {
+    const firstRowStartDate = rows[0]?.start_dates || '';
+    setRows([...rows, { start_dates: firstRowStartDate }]);
+  };
   const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
 
   const handleKeyDown = (e) => {
@@ -196,19 +199,40 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
     }
     newRows[index][field] = finalValue;
 
-    if (isOrderTable && (field === 'id_package' || field === 'start_dates')) {
-      const pkgId = field === 'id_package' ? value : newRows[index].id_package;
-      const startDate = field === 'start_dates' ? value : newRows[index].start_dates;
-      const pkg = db.packages.find(p => String(p.id_package) === String(pkgId));
+    if (isOrderTable) {
+      // Helper function untuk hitung tanggal selesai
+      const calculateEnd = (startD, duration) => {
+        if (!startD || !duration) return '';
+        const date = new Date(startD);
+        date.setDate(date.getDate() + (parseInt(duration) - 1));
+        return date.toISOString().split('T')[0];
+      };
 
-      if (pkg && startDate) {
-        const start = new Date(startDate);
-        start.setDate(start.getDate() + (parseInt(pkg.duration_day) - 1));
-        newRows[index].end_dates = start.toISOString().split('T')[0];
-        newRows[index].total_price = Math.round(Number(pkg.package_price));
+      // 1. SINKRONISASI TANGGAL MULAI (Hanya jika baris pertama yang berubah)
+      if (index === 0 && field === 'start_dates') {
+        for (let i = 1; i < newRows.length; i++) {
+          newRows[i].start_dates = value;
 
-        if (!editingItem) {
-          newRows[index].total_price = Math.round(Number(pkg.package_price));
+          // Recalculate end_dates masing-masing paket berdasarkan durasinya
+          const pkg = db.packages.find(p => String(p.id_package) === String(newRows[i].id_package));
+          if (pkg) {
+            newRows[i].end_dates = calculateEnd(value, pkg.duration_day);
+          }
+        }
+      }
+
+      // 2. KALKULASI TANGGAL SELESAI (Berlaku untuk semua baris)
+      if (field === 'id_package' || field === 'start_dates') {
+        const currentPkgId = field === 'id_package' ? value : newRows[index].id_package;
+        const currentStartDate = field === 'start_dates' ? value : newRows[index].start_dates;
+        const pkg = db.packages.find(p => String(p.id_package) === String(currentPkgId));
+
+        if (pkg && currentStartDate) {
+          newRows[index].end_dates = calculateEnd(currentStartDate, pkg.duration_day);
+          // Update total_price hanya saat tambah order baru (jangan timpa saat edit jika ada harga khusus)
+          if (!editingItem) {
+            newRows[index].total_price = Math.round(Number(pkg.package_price));
+          }
         }
       }
     }
@@ -367,8 +391,17 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         </div>
                       )}
                       <div className="space-y-1">
-                        <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Tanggal Mulai</label>
-                        <input type="date" min={today} value={row.start_dates || ''} onChange={(e) => handleInputChange(index, 'start_dates', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black" />
+                        <label className="text-[12px] font-black uppercase text-slate-500 ml-1">
+                          Tanggal Mulai {index > 0 && <span className="text-[9px] text-amber-600 normal-case"></span>}
+                        </label>
+                        <input
+                          type="date"
+                          min={today}
+                          readOnly={index > 0}
+                          value={row.start_dates || ''}
+                          onChange={(e) => handleInputChange(index, 'start_dates', e.target.value)}
+                          className={`w-full px-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold focus:border-black ${index > 0 ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-dashed' : 'bg-slate-50'}`}
+                        />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[12px] font-black uppercase text-slate-500 ml-1">Tanggal Selesai (Auto)</label>

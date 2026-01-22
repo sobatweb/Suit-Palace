@@ -34,7 +34,7 @@ const OrderDetailCard = ({
     );
   });
 
- // GROUPING LOGIC: Group by Customer ID + Start Date
+  // GROUPING LOGIC: Group by Customer ID + Start Date
   const groupedOrders = useMemo(() => {
     const groups = {};
     filteredOrders.forEach(order => {
@@ -44,7 +44,11 @@ const OrderDetailCard = ({
         const allRelated = db.order_items.filter(o =>
           Number(o.id_customer) === Number(order.id_customer) &&
           getDateString(o.start_dates) === getDateString(order.start_dates)
-        );
+        ).sort((a, b) => {
+          const dateA = new Date(getDateString(a.end_dates));
+          const dateB = new Date(getDateString(b.end_dates));
+          return dateA - dateB;
+        });
 
         // --- TAMBAHKAN LOGIK UNTUK MENCARI TANGGAL TERJAUH ---
         const maxEndDate = allRelated.reduce((max, curr) => {
@@ -53,8 +57,8 @@ const OrderDetailCard = ({
         }, getDateString(order.end_dates));
         // ----------------------------------------------------
 
-        groups[key] = { 
-          ...order, 
+        groups[key] = {
+          ...order,
           relatedOrders: allRelated,
           maxEndDate: maxEndDate // Simpan tanggal terjauh di sini
         };
@@ -85,69 +89,69 @@ const OrderDetailCard = ({
           let totalGroupPenalty = 0;
 
           // Iterate related orders to calculate totals and build item list
-      const groupDetails = order.relatedOrders.map(subOrder => {
-    const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
+          const groupDetails = order.relatedOrders.map(subOrder => {
+            const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
 
-    // --- PINDAHKAN INI KE PALING ATAS ---
-    // Ambil nilai yang sudah dibayar supaya tetap tampil di Card walaupun di-cancel
-    const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
-    totalGroupPaid += amountPaid;
+            // --- PINDAHKAN INI KE PALING ATAS ---
+            // Ambil nilai yang sudah dibayar supaya tetap tampil di Card walaupun di-cancel
+            const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
+            totalGroupPaid += amountPaid;
 
-    // 1. CEK CANCEL
-    if (subOrder.status_rent === 'Cancel') {
-        // Jika cancel, sisa bayar menjadi minus (karena tagihan 0 tapi ada uang masuk)
-        // Ini yang membuat tampilan di Card jadi update
-        const sisaBayar = 0 - amountPaid;
-        totalGroupSisa += sisaBayar;
+            // 1. CEK CANCEL
+            if (subOrder.status_rent === 'Cancel') {
+              // Jika cancel, sisa bayar menjadi minus (karena tagihan 0 tapi ada uang masuk)
+              // Ini yang membuat tampilan di Card jadi update
+              const sisaBayar = 0 - amountPaid;
+              totalGroupSisa += sisaBayar;
 
-        return {
-            pkgName: pkg?.package_name || 'Unknown Package',
-            items: [], // Kosongkan item jika cancel
-            status: subOrder.status_rent,
-            description: subOrder.condition_return || subOrder.description,
-            price: 0,
-            deposit: 0,
-            penalty: 0,
-            duration: pkg?.duration_day || 0,
-            endDate: subOrder.end_dates
-        };
-    }
+              return {
+                pkgName: pkg?.package_name || 'Unknown Package',
+                items: [], // Kosongkan item jika cancel
+                status: subOrder.status_rent,
+                description: subOrder.condition_return || subOrder.description,
+                price: 0,
+                deposit: 0,
+                penalty: 0,
+                duration: pkg?.duration_day || 0,
+                endDate: subOrder.end_dates
+              };
+            }
 
-    // 2. JIKA TIDAK CANCEL, LANJUT HITUNG NORMAL
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+            // 2. JIKA TIDAK CANCEL, LANJUT HITUNG NORMAL
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-    const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
-        ? new Date(getDateString(subOrder.actual_return_date))
-        : today;
+            const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
+              ? new Date(getDateString(subOrder.actual_return_date))
+              : today;
 
-    const endDate = new Date(getDateString(subOrder.end_dates));
-    endDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(getDateString(subOrder.end_dates));
+            endDate.setHours(0, 0, 0, 0);
 
-    let penaltyFee = 0;
-    if (calculationDate > endDate) {
-        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-        penaltyFee = daysLate * (pkg?.penalty_fee || 0);
-        isGroupLate = true;
-    }
+            let penaltyFee = 0;
+            if (calculationDate > endDate) {
+              const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+              penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+              isGroupLate = true;
+            }
 
-    const hargaPaket = Math.round(Number(subOrder.total_price));
-    const discount = Number(cust?.discount || 0);
-    const discountAmount = Math.round(hargaPaket * (discount / 100));
-    const deposit = Math.round(Number(pkg?.deposit || 0));
-    const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
-    
-    // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
-    totalGroupTagihan += totalTagihan;
-    
-    const sisaBayar = totalTagihan - amountPaid;
-    totalGroupSisa += sisaBayar;
+            const hargaPaket = Math.round(Number(subOrder.total_price));
+            const discount = Number(cust?.discount || 0);
+            const discountAmount = Math.round(hargaPaket * (discount / 100));
+            const deposit = Math.round(Number(pkg?.deposit || 0));
+            const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
 
-    totalGroupHargaPaket += hargaPaket;
-    totalGroupDiscount += discountAmount;
-    totalGroupDeposit += deposit;
-    totalGroupPenalty += penaltyFee;
-    
+            // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
+            totalGroupTagihan += totalTagihan;
+
+            const sisaBayar = totalTagihan - amountPaid;
+            totalGroupSisa += sisaBayar;
+
+            totalGroupHargaPaket += hargaPaket;
+            totalGroupDiscount += discountAmount;
+            totalGroupDeposit += deposit;
+            totalGroupPenalty += penaltyFee;
+
             // Ambil daftar item yang di-book
             const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
             const items = [];
@@ -202,7 +206,7 @@ const OrderDetailCard = ({
                 </div>
 
                 {/* Bagian Tanggal (SUDAH DIUBAH) */}
-               <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <CalendarDays size={14} className="text-gray-400" />
                   <div className="text-[12px] font-bold text-[#8D775F]">
                     {formatDisplayDate(order.start_dates)} - {formatDisplayDate(order.maxEndDate)}
@@ -304,10 +308,10 @@ const OrderDetailCard = ({
                     return !allDone ? "Semua paket dalam pesanan ini harus berstatus Dikembalikan atau Cancel" : "";
                   })()}
                   className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${(() => {
-                      return order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
-                    })()
-                      ? "bg-[#1A120B] text-white hover:bg-black"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                    return order.relatedOrders.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel');
+                  })()
+                    ? "bg-[#1A120B] text-white hover:bg-black"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
                     }`}
                 >
                   <CheckCircle size={12} /> {order.relatedOrders.length > 1 ? 'Selesaikan Semua' : 'Selesai'}
