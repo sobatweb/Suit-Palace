@@ -62,6 +62,10 @@ const OrderDetailCard = ({
           let totalGroupPaid = 0;
           let totalGroupSisa = 0;
           let isGroupLate = false;
+          let totalGroupHargaPaket = 0;
+          let totalGroupDiscount = 0;
+          let totalGroupDeposit = 0;
+          let totalGroupPenalty = 0;
 
           // Iterate related orders to calculate totals and build item list
           const groupDetails = order.relatedOrders.map(subOrder => {
@@ -96,6 +100,11 @@ const OrderDetailCard = ({
             totalGroupTagihan += totalTagihan;
             totalGroupPaid += Math.round(Number(subOrder.amount_paid));
             totalGroupSisa += sisaBayar;
+                        
+            totalGroupHargaPaket += hargaPaket;
+            totalGroupDiscount += discountAmount;
+            totalGroupDeposit += deposit;
+            totalGroupPenalty += penaltyFee;
 
             // Ambil daftar item yang di-book
             const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
@@ -145,6 +154,16 @@ const OrderDetailCard = ({
 
               {/* Rincian Biaya */}
               <div className="bg-gray-50 rounded-2xl p-4 text-[13px] space-y-1 my-4 font-bold border border-gray-100 shadow-inner">
+                <div className="flex justify-between text-gray-500"><span>Total Harga Paket</span><span>Rp {totalGroupHargaPaket.toLocaleString('id-ID')}</span></div>
+                    {totalGroupDiscount > 0 && (
+                      <div className="flex justify-between text-emerald-600"><span>Diskon ({cust?.discount}%)</span><span>- Rp {totalGroupDiscount.toLocaleString('id-ID')}</span></div>
+                    )}
+                    {totalGroupDeposit > 0 && (
+                      <div className="flex justify-between text-gray-500"><span>Deposit</span><span>Rp {totalGroupDeposit.toLocaleString('id-ID')}</span></div>
+                    )}
+                    {totalGroupPenalty > 0 && (
+                      <div className="flex justify-between text-rose-600"><span>Denda Keterlambatan</span><span>+ Rp {totalGroupPenalty.toLocaleString('id-ID')}</span></div>
+                    )}
                 <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Tagihan ({order.relatedOrders.length} Order)</span><span>Rp {totalGroupTagihan.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between text-emerald-600"><span>Total Dibayar</span><span>- Rp {totalGroupPaid.toLocaleString('id-ID')}</span></div>
                 <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${totalGroupSisa > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
