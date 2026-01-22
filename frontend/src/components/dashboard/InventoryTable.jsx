@@ -743,7 +743,7 @@ return (
               <div className="bg-amber-50 p-4 rounded-2xl flex justify-between items-center border border-amber-100">
                 <span className="text-[14px] font-black uppercase text-amber-600">Deposit Jaminan</span>
                 <span className="text-sm font-black text-amber-900">
-                  {formatIDR(priceDetails.package_full?.deposit || 0)}
+                {formatIDR(priceDetails.package_details?.reduce((sum, pkg) => sum + Number(pkg.deposit || 0), 0) || 0)}
                 </span>
               </div>
 
@@ -767,7 +767,7 @@ return (
                   penaltyFee = daysLate * (priceDetails.package_full?.penalty_fee || 0);
                 }
 
-                if (penaltyFee > 0) {
+                if (penaltyFee > -1) {
                   return (
                     <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
                       <div>
@@ -834,7 +834,7 @@ return (
                       const nominalDiskon = (hargaDasar * diskonPersen / 100);
 
                       // 3. Ambil Deposit
-                      const deposit = Number(priceDetails.package_full?.deposit || 0);
+                      const deposit = priceDetails.package_details?.reduce((sum, pkg) => sum + Number(pkg.deposit || 0), 0) || 0;
 
                       // 4. Hitung Denda (Penalty)
                       const today = new Date();
