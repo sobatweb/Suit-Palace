@@ -143,7 +143,7 @@ class TransactionModel {
 
             // 1. Ambil data order & package untuk hitung denda otomatis
             const [orderRows] = await connection.query(
-                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date, status_rent, amount_paid 
+                `SELECT id_customer, end_dates, id_package, penalty_paid, actual_return_date, status_rent, amount_paid, total_price 
                  FROM order_items WHERE id_order = ?`,
                 [id]
             );
@@ -171,7 +171,8 @@ class TransactionModel {
                 }
             } else {
                 // JIKA BUKAN CANCEL: Gunakan amount_paid sebagai penalty (denda manual) jika ada
-                if (amount_paid !== undefined) {
+                // Kecuali jika status 'Dikembalikan', kita gunakan penalty yang sudah tersimpan (tidak perlu input manual)
+                if (amount_paid !== undefined && order.status_rent !== 'Dikembalikan') {
                     finalPenalty = amount_paid;
                 }
             }
@@ -188,7 +189,25 @@ class TransactionModel {
 
             const params = [newStatusRent, returnDate, finalPenalty, condition_return || ''];
 
-            if (amount_paid !== undefined) {
+            if (newStatusRent === 'Dikembalikan') {
+                // Set amount_paid ke total_price agar history mencatat omset sesuai harga paket
+                let finalAmount = order.total_price;
+                
+                // Fallback: Jika total_price 0 (bug entry), ambil dari master package
+                if (!finalAmount) {
+                     const [pkgPrice] = await connection.query('SELECT package_price FROM packages WHERE id_package = ?', [order.id_package]);
+                     if (pkgPrice.length > 0) finalAmount = pkgPrice[0].package_price;
+                }
+
+                query += `, amount_paid = ?`;
+                params.push(finalAmount || 0);
+
+                // Fix: Update total_price juga jika 0, supaya Trigger MySQL mencatat omset yang benar ke history
+                if (!order.total_price || Number(order.total_price) === 0) {
+                    query += `, total_price = ?`;
+                    params.push(finalAmount || 0);
+                }
+            } else if (amount_paid !== undefined) {
                 query += `, amount_paid = ?`;
                 params.push(amount_paid);
             }

@@ -372,7 +372,7 @@ const AdminDashboard = () => {
       );
 
       related.forEach(o => {
-        initialAmounts[String(o.id_order)] = Number(o.amount_paid) || 0;
+        initialAmounts[String(o.id_order)] = 0;
       });
     }
     setCancelAmounts(initialAmounts);
@@ -632,19 +632,19 @@ const AdminDashboard = () => {
                   String(o.id_customer) === String(order.id_customer) &&
                   (o.start_dates ? (o.start_dates.includes('T') ? o.start_dates.split('T')[0] : o.start_dates) : '') === dateStr
                 );
-                if (related.length > 0) {
+                if (related.length > 0 && related.some(o => o.status_rent === 'Cancel')) {
                   return (
-                    <div className="mb-6 text-left bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                      <label className="text-[11px] font-black uppercase text-slate-500 mb-2 block">
-                        Input Amount Paid (Penalty) per Order
+                    <div className="mb-8 text-left bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                      <label className="text-[15px] font-black uppercase text-slate-500 mb-8 block">
+                        Input(Penalty Fee) per Order
                       </label>
 
                       <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scroll">
-                        {related.map((co, idx) => {
+                        {related.filter(co => co.status_rent === 'Cancel').map((co, idx) => {
                           const pkg = db.packages.find(p => String(p.id_package) === String(co.id_package));
                           return (
                             <div key={co.id_order} className="relative">
-                              <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">
+                              <p className="text-[12px] font-bold text-slate-700 mb-1 uppercase">
                                 {idx + 1}. {pkg?.package_name || 'Unknown Package'} ({co.status_rent})
                               </p>
                               <div className="relative">
@@ -663,7 +663,7 @@ const AdminDashboard = () => {
                           );
                         })}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-3 italic">* Masukkan nominal akhir yang dibayarkan untuk denda/pembatalan setiap paket.</p>
+                      <p className="text-[12px] text-slate-500 mt-3 italic">Masukkan nominal akhir yang dibayarkan untuk denda/pembatalan setiap paket.</p>
                     </div>
                   );
                 }

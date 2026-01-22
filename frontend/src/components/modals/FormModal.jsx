@@ -217,6 +217,10 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
           const pkg = db.packages.find(p => String(p.id_package) === String(newRows[i].id_package));
           if (pkg) {
             newRows[i].end_dates = calculateEnd(value, pkg.duration_day);
+            // FIX: Update total_price untuk baris lain saat tanggal mulai diisi
+            if (!editingItem) {
+              newRows[i].total_price = Math.round(Number(pkg.package_price));
+            }
           }
         }
       }

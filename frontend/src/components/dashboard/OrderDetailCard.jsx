@@ -244,9 +244,6 @@ const OrderDetailCard = ({
                 {totalGroupPenalty > 0 && (
                   <div className="flex justify-between text-rose-600"><span>Denda Keterlambatan</span><span>+ Rp {totalGroupPenalty.toLocaleString('id-ID')}</span></div>
                 )}
-                {totalGroupCancelFee > 0 && (
-                  <div className="flex justify-between text-rose-600"><span>Biaya Cancel (Penalty)</span><span>+ Rp {totalGroupCancelFee.toLocaleString('id-ID')}</span></div>
-                )}
                 <div className="flex justify-between pt-2 border-t font-black uppercase text-[13px]"><span>Total Tagihan ({order.relatedOrders.length} Order)</span><span>Rp {totalGroupTagihan.toLocaleString('id-ID')}</span></div>
                 <div className="flex justify-between text-emerald-600"><span>Total Dibayar</span><span>- Rp {totalGroupPaid.toLocaleString('id-ID')}</span></div>
                 <div className={`flex justify-between font-black pt-1 border-t uppercase text-[13px] ${totalGroupSisa > 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
