@@ -100,8 +100,9 @@ const getDisplayData = () => {
     // TAHAP 3: Final Structure - Buat package_details
 displayData = Object.values(groups).map(group => {
   const packagesLabel = group.relatedOrders.map(o => o.display_package).join(' + ');
-  const totalPrice = group.relatedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
-  
+ const totalPrice = group.relatedOrders
+    .filter(o => o.status_rent !== 'Cancel') // Tambahkan filter ini
+    .reduce((sum, o) => sum + Number(o.total_price), 0);
   // SORT relatedOrders berdasarkan end_dates (ascending = paling cepat duluan)
   const sortedOrders = [...group.relatedOrders].sort((a, b) => {
     const dateA = new Date(a.end_dates);
@@ -750,12 +751,16 @@ return (
               </span>
             </div>
 
-              {/* Diskon */}
+             {/* Diskon */}
               {Number(priceDetails.customer_full?.discount || 0) > 0 && (
                 <div className="bg-emerald-50 p-4 rounded-2xl flex justify-between items-center border border-emerald-100">
                   <span className="text-[14px] font-black uppercase text-emerald-600">Diskon ({priceDetails.customer_full?.discount}%)</span>
                   <span className="text-sm font-black text-emerald-900">
-                    - {formatIDR(Number(priceDetails.total_price) * Number(priceDetails.customer_full?.discount) / 100)}
+                    {/* SEBELUMNYA: - {formatIDR(Number(priceDetails.total_price) * ...)} */}
+                    - {formatIDR((priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                        const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
+                        return sum + (isCancel ? 0 : Number(pkg.price || 0));
+                      }, 0) * Number(priceDetails.customer_full?.discount)) / 100)}
                   </span>
                 </div>
               )}
