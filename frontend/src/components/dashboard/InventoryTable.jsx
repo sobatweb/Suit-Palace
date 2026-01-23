@@ -639,39 +639,41 @@ return (
         </table>
       </div>
 
-      {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
-      {(activeTab === 'order_items' || activeTab === 'history_orders') && (
-        <div className="p-6 border-t bg-gray-50/50">
-          <div className="flex flex-col md:flex-row gap-8 md:gap-16">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
-                {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
-              </span>
-              <span className="text-2xl font-black text-slate-900">
-                {formatIDR(filteredData.reduce((sum, item) => {
-                  if (activeTab === 'order_items') {
-                    return sum + Number(item.amount_paid || 0);
-                  }
-                  return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
-                }, 0))}
-              </span>
-            </div>
+   {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
+{(activeTab === 'order_items' || activeTab === 'history_orders') && (
+  <div className="p-6 border-t bg-gray-50/50">
+    <div className="flex flex-col md:flex-row gap-8 md:gap-16">
+      {/* TOTAL AMOUNT PAID */}
+      <div className="flex flex-col">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+          {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
+        </span>
+        <span className="text-2xl font-black text-slate-900">
+          {formatIDR(filteredData.reduce((sum, item) => {
+            if (activeTab === 'order_items') {
+              // Jumlah semua amount_paid dari relatedOrders (termasuk Cancel)
+              const allOrders = item.relatedOrders || [item];
+              const totalPaid = allOrders.reduce((acc, order) => acc + Number(order.amount_paid || 0), 0);
+              return sum + totalPaid;
+            }
+            return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
+          }, 0))}
+        </span>
+      </div>
 
-            {activeTab === 'order_items' && (
+    {activeTab === 'order_items' && (
   <div className="flex flex-col">
     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">
       Total Estimasi Omset
     </span>
     <span className="text-2xl font-black text-amber-600">
       {formatIDR(filteredData.reduce((sum, item) => {
-        // TAMBAHKAN: Skip jika Cancel
         const allOrders = item.relatedOrders || [item];
         let itemTotal = 0;
         
         allOrders.forEach(order => {
           if (order.status_rent === 'Cancel') {
-            itemTotal += Number(order.amount_paid || 0);
-            return; 
+            return;
           }
           
           const hargaDasar = Number(order.total_price || 0);
@@ -683,10 +685,13 @@ return (
           const endDate = new Date(order.end_dates?.split('T')[0] || new Date());
           endDate.setHours(0, 0, 0, 0);
 
-          const returnDateStr = order.actual_return_date ? order.actual_return_date.split('T')[0] : null;
-          const calculationDate = (order.status_rent === 'Dikembalikan' && returnDateStr)
-            ? new Date(returnDateStr)
-            : today;
+          // PERBAIKAN: Tentukan calculation date
+          let calculationDate;
+          if (order.status_rent === 'Dikembalikan' && order.actual_return_date) {
+            calculationDate = new Date(order.actual_return_date.split('T')[0]);
+          } else {
+            calculationDate = today;
+          }
           calculationDate.setHours(0, 0, 0, 0);
 
           let penaltyFee = 0;
@@ -704,10 +709,10 @@ return (
     </span>
   </div>
 )}
-          </div>
-        </div>
-      )}
-
+   
+    </div>
+  </div>
+)}
       {/* MODAL DETAIL HARGA OVERLAY */}
       {priceDetails && (
         <div className="fixed inset-0 z-600 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
@@ -776,96 +781,107 @@ return (
                 </span>
               </div>
 
-              {/*  PENALTY FEE  */}
-              {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+     {/*  PENALTY FEE  */}
+{(() => {
+  const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+    const relatedOrder = priceDetails.relatedOrders?.[idx];
+    
+    if (relatedOrder?.status_rent === 'Cancel') {
+      return sum;
+    }
 
-                const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
-                const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
-                  ? new Date(priceDetails.actual_return_date.split('T')[0])
-                  : today;
-                calculationDate.setHours(0, 0, 0, 0);
+    if (!pkg.endDate) return sum;
+    
+    const endDate = new Date(pkg.endDate.split('T')[0]);
+    endDate.setHours(0, 0, 0, 0);
 
-                const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+    if (relatedOrder?.status_rent === 'Dikembalikan') {
+      // Jika sudah dikembalikan, cek actual_return_date
+      if (relatedOrder.actual_return_date) {
+        const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+        actualReturn.setHours(0, 0, 0, 0);
+        
+        if (actualReturn > endDate) {
+          const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+          return sum + (daysLate * (Number(pkg.penalty) || 0));
+        }
+      }
+      // Jika sudah dikembalikan tapi tidak ada actual_return_date, tidak ada denda
+      return sum;
+    } else {
+      // Jika belum dikembalikan, gunakan hari ini
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (today > endDate) {
+        const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+        return sum + (daysLate * (Number(pkg.penalty) || 0));
+      }
+    }
+    
+    return sum;
+  }, 0) || 0;
 
-                  // Gunakan index karena package_details dipetakan dari relatedOrders yang sudah di-sort
-                  const relatedOrder = priceDetails.relatedOrders?.[idx];
-                  if (relatedOrder?.status_rent === 'Cancel') {
-                    return sum + Number(relatedOrder.amount_paid || 0); // Tambahkan amount_paid sebagai penalty jika cancel
-                  }
+  if (totalPenaltyFee > 0) {
+    return (
+      <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
+        <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
+        <span className="text-sm font-black text-rose-900">
+          + {formatIDR(totalPenaltyFee)}
+        </span>
+      </div>
+    );
+  }
+  return null;
+})()}
 
-                  if (!pkg.endDate) return sum;
-                  const endDate = new Date(pkg.endDate.split('T')[0]);
-                  endDate.setHours(0, 0, 0, 0);
-
-                  if (calculationDate > endDate) {
-                    const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-                    return sum + (daysLate * (Number(pkg.penalty) || 0));
-                  }
-                  return sum;
-                }, 0) || 0;
-
-                if (totalPenaltyFee > 0) {
-                  return (
-                    <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
-                      <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
-                      <span className="text-sm font-black text-rose-900">
-                        + {formatIDR(totalPenaltyFee)}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-             {/* Baris Estimasi Omset */}
+       {/* Baris Estimasi Omset */}
 <div className="flex justify-between items-center px-1 mt-10">
   <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
   <span className="text-sm font-bold text-slate-700">
     {(() => {
       let totalOmset = 0;
       
-      // Loop melalui setiap package dalam order
       priceDetails.package_details?.forEach((pkg, idx) => {
-        // Cari order yang sesuai dengan package ini
         const relatedOrder = priceDetails.relatedOrders?.[idx];
         
-        // SKIP jika status Cancel - tidak masuk ke omset
         if (relatedOrder?.status_rent === 'Cancel') {
-          totalOmset += Number(relatedOrder.amount_paid || 0);
-          return; 
+          return;
         }
         
-        // 1. Hitung Harga Paket
         const hargaPaket = Number(pkg.price || 0);
-        
-        // 2. Hitung Diskon
         const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
         const nominalDiskon = (hargaPaket * diskonPersen / 100);
         
-        // 3. Hitung Denda untuk package ini
+        // PERBAIKAN: Hitung penalty yang sama dengan display
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
-        const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
-          ? new Date(returnDateStr)
-          : today;
-        calculationDate.setHours(0, 0, 0, 0);
+       let penaltyForPkg = 0;
+if (pkg.endDate) {
+  const endDate = new Date(pkg.endDate.split('T')[0]);
+  endDate.setHours(0, 0, 0, 0);
+  
+  if (relatedOrder?.status_rent === 'Dikembalikan') {
+    // Jika sudah dikembalikan, cek actual_return_date
+    if (relatedOrder.actual_return_date) {
+      const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+      actualReturn.setHours(0, 0, 0, 0);
+      
+      if (actualReturn > endDate) {
+        const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+        penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
+      }
+    }
+  } else {
+    // Jika belum dikembalikan, gunakan hari ini
+    if (today > endDate) {
+      const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+      penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
+    }
+  }
+}
         
-        let penaltyForPkg = 0;
-        if (pkg.endDate) {
-          const endDate = new Date(pkg.endDate.split('T')[0]);
-          endDate.setHours(0, 0, 0, 0);
-          
-          if (calculationDate > endDate) {
-            const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-            penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
-          }
-        }
-        
-        // RUMUS OMSET: Harga Paket - Diskon + Denda (TANPA DEPOSIT)
         totalOmset += (hargaPaket - nominalDiskon) + penaltyForPkg;
       });
       
@@ -873,75 +889,80 @@ return (
     })()}
   </span>
 </div>
-            {/* Garis Total */}
+
+        {/* Garis Total */}
 <div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
   <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan</span>
   <div className="text-right">
     <p className="text-xl font-black text-slate-900">
       {(() => {
-        // 1. Hitung Harga Dasar hanya untuk yang TIDAK Cancel
-        // Kita gunakan package_details dan cross-check dengan relatedOrders
         const hargaDasar = priceDetails.package_details?.reduce((sum, pkg, idx) => {
           const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
           return sum + (isCancel ? 0 : Number(pkg.price || 0));
         }, 0) || 0;
 
-        // 2. Ambil diskon (Diskon dikalikan dari harga dasar yang sudah difilter)
         const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
         const nominalDiskon = (hargaDasar * diskonPersen / 100);
 
-        // 3. Ambil Deposit hanya untuk yang TIDAK Cancel
         const deposit = priceDetails.package_details?.reduce((sum, pkg, idx) => {
           const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
           return sum + (isCancel ? 0 : Number(pkg.deposit || 0));
         }, 0) || 0;
 
-        // 4. Hitung Denda (Penalty) hanya untuk yang TIDAK Cancel
+        // PERBAIKAN: Hitung penalty dengan logika yang sama
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const returnDateStr = priceDetails.actual_return_date ? priceDetails.actual_return_date.split('T')[0] : null;
-        const calculationDate = (priceDetails.status_rent === 'Dikembalikan' && returnDateStr)
-          ? new Date(returnDateStr)
-          : today;
-        calculationDate.setHours(0, 0, 0, 0);
+       const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+  const relatedOrder = priceDetails.relatedOrders?.[idx];
+  const isCancel = relatedOrder?.status_rent === 'Cancel';
+  
+  if (isCancel) return sum;
+  if (!pkg.endDate) return sum;
 
-        const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
-          const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-          // Jika Cancel, gunakan amount_paid sebagai penalty
-          if (isCancel) return sum + Number(priceDetails.relatedOrders?.[idx]?.amount_paid || 0);
-          if (!pkg.endDate) return sum;
+  const endDate = new Date(pkg.endDate.split('T')[0]);
+  endDate.setHours(0, 0, 0, 0);
+  
+  if (relatedOrder?.status_rent === 'Dikembalikan') {
+    // Jika sudah dikembalikan, cek actual_return_date
+    if (relatedOrder.actual_return_date) {
+      const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+      actualReturn.setHours(0, 0, 0, 0);
+      
+      if (actualReturn > endDate) {
+        const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+        return sum + (daysLate * (Number(pkg.penalty) || 0));
+      }
+    }
+    return sum;
+  } else {
+    // Jika belum dikembalikan, gunakan hari ini
+    if (today > endDate) {
+      const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+      return sum + (daysLate * (Number(pkg.penalty) || 0));
+    }
+  }
+  
+  return sum;
+}, 0) || 0;
 
-          const endDate = new Date(pkg.endDate.split('T')[0]);
-          endDate.setHours(0, 0, 0, 0);
-          
-          if (calculationDate > endDate) {
-            const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-            return sum + (daysLate * (Number(pkg.penalty) || 0));
-          }
-          return sum;
-        }, 0) || 0;
-
-        // RUMUS AKHIR: Jika semua paket dicancel, hasil otomatis 0
         const totalAkhir = (hargaDasar - nominalDiskon) + deposit + totalPenaltyFee;
-
         return formatIDR(totalAkhir);
       })()}
     </p>
   </div>
-</div>
-             
-            </div>
+</div> 
+      </div>
 
-            <button
-              onClick={() => setPriceDetails(null)}
-              className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
-            >
-              Tutup Rincian
-            </button>
-          </div>
-        </div>
-      )}
+      <button
+        onClick={() => setPriceDetails(null)}
+        className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+      >
+        Tutup Rincian
+      </button>
+    </div>
+  </div>
+)}
       {/* MODAL DETAIL OVERLAY */}
       {selectedInfo && (
         <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>

@@ -74,26 +74,39 @@ class TransactionModel {
 
             // 1. Update order_items
             if (Object.keys(orderData).length > 0) {
+                // ====== PERBAIKAN: Ambil data existing order dulu ======
+                const [current] = await connection.query(
+                    'SELECT status_rent, actual_return_date, end_dates, id_package FROM order_items WHERE id_order = ?', 
+                    [id]
+                );
+                const existingOrder = current[0];
+                
                 if (orderData.status_rent === 'Dikembalikan') {
-                    const returnDate = new Date();
-                    orderData.actual_return_date = returnDate;
+                    // PERBAIKAN: Hanya set actual_return_date jika belum pernah di-set sebelumnya
+                    if (!existingOrder.actual_return_date) {
+                        const returnDate = new Date();
+                        orderData.actual_return_date = returnDate;
 
-                    // Ambil data end_dates dan id_package untuk hitung denda otomatis
-                    const [current] = await connection.query('SELECT end_dates, id_package FROM order_items WHERE id_order = ?', [id]);
-                    const endDate = new Date(current[0].end_dates);
+                        // Hitung denda otomatis
+                        const endDate = new Date(existingOrder.end_dates);
+                        endDate.setHours(0, 0, 0, 0);
+                        const compareDate = new Date(returnDate);
+                        compareDate.setHours(0, 0, 0, 0);
 
-                    // Reset jam ke 00:00 agar perhitungan hari akurat
-                    endDate.setHours(0, 0, 0, 0);
-                    const compareDate = new Date(returnDate);
-                    compareDate.setHours(0, 0, 0, 0);
-
-                    if (compareDate > endDate) {
-                        const diffDays = Math.floor((compareDate - endDate) / (1000 * 60 * 60 * 24));
-                        const [pkg] = await connection.query('SELECT penalty_fee FROM packages WHERE id_package = ?', [current[0].id_package]);
-                        orderData.penalty_paid = diffDays * (pkg[0].penalty_fee || 0);
+                        if (compareDate > endDate) {
+                            const diffDays = Math.floor((compareDate - endDate) / (1000 * 60 * 60 * 24));
+                            const [pkg] = await connection.query('SELECT penalty_fee FROM packages WHERE id_package = ?', [existingOrder.id_package]);
+                            orderData.penalty_paid = diffDays * (pkg[0].penalty_fee || 0);
+                        } else {
+                            orderData.penalty_paid = 0;
+                        }
                     }
+                    // Jika sudah ada actual_return_date, JANGAN override (biarkan tetap pakai yang lama)
+                    
                 } else if (orderData.status_rent && orderData.status_rent !== 'Dikembalikan') {
+                    // Jika status berubah dari Dikembalikan ke status lain, reset actual_return_date
                     orderData.actual_return_date = null;
+                    orderData.penalty_paid = 0;
                 }
 
                 const keys = Object.keys(orderData);
@@ -125,8 +138,7 @@ class TransactionModel {
         }
     }
 
-    // Special method for "Finish Order" which might involve penalties and status changes
-    // Triggers in SQL handle history insertion and stock return if status changes appropriately
+    // ===== PERBAIKAN FUNGSI finishOrder =====
     static async finishOrder(id, data) {
         const connection = await db.getConnection();
         try {
@@ -151,34 +163,46 @@ class TransactionModel {
 
             const order = orderRows[0];
 
-            // return_date tidak terupdate lagi jika sudah ada (dari status 'Dikembalikan' sebelumnya)
-            // Hanya di-set jika status_rent berubah menjadi 'Dikembalikan' saat ini
-            const returnDate = order.actual_return_date || new Date();
-            let finalPenalty = Number(order.penalty_paid) || 0;
+            // ====== PERBAIKAN LOGIKA PENALTY ======
+            let finalPenalty = 0;
+            
+            // Tentukan tanggal untuk perhitungan penalty
+            let calculationDate;
+            
+            if (order.status_rent === 'Dikembalikan' && order.actual_return_date) {
+                // Jika sudah dikembalikan sebelumnya, gunakan actual_return_date
+                calculationDate = new Date(order.actual_return_date);
+            } else if (order.status_rent === 'Cancel') {
+                // Jika cancel, tidak ada penalty
+                finalPenalty = 0;
+                calculationDate = null;
+            } else {
+                // Jika belum dikembalikan (Booked/Diambil), gunakan hari ini
+                calculationDate = new Date();
+            }
 
-            // Jika belum pernah di-set 'Dikembalikan' via Edit, hitung denda sekarang
-            // Dan pastikan bukan status 'Cancel'
-            if (!order.actual_return_date && order.status_rent !== 'Cancel') {
+            // Hitung penalty HANYA jika calculation date ada dan lebih dari end date
+            if (calculationDate) {
                 const endDate = new Date(order.end_dates);
                 endDate.setHours(0, 0, 0, 0);
-                const compareDate = new Date(returnDate);
-                compareDate.setHours(0, 0, 0, 0);
+                calculationDate.setHours(0, 0, 0, 0);
 
-                if (compareDate > endDate) {
-                    const diffDays = Math.floor((compareDate - endDate) / (1000 * 60 * 60 * 24));
+                if (calculationDate > endDate) {
+                    const diffDays = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
                     const [pkg] = await connection.query('SELECT penalty_fee FROM packages WHERE id_package = ?', [order.id_package]);
-                    finalPenalty = diffDays * (pkg[0].penalty_fee || 0);
-                }
-            } else {
-                // JIKA BUKAN CANCEL: Gunakan amount_paid sebagai penalty (denda manual) jika ada
-                // Kecuali jika status 'Dikembalikan', kita gunakan penalty yang sudah tersimpan (tidak perlu input manual)
-                if (amount_paid !== undefined && order.status_rent !== 'Dikembalikan') {
-                    finalPenalty = amount_paid;
+                    finalPenalty = diffDays * (pkg[0]?.penalty_fee || 0);
                 }
             }
 
+            // Jika ada input manual penalty (untuk kasus Cancel)
+            if (amount_paid !== undefined && order.status_rent === 'Cancel') {
+                finalPenalty = amount_paid;
+            }
+            // ====== AKHIR PERBAIKAN ======
+
             // 2. Update order_items (Set status dan denda)
             const newStatusRent = order.status_rent === 'Cancel' ? 'Cancel' : 'Dikembalikan';
+            const returnDate = order.actual_return_date || new Date();
 
             let query = `UPDATE order_items 
                  SET status_rent = ?, 

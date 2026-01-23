@@ -91,110 +91,124 @@ const OrderDetailCard = ({
           let totalGroupPenalty = 0;
           let totalGroupCancelFee = 0;
 
-          // Iterate related orders to calculate totals and build item list
-          const groupDetails = order.relatedOrders.map(subOrder => {
-            const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
+        // Iterate related orders to calculate totals and build item list
+const groupDetails = order.relatedOrders.map(subOrder => {
+  const pkg = db.packages.find(p => Number(p.id_package) === Number(subOrder.id_package));
 
-            // --- PINDAHKAN INI KE PALING ATAS ---
-            // Ambil nilai yang sudah dibayar supaya tetap tampil di Card walaupun di-cancel
-            const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
-            totalGroupPaid += amountPaid;
+  // Ambil harga paket dan deposit (untuk semua status)
+  const hargaPaketRaw = Math.round(Number(subOrder.total_price));
+  const depositRaw = Math.round(Number(pkg?.deposit || 0));
+  const amountPaid = Math.round(Number(subOrder.amount_paid || 0));
 
-            // Ambil harga paket dan deposit (untuk cancel maupun aktif)
-            const hargaPaketRaw = Math.round(Number(subOrder.total_price));
-            const depositRaw = Math.round(Number(pkg?.deposit || 0));
+  // TAMBAHKAN amountPaid ke total dibayar (untuk semua order)
+  totalGroupPaid += amountPaid;
 
-            // 1. CEK CANCEL
-            if (subOrder.status_rent === 'Cancel') {
-              // Jika cancel, amountPaid dianggap sebagai penalty/biaya cancel
-              // Tagihan = amountPaid (biaya cancel), Bayar = amountPaid. Sisa = 0.
-              const sisaBayar = 0;
-              totalGroupSisa += sisaBayar;
-              totalGroupTagihan += amountPaid;
-              totalGroupCancelFee += amountPaid;
+  // 1. CEK CANCEL
+  if (subOrder.status_rent === 'Cancel') {
+    // PERBAIKAN: Untuk cancel, TIDAK menambah ke totalGroupTagihan
+    // Hanya tracking untuk keperluan display
+    totalGroupHargaPaketCancel += hargaPaketRaw;
+    totalGroupDepositCancel += depositRaw;
+    
+    // TIDAK ada sisaBayar untuk cancel
+    // totalGroupSisa tidak bertambah
 
-              totalGroupHargaPaketCancel += hargaPaketRaw;
-              totalGroupDepositCancel += depositRaw;
+    return {
+      pkgName: pkg?.package_name || 'Unknown Package',
+      items: [], // Kosongkan item jika cancel
+      status: subOrder.status_rent,
+      description: subOrder.condition_return || subOrder.description,
+      price: 0,
+      deposit: 0,
+      penalty: 0,
+      duration: pkg?.duration_day || 0,
+      endDate: subOrder.end_dates
+    };
+  }
 
-              return {
-                pkgName: pkg?.package_name || 'Unknown Package',
-                items: [], // Kosongkan item jika cancel
-                status: subOrder.status_rent,
-                description: subOrder.condition_return || subOrder.description,
-                price: 0,
-                deposit: 0,
-                penalty: 0,
-                duration: pkg?.duration_day || 0,
-                endDate: subOrder.end_dates
-              };
-            }
+   // 2. JIKA TIDAK CANCEL, LANJUT HITUNG NORMAL
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-            // 2. JIKA TIDAK CANCEL, LANJUT HITUNG NORMAL
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+  const endDate = new Date(getDateString(subOrder.end_dates));
+  endDate.setHours(0, 0, 0, 0);
 
-            const calculationDate = (subOrder.status_rent === 'Dikembalikan' && subOrder.actual_return_date)
-              ? new Date(getDateString(subOrder.actual_return_date))
-              : today;
+ // PERBAIKAN: Tentukan tanggal perhitungan penalty
+let penaltyFee = 0;
 
-            const endDate = new Date(getDateString(subOrder.end_dates));
-            endDate.setHours(0, 0, 0, 0);
+if (subOrder.status_rent === 'Dikembalikan') {
+  // Jika sudah dikembalikan, CEK APAKAH ADA actual_return_date
+  if (subOrder.actual_return_date) {
+    const actualReturn = new Date(getDateString(subOrder.actual_return_date));
+    actualReturn.setHours(0, 0, 0, 0);
+    
+    // Hitung denda HANYA jika dikembalikan SETELAH end date
+    if (actualReturn > endDate) {
+      const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+      penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+      isGroupLate = true;
+    }
+  }
+  // Jika actual_return_date kosong tapi status Dikembalikan, anggap tidak ada denda
+} else {
+  // Jika belum dikembalikan (Booked/Diambil), gunakan hari ini
+  if (today > endDate) {
+    const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+    penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+    isGroupLate = true;
+  }
+}
 
-            let penaltyFee = 0;
-            if (calculationDate > endDate) {
-              const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-              penaltyFee = daysLate * (pkg?.penalty_fee || 0);
-              isGroupLate = true;
-            }
 
-            const hargaPaket = hargaPaketRaw;
-            const discount = Number(cust?.discount || 0);
-            const discountAmount = Math.round(hargaPaket * (discount / 100));
-            const deposit = depositRaw;
-            const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
+  const hargaPaket = hargaPaketRaw;
+  const discount = Number(cust?.discount || 0);
+  const discountAmount = Math.round(hargaPaket * (discount / 100));
+  const deposit = depositRaw;
+  const totalTagihan = (hargaPaket - discountAmount) + deposit + penaltyFee;
 
-            // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
-            totalGroupTagihan += totalTagihan;
+  // 3. UPDATE VARIABLE TOTAL (Hanya untuk yang tidak cancel)
+  totalGroupTagihan += totalTagihan;
+  
+  const sisaBayar = totalTagihan - amountPaid;
+  totalGroupSisa += sisaBayar;
 
-            const sisaBayar = totalTagihan - amountPaid;
-            totalGroupSisa += sisaBayar;
+  totalGroupHargaPaket += hargaPaket;
+  totalGroupDiscount += discountAmount;
+  totalGroupDeposit += deposit;
+  totalGroupPenalty += penaltyFee;
 
-            totalGroupHargaPaket += hargaPaket;
-            totalGroupDiscount += discountAmount;
-            totalGroupDeposit += deposit;
-            totalGroupPenalty += penaltyFee;
+  // Ambil daftar item yang di-book
+  const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
+  const items = [];
+  ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
+    const productId = bookingRow[`id_${cat}`];
+    if (productId) {
+      const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
+      if (prod) {
+        items.push({
+          category: cat.toUpperCase(),
+          name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+          size: prod[`size_${cat}`] || '-',
+          color: prod[`color_${cat}`] || '-'
+        });
+      }
+    }
+  });
 
-            // Ambil daftar item yang di-book
-            const bookingRow = db.booked?.find(b => Number(b.id_booked) === Number(subOrder.id_booked)) || {};
-            const items = [];
-            ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
-              const productId = bookingRow[`id_${cat}`];
-              if (productId) {
-                const prod = db[cat]?.find(p => Number(p[`id_${cat}`]) === Number(productId));
-                if (prod) {
-                  items.push({
-                    category: cat.toUpperCase(),
-                    name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-                    size: prod[`size_${cat}`] || '-',
-                    color: prod[`color_${cat}`] || '-'
-                  });
-                }
-              }
-            });
+  return {
+    pkgName: pkg?.package_name,
+    items,
+    status: subOrder.status_rent,
+    description: subOrder.condition_return || subOrder.description,
+    price: hargaPaket,
+    deposit: deposit,
+    penalty: penaltyFee,
+    duration: pkg?.duration_day || 0,
+    endDate: subOrder.end_dates
+  };
+});
 
-            return {
-              pkgName: pkg?.package_name,
-              items,
-              status: subOrder.status_rent,
-              description: subOrder.condition_return || subOrder.description,
-              price: hargaPaket,
-              deposit: deposit,
-              penalty: penaltyFee,
-              duration: pkg?.duration_day || 0,
-              endDate: subOrder.end_dates
-            };
-          });
-
+totalGroupSisa = totalGroupTagihan - totalGroupPaid;
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={order.id_order} className="bg-white p-5 rounded-4xl shadow-xl border relative overflow-hidden">
               <div className="absolute top-3 right-4 flex gap-1.5">
