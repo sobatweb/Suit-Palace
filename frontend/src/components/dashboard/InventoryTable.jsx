@@ -1008,9 +1008,11 @@ if (pkg.endDate) {
                     className="w-full p-4 bg-amber-50 rounded-2xl text-xs font-bold border-none outline-none ring-1 ring-amber-100 mb-4"
                   >
                     <option value="0">Normal (0%)</option>
-                    <option value="5">3 paket (5%)</option>
-                    <option value="7.5">4 paket (7.5%)</option>
-                    <option value="10">5 paket (10%)</option>
+                    <option value="5">Diskon 5%</option>
+                    <option value="7.5">Diskon 7.5%</option>
+                    <option value="10">Diskon 10%</option>
+                    <option value="15">Diskon 15%</option>
+                    <option value="50">Diskon 50%</option>
                   </select>
                   <button
                     onClick={handleSaveDiscount}
