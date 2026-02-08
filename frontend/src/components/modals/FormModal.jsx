@@ -294,10 +294,12 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
                         const cust = db.customers.find(c => String(c.id_customer) === String(e.target.value));
                         if (cust) {
                           setCustomerInfo({
+                            ...customerInfo, // Pertahankan field yang sudah ada (termasuk amount_paid)
                             id_customer: cust.id_customer,
                             customer_name: cust.customer_name,
                             customer_phone: cust.customer_phone,
-                            bank_account: cust.bank_account
+                            bank_account: cust.bank_account,
+                            discount: cust.discount || 0
                           });
                         }
                       }}
