@@ -33,6 +33,30 @@ class CustomerModel {
         const [result] = await db.query('DELETE FROM customers WHERE id_customer = ?', [id]);
         return result.affectedRows;
     }
+
+    static async merge(oldId, newId) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // 1. Update order_items yang pakai ID lama biar pake ID baru
+            await connection.query(
+                'UPDATE order_items SET id_customer = ? WHERE id_customer = ?',
+                [newId, oldId]
+            );
+
+            // 3. Hapus customer lama
+            await connection.query('DELETE FROM customers WHERE id_customer = ?', [oldId]);
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
 }
 
 module.exports = CustomerModel;

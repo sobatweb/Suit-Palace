@@ -133,31 +133,112 @@ const AdminDashboard = () => {
     try {
       const table = editingItem?.fromTable || activeTab;
       const isEdit = !!editingItem;
+      const originalCustomerId = editingItem?.id_customer;
+
+      // Detection: Apakah ID ini digunakan oleh order lain (yang TIDAK sedang diedit)?
+      const isShared = originalCustomerId && db.order_items.some(o =>
+        String(o.id_customer) === String(originalCustomerId) &&
+        !items.some(item => String(item.id_order) === String(o.id_order))
+      );
 
       let customerId = null;
 
-      // Jika membuat order baru, simpan data customer terlebih dahulu ke tabel customers
-      if (table === 'order_items' && !isEdit && items.length > 0) {
-        if (items[0].id_customer) {
-          customerId = items[0].id_customer;
-        } else {
-          const customerResponse = await fetch(`${API_BASE}/api/customers`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              customer_name: items[0].customer_name,
-              customer_phone: items[0].customer_phone,
-              bank_account: items[0].bank_account
-            }),
-          });
+      // Logika Penanganan Customer (Baik Order Baru maupun Edit)
+      if (table === 'order_items' && items.length > 0) {
+        // Kita hanya proses customer di item pertama (karena ini grouping)
+        const firstItem = items[0];
 
-          if (!customerResponse.ok) {
-            const errData = await customerResponse.json();
-            throw new Error(errData.message || 'Gagal menyimpan data customer');
+        if (firstItem.id_customer) {
+          // AUTO-RECOGNITION: Cek apakah nama yang diubah ternyata sama dengan pelanggan lain yang sudah ada
+          const existingMatch = db.customers?.find(c =>
+            c.customer_name?.trim().toLowerCase() === firstItem.customer_name?.trim().toLowerCase() &&
+            String(c.id_customer) !== String(firstItem.id_customer)
+          );
+
+          if (existingMatch) {
+            // Jika match dengan pelanggan lain, alihkan order ke pelanggan tersebut
+            customerId = existingMatch.id_customer;
+          } else {
+            // Cek apakah ada perubahan data (nama/phone/bank)
+            const dbCust = db.customers?.find(c => String(c.id_customer) === String(firstItem.id_customer));
+            const isDataChanged = dbCust && (
+              dbCust.customer_name?.trim() !== firstItem.customer_name?.trim() ||
+              dbCust.customer_phone?.trim() !== firstItem.customer_phone?.trim() ||
+              dbCust.bank_account?.trim() !== firstItem.bank_account?.trim()
+            );
+
+            if (isDataChanged && isShared) {
+              // DATA BERUBAH tapi ID digunakan bersama: Buat data baru (DETACH) agar tidak merusak order orang lain yang namanya sama.
+              console.log("Customer data changed on a SHARED ID. Detaching by creating new customer record.");
+              const customerResponse = await fetch(`${API_BASE}/api/customers`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                  customer_name: firstItem.customer_name,
+                  customer_phone: firstItem.customer_phone,
+                  bank_account: firstItem.bank_account
+                }),
+              });
+
+              if (!customerResponse.ok) {
+                const errText = await customerResponse.text().catch(() => "Unknown Server Error");
+                throw new Error(`Gagal membuat data pelanggan baru (Detach): ${errText}`);
+              }
+
+              const newCustData = await customerResponse.json();
+              customerId = newCustData.id_customer || newCustData.id;
+
+              if (!customerId) {
+                throw new Error("Gagal mendapatkan ID pelanggan baru dari server");
+              }
+            } else {
+              // A. GUNAKAN PELANGGAN TERDAFTAR: Update data profilnya jika ada perubahan (Hanya jika ID ini milik sendiri / tidak shared)
+              customerId = firstItem.id_customer;
+              const updateRes = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                  customer_name: firstItem.customer_name,
+                  customer_phone: firstItem.customer_phone,
+                  bank_account: firstItem.bank_account,
+                  discount: firstItem.discount || 0
+                })
+              });
+
+              if (!updateRes.ok) {
+                const errText = await updateRes.text().catch(() => "Unknown Server Error");
+                throw new Error(`Gagal memperbarui profil pelanggan: ${errText}`);
+              }
+            }
           }
+        } else {
+          // Cek juga untuk INPUT PELANGGAN BARU (jangan buat duplikat jika nama sudah ada)
+          const existingMatch = db.customers?.find(c =>
+            c.customer_name?.trim().toLowerCase() === firstItem.customer_name?.trim().toLowerCase()
+          );
 
-          const customerData = await customerResponse.json();
-          customerId = customerData.id_customer || customerData.id;
+          if (existingMatch) {
+            customerId = existingMatch.id_customer;
+          } else {
+            // B. INPUT PELANGGAN BARU: Selalu POST data baru ke tabel customers
+            const customerResponse = await fetch(`${API_BASE}/api/customers`, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                customer_name: firstItem.customer_name,
+                customer_phone: firstItem.customer_phone,
+                bank_account: firstItem.bank_account
+              }),
+            });
+
+            if (!customerResponse.ok) {
+              const errData = await customerResponse.json();
+              throw new Error(errData.message || 'Gagal menyimpan data customer baru');
+            }
+
+            const customerData = await customerResponse.json();
+            customerId = customerData.id_customer || customerData.id;
+          }
         }
       }
 
@@ -183,26 +264,16 @@ const AdminDashboard = () => {
               bookingData: { ...rest }
             };
           } else {
-            const customerId = item.id_customer || editingItem?.id_customer;
-            if (customerId) {
-              await fetch(`${API_BASE}/api/customers/${customerId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                  customer_name: item.customer_name,
-                  customer_phone: item.customer_phone,
-                  bank_account: item.bank_account,
-                  discount: item.discount || 0
-                })
-              });
-            }
-
+            // SINKRONISASI: Pastikan id_customer di order_items ikut terupdate ke customerId yang baru diproses
             const cleanedBody = {};
             Object.keys(item).forEach(key => {
-              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order' && key !== 'order_date') {
+              // Lewati key display, key customer (kecuali id_customer kita set manual nanti), key package, dsb.
+              if (!key.startsWith('display_') && !key.startsWith('customer_') && !key.startsWith('package_') && key !== 'booked_items' && key !== 'fromTable' && key !== 'id_order' && key !== 'order_date' && key !== 'id_customer') {
                 cleanedBody[key] = item[key];
               }
             });
+            // Set id_customer TERAKHIR agar tidak tertimpa data lama dari 'item'
+            cleanedBody.id_customer = customerId;
             body = cleanedBody;
           }
         } else if (table === 'customers') {
@@ -328,10 +399,43 @@ const AdminDashboard = () => {
         }
       }
 
-      fetchData(); // Refresh data
-      showToast(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil disimpan');
       setModalType(null);
       setEditingItem(null);
+      await fetchData(); // Refresh data utama (customers & orders)
+      showToast(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil disimpan');
+
+      // CLEANUP: Jika customer berubah, cek apakah ID lama benar-benar sudah tidak punya order aktif lain
+      // Kita lakukan ini di background (tidak perlu await fetchData lagi setelahnya, tapi kita fetchData di awal)
+      if (table === 'order_items' && originalCustomerId && String(originalCustomerId) !== String(customerId)) {
+        try {
+          const headers = getAuthHeaders();
+          // Ambil data terbaru untuk memastikan pengecekan akurat
+          const freshOrders = await fetch(`${API_BASE}/api/transaction/orders`, { headers }).then(res => res.json());
+
+          // Cek apakah MASIH ADA order lain (selain yang baru saja kita simpan) yang pakai ID lama
+          const stillHasActive = Array.isArray(freshOrders) && freshOrders.some(o =>
+            String(o.id_customer) === String(originalCustomerId) &&
+            !items.some(savedItem => String(savedItem.id_order) === String(o.id_order))
+          );
+
+          if (!stillHasActive) {
+            console.log(`Isolated Merge: Performing cleanup for orphaned customer ${originalCustomerId} -> ${customerId}`);
+            await fetch(`${API_BASE}/api/customers/merge`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                oldId: originalCustomerId,
+                newId: customerId
+              })
+            });
+            await fetchData(); // Refresh list customer dan order SETELAH merge
+          } else {
+            console.log(`Skipping Cleanup: Customer ID ${originalCustomerId} is still used by other orders.`);
+          }
+        } catch (cleanupError) {
+          console.error("Cleanup/Merge check failed:", cleanupError);
+        }
+      }
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
       showToast(error.message, 'error');

@@ -35,3 +35,16 @@ exports.deleteCustomer = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.mergeCustomers = async (req, res) => {
+    try {
+        const { oldId, newId } = req.body;
+        if (!oldId || !newId) {
+            return res.status(400).json({ message: 'oldId and newId are required' });
+        }
+        await CustomerModel.merge(oldId, newId);
+        res.json({ message: 'Customers merged and old record deleted' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

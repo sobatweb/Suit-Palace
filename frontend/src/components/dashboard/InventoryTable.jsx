@@ -15,7 +15,7 @@ const tableSchemas = {
   customers: ['customer_name', 'customer_phone', 'bank_account', 'discount', 'penalty_fee'],
   notes: ['title_note', 'description_note'],
   history_orders: ['order_date', 'customer_name', 'customer_phone', 'bank_account', 'package_name', 'omset_order', 'denda_paid', 'return_date', 'condition_return'],
-  laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry'] 
+  laundry: ['id_jas', 'id_kemeja', 'id_celana', 'id_vest', 'id_tuxedo', 'id_changshan', 'id_dasi', 'status_laundry']
 };
 
 
@@ -51,120 +51,128 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     const value = Math.floor(Number(amount || 0));
     return `Rp ${value.toLocaleString('id-ID')}`;
   };
-const getDisplayData = () => {
-  let displayData = data || [];
+  const getDisplayData = () => {
+    let displayData = data || [];
 
-  if (activeTab === 'order_items' && db) {
-    // TAHAP 1: Enrich Data (Pastikan menggunakan variabel let/tanpa const baru agar tidak shadowing)
-    displayData = displayData.map(order => {
-      const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
-      const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
-      const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
+    if (activeTab === 'order_items' && db) {
+      // TAHAP 1: Enrich Data (Pastikan menggunakan variabel let/tanpa const baru agar tidak shadowing)
+      displayData = displayData.map(order => {
+        const customer = db.customers?.find(c => String(c.id_customer) === String(order.id_customer)) || {};
+        const packageData = db.packages?.find(p => String(p.id_package) === String(order.id_package)) || {};
+        const bookingRow = db.booked?.find(b => String(b.id_booked) === String(order.id_booked)) || {};
 
-      const bookedItemsList = [];
-      ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
-        const productId = bookingRow[`id_${cat}`];
-        if (productId) {
-          const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
-          if (prod) {
-            bookedItemsList.push({
-              category: cat.toUpperCase(),
-              name: prod[`name_${cat}`] || prod[`kode_${cat}`],
-              size: prod[`size_${cat}`] || '-',
-              color: prod[`color_${cat}`] || '-'
-            });
+        const bookedItemsList = [];
+        ['jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'].forEach(cat => {
+          const productId = bookingRow[`id_${cat}`];
+          if (productId) {
+            const prod = db[cat]?.find(p => String(p[`id_${cat}`]) === String(productId));
+            if (prod) {
+              bookedItemsList.push({
+                category: cat.toUpperCase(),
+                name: prod[`name_${cat}`] || prod[`kode_${cat}`],
+                size: prod[`size_${cat}`] || '-',
+                color: prod[`color_${cat}`] || '-'
+              });
+            }
           }
-        }
+        });
+
+        return {
+          ...order,
+          display_customer: customer.customer_name || order.customer_name || 'Unknown',
+          display_phone: customer.customer_phone || order.customer_phone || '',
+          display_bank: customer.bank_account || order.bank_account || '',
+          display_package: packageData.package_name || 'No Package',
+          booked_items: bookedItemsList,
+          customer_full: {
+            ...customer,
+            customer_name: customer.customer_name || order.customer_name || '',
+            customer_phone: customer.customer_phone || order.customer_phone || '',
+            bank_account: customer.bank_account || order.bank_account || ''
+          },
+          package_full: packageData
+        };
       });
 
-      return {
-        ...order,
-        display_customer: customer.customer_name || 'Unknown',
-        display_package: packageData.package_name || 'No Package',
-        booked_items: bookedItemsList,
-        customer_full: customer,
-        package_full: packageData
-      };
-    });
+      // TAHAP 2: Grouping Logic
+      const groups = {};
+      displayData.forEach(order => {
+        // Gunakan ID Order jika id_customer null agar tidak menumpuk di grup "Unknown"
+        const key = `${order.id_customer || 'new_' + order.id_order}_${order.start_dates}`;
+        if (!groups[key]) {
+          groups[key] = { ...order, relatedOrders: [] };
+        }
+        groups[key].relatedOrders.push(order);
+      });
 
-    // TAHAP 2: Grouping Logic
-    const groups = {};
-    displayData.forEach(order => {
-      const key = `${order.id_customer}_${order.start_dates}`;
-      if (!groups[key]) {
-        groups[key] = { ...order, relatedOrders: [] };
-      }
-      groups[key].relatedOrders.push(order);
-    });
+      // TAHAP 3: Final Structure - Buat package_details
+      displayData = Object.values(groups).map(group => {
+        const packagesLabel = group.relatedOrders.map(o => o.display_package).join(' + ');
+        const totalPrice = group.relatedOrders
+          .filter(o => o.status_rent !== 'Cancel') // Tambahkan filter ini
+          .reduce((sum, o) => sum + Number(o.total_price), 0);
+        // SORT relatedOrders berdasarkan end_dates (ascending = paling cepat duluan)
+        const sortedOrders = [...group.relatedOrders].sort((a, b) => {
+          const dateA = new Date(a.end_dates);
+          const dateB = new Date(b.end_dates);
+          return dateA - dateB; // ascending (terkecil/tercepat duluan)
+        });
 
-    // TAHAP 3: Final Structure - Buat package_details
-displayData = Object.values(groups).map(group => {
-  const packagesLabel = group.relatedOrders.map(o => o.display_package).join(' + ');
- const totalPrice = group.relatedOrders
-    .filter(o => o.status_rent !== 'Cancel') // Tambahkan filter ini
-    .reduce((sum, o) => sum + Number(o.total_price), 0);
-  // SORT relatedOrders berdasarkan end_dates (ascending = paling cepat duluan)
-  const sortedOrders = [...group.relatedOrders].sort((a, b) => {
-    const dateA = new Date(a.end_dates);
-    const dateB = new Date(b.end_dates);
-    return dateA - dateB; // ascending (terkecil/tercepat duluan)
-  });
-  
-  // Ambil end_date terjauh untuk kalkulasi penalty
-  const allEndDates = sortedOrders.map(o => o.end_dates).filter(Boolean);
-  const latestEndDate = allEndDates.length > 0 
-    ? allEndDates[allEndDates.length - 1] // karena sudah sorted, yang terakhir = terjauh
-    : group.end_dates;
-  
-  // Buat display end_date per paket (sudah terurut)
-  const endDatesDisplay = sortedOrders.map((o, idx) => ({
-    packageName: o.display_package,
-    endDate: o.end_dates,
-    index: idx + 1
-  }));
-  
-  // Susun detail per paket dengan data lengkap (GUNAKAN sortedOrders)
-  const packageDetails = sortedOrders.map(o => {
-    const pkg = db.packages?.find(p => String(p.id_package) === String(o.id_package)) || {};
-    const bookingRow = db.booked?.find(b => String(b.id_booked) === String(o.id_booked)) || {};
-    
-    return {
-      name: o.display_package,
-      items: o.booked_items,
-      note: o.condition_return || bookingRow.noted || '-',
-      price: o.total_price,
-      deposit: pkg.deposit || 0,
-      penalty: pkg.penalty_fee || 0,
-      duration: pkg.duration_day || 0,
-      endDate: o.end_dates // Simpan juga end_date untuk referensi
-    };
-  });
+        // Ambil end_date terjauh untuk kalkulasi penalty
+        const allEndDates = sortedOrders.map(o => o.end_dates).filter(Boolean);
+        const latestEndDate = allEndDates.length > 0
+          ? allEndDates[allEndDates.length - 1] // karena sudah sorted, yang terakhir = terjauh
+          : group.end_dates;
 
-  return {
-    ...group,
-    display_package: packagesLabel,
-    total_price: totalPrice,
-    end_dates: latestEndDate,
-    end_dates_display: endDatesDisplay,
-    package_details: packageDetails,
-    relatedOrders: sortedOrders // Override dengan yang sudah sorted
+        // Buat display end_date per paket (sudah terurut)
+        const endDatesDisplay = sortedOrders.map((o, idx) => ({
+          packageName: o.display_package,
+          endDate: o.end_dates,
+          index: idx + 1
+        }));
+
+        // Susun detail per paket dengan data lengkap (GUNAKAN sortedOrders)
+        const packageDetails = sortedOrders.map(o => {
+          const pkg = db.packages?.find(p => String(p.id_package) === String(o.id_package)) || {};
+          const bookingRow = db.booked?.find(b => String(b.id_booked) === String(o.id_booked)) || {};
+
+          return {
+            name: o.display_package,
+            items: o.booked_items,
+            note: o.condition_return || bookingRow.noted || '-',
+            price: o.total_price,
+            deposit: pkg.deposit || 0,
+            penalty: pkg.penalty_fee || 0,
+            duration: pkg.duration_day || 0,
+            endDate: o.end_dates // Simpan juga end_date untuk referensi
+          };
+        });
+
+        return {
+          ...group,
+          display_package: packagesLabel,
+          total_price: totalPrice,
+          end_dates: latestEndDate,
+          end_dates_display: endDatesDisplay,
+          package_details: packageDetails,
+          relatedOrders: sortedOrders // Override dengan yang sudah sorted
+        };
+      });
+    }
+    // Logika pengurutan (Sorting) tetap sama
+    const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
+    if (sortTabs.includes(activeTab)) {
+      return [...displayData].sort((a, b) => {
+        const key = activeTab === 'packages' ? 'package_name' :
+          activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
+        const valA = (a[key] || "").toString();
+        const valB = (b[key] || "").toString();
+        return valA.localeCompare(valB);
+      });
+    }
+
+    return displayData;
   };
-});
-  }
-  // Logika pengurutan (Sorting) tetap sama
-  const sortTabs = ['packages', 'jas', 'kemeja', 'celana', 'changshan', 'dasi', 'vest', 'tuxedo'];
-  if (sortTabs.includes(activeTab)) {
-    return [...displayData].sort((a, b) => {
-      const key = activeTab === 'packages' ? 'package_name' :
-                  activeTab === 'dasi' ? 'kode_dasi' : `name_${activeTab}`;
-      const valA = (a[key] || "").toString();
-      const valB = (b[key] || "").toString();
-      return valA.localeCompare(valB);
-    });
-  }
-
-  return displayData;
-};
 
   const [priceDetails, setPriceDetails] = useState(null);
   const isProductTab = ['jas', 'celana', 'kemeja', 'dasi', 'changshan', 'vest', 'tuxedo', 'packages'].includes(activeTab);
@@ -212,23 +220,23 @@ displayData = Object.values(groups).map(group => {
 
   const filteredData = activeTab === 'order_items'
     ? (() => {
-        let result = [...baseFilteredData];
-        if (sortValue === "all") {
-          // Urutkan berdasarkan Order Date Ascending secara default
-          result.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
-        } else if (sortValue === "SORT_DATE_ASC") {
-          result.sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
-        } else {
-          // Filter berdasarkan bulan (start_dates)
-          result = result.filter(item => {
-            if (!item.start_dates) return false;
-            const d = new Date(item.start_dates);
-            const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-            return itemPeriod === sortValue;
-          }).sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
-        }
-        return result;
-      })()
+      let result = [...baseFilteredData];
+      if (sortValue === "all") {
+        // Urutkan berdasarkan Order Date Ascending secara default
+        result.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+      } else if (sortValue === "SORT_DATE_ASC") {
+        result.sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
+      } else {
+        // Filter berdasarkan bulan (start_dates)
+        result = result.filter(item => {
+          if (!item.start_dates) return false;
+          const d = new Date(item.start_dates);
+          const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+          return itemPeriod === sortValue;
+        }).sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
+      }
+      return result;
+    })()
     : activeTab === 'history_orders'
       ? [...baseFilteredData].sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
       : baseFilteredData;
@@ -486,8 +494,8 @@ displayData = Object.values(groups).map(group => {
                   .map(key => {
                     let displayName = key.replace('_', ' ');
                     if (key.startsWith('id_')) {
-                        displayName = key.replace('id_', '');
-                      }
+                      displayName = key.replace('id_', '');
+                    }
                     if (activeTab === 'history_orders') {
                       if (key === 'omset_order') displayName = 'Package Price';
                       if (key === 'return_date') displayName = 'Finish Order';
@@ -500,219 +508,218 @@ displayData = Object.values(groups).map(group => {
             )}
           </thead>
 
-          
-<tbody className={`${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-bold text-gray-800`}>
-  {filteredData.map((item, idx) => (
-    <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
-      {activeTab === 'order_items' ? (
-        <>
-          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.order_date)}</td>
-          <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
-            const currentDisc = item.customer_full?.discount;
-            const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
-            setSelectedInfo({ type: 'customer', data: item.customer_full });
-            setTempDiscount(normalizedDisc);
-          }}>
-            {item.display_customer}
-          </td>
-           <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', package_details: item.package_details })}>
-            {item.display_package}
-          </td>
-          <td className="px-6 py-4">
-            <button onClick={() => setSelectedInfo({ type: 'items', package_details: item.package_details })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
-              <ShoppingBag size={12} /> Detail
-            </button>
-          </td>
-          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
-          <td className="px-6 py-4 text-gray-800">
-            {item.end_dates_display && item.end_dates_display.length > 1 ? (
-              <div className="flex flex-col gap-0.5">
-                {item.end_dates_display.map((ed, idx) => (
-                  <div key={idx} className="text-[13px] font-bold">
-                    <span className="text-amber-600">•</span> {formatDateFull(ed.endDate)}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              formatDateFull(item.end_dates)
-            )}
-          </td>
-          <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
-          <td className="px-6 py-4">
-            <span
-              onClick={() => setPriceDetails(item)}
-              className="text-blue-600 cursor-pointer hover:underline font-black text-[12px] uppercase tracking-tighter decoration-blue-300 underline-offset-4"
-            >
-              Lihat Harga
-            </span>
-          </td>
-        </>
-      ) : (
-        (tableSchemas[activeTab] || Object.keys(item).filter(k => !k.startsWith('id_laundry')))
-          .map((key, i) => {
-           const val = item[key];
 
-// LOGIKA KHUSUS LAUNDRY - Foreign Keys
-if (activeTab === 'laundry' && key.startsWith('id_') && key !== 'id_laundry') {
-  const category = key.replace('id_', '');
-  const targetTable = db[category] || [];
-  const found = targetTable.find(t => String(t[`id_${category}`]) === String(val));
-  
-  if (!found || !val) {
-    return <td key={i} className="px-6 py-4 text-gray-300 italic text-[11px]">--</td>;
-  }
-  
-  return (
-    <td key={i} className="px-6 py-4">
-      <div className="flex flex-col leading-tight">
-        <span className="font-black text-[12px] text-gray-900">
-          {found[`name_${category}`] || found[`kode_${category}`]}
-        </span>
-        <span className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">
-          {found[`size_${category}`]} • {found[`color_${category}`]}
-        </span>
-      </div>
-    </td>
-  );
-}
+          <tbody className={`${activeTab === 'history_orders' ? 'text-[12px]' : 'text-[14px]'} font-bold text-gray-800`}>
+            {filteredData.map((item, idx) => (
+              <tr key={idx} className="border-b hover:bg-amber-50/30 transition-colors">
+                {activeTab === 'order_items' ? (
+                  <>
+                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.order_date)}</td>
+                    <td className="px-6 py-4 text-blue-600 cursor-pointer hover:underline font-black" onClick={() => {
+                      const currentDisc = item.customer_full?.discount;
+                      const normalizedDisc = currentDisc ? parseFloat(currentDisc).toString() : "0";
+                      setSelectedInfo({ type: 'customer', data: item.customer_full });
+                      setTempDiscount(normalizedDisc);
+                    }}>
+                      {item.display_customer}
+                    </td>
+                    <td className="px-6 py-4 text-amber-700 cursor-pointer hover:underline font-black" onClick={() => setSelectedInfo({ type: 'package', package_details: item.package_details })}>
+                      {item.display_package}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button onClick={() => setSelectedInfo({ type: 'items', package_details: item.package_details })} className="text-[10px] bg-gray-100 px-3 py-1.5 rounded-full font-black flex items-center gap-2 hover:bg-gray-200 uppercase">
+                        <ShoppingBag size={12} /> Detail
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.start_dates)}</td>
+                    <td className="px-6 py-4 text-gray-800">
+                      {item.end_dates_display && item.end_dates_display.length > 1 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {item.end_dates_display.map((ed, idx) => (
+                            <div key={idx} className="text-[13px] font-bold">
+                              <span className="text-amber-600">•</span> {formatDateFull(ed.endDate)}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        formatDateFull(item.end_dates)
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-800">{formatDateFull(item.actual_return_date)}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        onClick={() => setPriceDetails(item)}
+                        className="text-blue-600 cursor-pointer hover:underline font-black text-[12px] uppercase tracking-tighter decoration-blue-300 underline-offset-4"
+                      >
+                        Lihat Harga
+                      </span>
+                    </td>
+                  </>
+                ) : (
+                  (tableSchemas[activeTab] || Object.keys(item).filter(k => !k.startsWith('id_laundry')))
+                    .map((key, i) => {
+                      const val = item[key];
 
-// LOGIKA KHUSUS STATUS LAUNDRY
-if (key === 'status_laundry') {
-  return (
-    <td key={i} className="px-6 py-4">
-      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${
-        val === 'Selesai' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-      }`}>
-        {val || 'Belum Selesai'}
-      </span>
-    </td>
-  );
-}
+                      // LOGIKA KHUSUS LAUNDRY - Foreign Keys
+                      if (activeTab === 'laundry' && key.startsWith('id_') && key !== 'id_laundry') {
+                        const category = key.replace('id_', '');
+                        const targetTable = db[category] || [];
+                        const found = targetTable.find(t => String(t[`id_${category}`]) === String(val));
 
-// LOGIKA DEFAULT
-return (
-              <td key={i} className="px-6 py-4">
-                {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
-                  ? formatIDR(val)
-                  : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
-                    ? formatDateFull(val) 
-                    : val?.toString() || '-'}
-              </td>
-            );
-          })
-      )}
-      {activeTab !== 'history_orders' && (
-        <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
-          <div className="flex justify-end gap-10">
-            <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
-            {activeTab === 'order_items' ? (
-              <CheckCircle
-                size={16}
-                className={`cursor-pointer transition-colors ${item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')
-                  ? "text-emerald-500 hover:text-emerald-700"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-                  }`}
-                onClick={() => {
-                  if (item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')) {
-                    setFinishOrderData(item);
-                  }
-                }}
-                title={item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Semua paket harus berstatus Dikembalikan atau Cancel"}
-              />
-            ) :(
-        /* Tombol Delete: Hanya muncul JIKA bukan tab laundry */
-        activeTab !== 'laundry' && (
-          <Trash2 
-            size={16} 
-            className="text-gray-400 hover:text-rose-500 cursor-pointer" 
-            onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })} 
-          />
-        )
-      )}
-    </div>
-        </td>
-      )}
-    </tr>
-  ))}
-</tbody>
-          
+                        if (!found || !val) {
+                          return <td key={i} className="px-6 py-4 text-gray-300 italic text-[11px]">--</td>;
+                        }
+
+                        return (
+                          <td key={i} className="px-6 py-4">
+                            <div className="flex flex-col leading-tight">
+                              <span className="font-black text-[12px] text-gray-900">
+                                {found[`name_${category}`] || found[`kode_${category}`]}
+                              </span>
+                              <span className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">
+                                {found[`size_${category}`]} • {found[`color_${category}`]}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // LOGIKA KHUSUS STATUS LAUNDRY
+                      if (key === 'status_laundry') {
+                        return (
+                          <td key={i} className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${val === 'Selesai' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                              }`}>
+                              {val || 'Belum Selesai'}
+                            </span>
+                          </td>
+                        );
+                      }
+
+                      // LOGIKA DEFAULT
+                      return (
+                        <td key={i} className="px-6 py-4">
+                          {key.includes('price') || key.includes('amount') || key.includes('deposit') || key.includes('fee') || key.includes('pendapatan') || key.includes('total') || key.includes('denda') || key.includes('omset')
+                            ? formatIDR(val)
+                            : (key.includes('date') || key.includes('at') || key.includes('mark') || key.includes('time')) && !key.includes('duration')
+                              ? formatDateFull(val)
+                              : val?.toString() || '-'}
+                        </td>
+                      );
+                    })
+                )}
+                {activeTab !== 'history_orders' && (
+                  <td className="px-5 py-4 text-right sticky right-0 bg-white/90 border-l">
+                    <div className="flex justify-end gap-10">
+                      <Edit size={16} className="text-gray-400 hover:text-black cursor-pointer" onClick={() => { setEditingItem({ ...item, fromTable: activeTab }); setModalType('form_db'); }} />
+                      {activeTab === 'order_items' ? (
+                        <CheckCircle
+                          size={16}
+                          className={`cursor-pointer transition-colors ${item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')
+                            ? "text-emerald-500 hover:text-emerald-700"
+                            : "text-gray-300 cursor-not-allowed opacity-50"
+                            }`}
+                          onClick={() => {
+                            if (item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel')) {
+                              setFinishOrderData(item);
+                            }
+                          }}
+                          title={item.relatedOrders?.every(o => o.status_rent === 'Dikembalikan' || o.status_rent === 'Cancel') ? "Konfirmasi Pesanan" : "Semua paket harus berstatus Dikembalikan atau Cancel"}
+                        />
+                      ) : (
+                        /* Tombol Delete: Hanya muncul JIKA bukan tab laundry */
+                        activeTab !== 'laundry' && (
+                          <Trash2
+                            size={16}
+                            className="text-gray-400 hover:text-rose-500 cursor-pointer"
+                            onClick={() => setDeleteConfirm({ id: Object.values(item)[0], table: activeTab })}
+                          />
+                        )
+                      )}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+
         </table>
       </div>
 
-   {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
-{(activeTab === 'order_items' || activeTab === 'history_orders') && (
-  <div className="p-6 border-t bg-gray-50/50">
-    <div className="flex flex-col md:flex-row gap-8 md:gap-16">
-      {/* TOTAL AMOUNT PAID */}
-      <div className="flex flex-col">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
-          {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
-        </span>
-        <span className="text-2xl font-black text-slate-900">
-          {formatIDR(filteredData.reduce((sum, item) => {
-            if (activeTab === 'order_items') {
-              // Jumlah semua amount_paid dari relatedOrders (termasuk Cancel)
-              const allOrders = item.relatedOrders || [item];
-              const totalPaid = allOrders.reduce((acc, order) => acc + Number(order.amount_paid || 0), 0);
-              return sum + totalPaid;
-            }
-            return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
-          }, 0))}
-        </span>
-      </div>
+      {/* SUMMARY INFO FOR ORDER ITEMS & HISTORY */}
+      {(activeTab === 'order_items' || activeTab === 'history_orders') && (
+        <div className="p-6 border-t bg-gray-50/50">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-16">
+            {/* TOTAL AMOUNT PAID */}
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+                {activeTab === 'order_items' ? 'Total Amount Paid' : 'Total Omset'}
+              </span>
+              <span className="text-2xl font-black text-slate-900">
+                {formatIDR(filteredData.reduce((sum, item) => {
+                  if (activeTab === 'order_items') {
+                    // Jumlah semua amount_paid dari relatedOrders (termasuk Cancel)
+                    const allOrders = item.relatedOrders || [item];
+                    const totalPaid = allOrders.reduce((acc, order) => acc + Number(order.amount_paid || 0), 0);
+                    return sum + totalPaid;
+                  }
+                  return sum + Number(item.omset_order || 0) + Number(item.denda_paid || 0);
+                }, 0))}
+              </span>
+            </div>
 
-    {activeTab === 'order_items' && (
-  <div className="flex flex-col">
-    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">
-      Total Estimasi Omset
-    </span>
-    <span className="text-2xl font-black text-amber-600">
-      {formatIDR(filteredData.reduce((sum, item) => {
-        const allOrders = item.relatedOrders || [item];
-        let itemTotal = 0;
-        
-        allOrders.forEach(order => {
-          if (order.status_rent === 'Cancel') {
-            return;
-          }
-          
-          const hargaDasar = Number(order.total_price || 0);
-          const diskonPersen = Number(item.customer_full?.discount || 0);
-          const nominalDiskon = (hargaDasar * diskonPersen / 100);
+            {activeTab === 'order_items' && (
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">
+                  Total Estimasi Omset
+                </span>
+                <span className="text-2xl font-black text-amber-600">
+                  {formatIDR(filteredData.reduce((sum, item) => {
+                    const allOrders = item.relatedOrders || [item];
+                    let itemTotal = 0;
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const endDate = new Date(order.end_dates?.split('T')[0] || new Date());
-          endDate.setHours(0, 0, 0, 0);
+                    allOrders.forEach(order => {
+                      if (order.status_rent === 'Cancel') {
+                        return;
+                      }
 
-          // PERBAIKAN: Tentukan calculation date
-          let calculationDate;
-          if (order.status_rent === 'Dikembalikan' && order.actual_return_date) {
-            calculationDate = new Date(order.actual_return_date.split('T')[0]);
-          } else {
-            calculationDate = today;
-          }
-          calculationDate.setHours(0, 0, 0, 0);
+                      const hargaDasar = Number(order.total_price || 0);
+                      const diskonPersen = Number(item.customer_full?.discount || 0);
+                      const nominalDiskon = (hargaDasar * diskonPersen / 100);
 
-          let penaltyFee = 0;
-          if (calculationDate > endDate) {
-            const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
-            const pkg = db.packages?.find(p => Number(p.id_package) === Number(order.id_package));
-            penaltyFee = daysLate * (pkg?.penalty_fee || 0);
-          }
-          
-          itemTotal += (hargaDasar - nominalDiskon) + penaltyFee;
-        });
-        
-        return sum + itemTotal;
-      }, 0))}
-    </span>
-  </div>
-)}
-   
-    </div>
-  </div>
-)}
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const endDate = new Date(order.end_dates?.split('T')[0] || new Date());
+                      endDate.setHours(0, 0, 0, 0);
+
+                      // PERBAIKAN: Tentukan calculation date
+                      let calculationDate;
+                      if (order.status_rent === 'Dikembalikan' && order.actual_return_date) {
+                        calculationDate = new Date(order.actual_return_date.split('T')[0]);
+                      } else {
+                        calculationDate = today;
+                      }
+                      calculationDate.setHours(0, 0, 0, 0);
+
+                      let penaltyFee = 0;
+                      if (calculationDate > endDate) {
+                        const daysLate = Math.floor((calculationDate - endDate) / (1000 * 60 * 60 * 24));
+                        const pkg = db.packages?.find(p => Number(p.id_package) === Number(order.id_package));
+                        penaltyFee = daysLate * (pkg?.penalty_fee || 0);
+                      }
+
+                      itemTotal += (hargaDasar - nominalDiskon) + penaltyFee;
+                    });
+
+                    return sum + itemTotal;
+                  }, 0))}
+                </span>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
       {/* MODAL DETAIL HARGA OVERLAY */}
       {priceDetails && (
         <div className="fixed inset-0 z-600 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPriceDetails(null)}>
@@ -744,28 +751,28 @@ return (
                 </div>
               </div>
 
-             {/* Harga Sewa */}
-            <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
-              <span className="text-[14px] font-black uppercase text-gray-700">Harga Sewa</span>
-              <span className="text-sm font-black text-gray-900">
-                {formatIDR(priceDetails.package_details?.reduce((sum, pkg, idx) => {
-                  // Cek status dari relatedOrders yang sesuai dengan index paket ini
-                  const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-                  return sum + (isCancel ? 0 : Number(pkg.price || 0));
-                }, 0))}
-              </span>
-            </div>
+              {/* Harga Sewa */}
+              <div className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
+                <span className="text-[14px] font-black uppercase text-gray-700">Harga Sewa</span>
+                <span className="text-sm font-black text-gray-900">
+                  {formatIDR(priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                    // Cek status dari relatedOrders yang sesuai dengan index paket ini
+                    const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
+                    return sum + (isCancel ? 0 : Number(pkg.price || 0));
+                  }, 0))}
+                </span>
+              </div>
 
-             {/* Diskon */}
+              {/* Diskon */}
               {Number(priceDetails.customer_full?.discount || 0) > 0 && (
                 <div className="bg-emerald-50 p-4 rounded-2xl flex justify-between items-center border border-emerald-100">
                   <span className="text-[14px] font-black uppercase text-emerald-600">Diskon ({priceDetails.customer_full?.discount}%)</span>
                   <span className="text-sm font-black text-emerald-900">
                     {/* SEBELUMNYA: - {formatIDR(Number(priceDetails.total_price) * ...)} */}
                     - {formatIDR((priceDetails.package_details?.reduce((sum, pkg, idx) => {
-                        const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-                        return sum + (isCancel ? 0 : Number(pkg.price || 0));
-                      }, 0) * Number(priceDetails.customer_full?.discount)) / 100)}
+                      const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
+                      return sum + (isCancel ? 0 : Number(pkg.price || 0));
+                    }, 0) * Number(priceDetails.customer_full?.discount)) / 100)}
                   </span>
                 </div>
               )}
@@ -781,188 +788,188 @@ return (
                 </span>
               </div>
 
-     {/*  PENALTY FEE  */}
-{(() => {
-  const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
-    const relatedOrder = priceDetails.relatedOrders?.[idx];
-    
-    if (relatedOrder?.status_rent === 'Cancel') {
-      return sum;
-    }
+              {/*  PENALTY FEE  */}
+              {(() => {
+                const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                  const relatedOrder = priceDetails.relatedOrders?.[idx];
 
-    if (!pkg.endDate) return sum;
-    
-    const endDate = new Date(pkg.endDate.split('T')[0]);
-    endDate.setHours(0, 0, 0, 0);
+                  if (relatedOrder?.status_rent === 'Cancel') {
+                    return sum;
+                  }
 
-    if (relatedOrder?.status_rent === 'Dikembalikan') {
-      // Jika sudah dikembalikan, cek actual_return_date
-      if (relatedOrder.actual_return_date) {
-        const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
-        actualReturn.setHours(0, 0, 0, 0);
-        
-        if (actualReturn > endDate) {
-          const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
-          return sum + (daysLate * (Number(pkg.penalty) || 0));
-        }
-      }
-      // Jika sudah dikembalikan tapi tidak ada actual_return_date, tidak ada denda
-      return sum;
-    } else {
-      // Jika belum dikembalikan, gunakan hari ini
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (today > endDate) {
-        const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
-        return sum + (daysLate * (Number(pkg.penalty) || 0));
-      }
-    }
-    
-    return sum;
-  }, 0) || 0;
+                  if (!pkg.endDate) return sum;
 
-  if (totalPenaltyFee > 0) {
-    return (
-      <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
-        <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
-        <span className="text-sm font-black text-rose-900">
-          + {formatIDR(totalPenaltyFee)}
-        </span>
-      </div>
-    );
-  }
-  return null;
-})()}
+                  const endDate = new Date(pkg.endDate.split('T')[0]);
+                  endDate.setHours(0, 0, 0, 0);
 
-       {/* Baris Estimasi Omset */}
-<div className="flex justify-between items-center px-1 mt-10">
-  <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
-  <span className="text-sm font-bold text-slate-700">
-    {(() => {
-      let totalOmset = 0;
-      
-      priceDetails.package_details?.forEach((pkg, idx) => {
-        const relatedOrder = priceDetails.relatedOrders?.[idx];
-        
-        if (relatedOrder?.status_rent === 'Cancel') {
-          return;
-        }
-        
-        const hargaPaket = Number(pkg.price || 0);
-        const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
-        const nominalDiskon = (hargaPaket * diskonPersen / 100);
-        
-        // PERBAIKAN: Hitung penalty yang sama dengan display
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-       let penaltyForPkg = 0;
-if (pkg.endDate) {
-  const endDate = new Date(pkg.endDate.split('T')[0]);
-  endDate.setHours(0, 0, 0, 0);
-  
-  if (relatedOrder?.status_rent === 'Dikembalikan') {
-    // Jika sudah dikembalikan, cek actual_return_date
-    if (relatedOrder.actual_return_date) {
-      const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
-      actualReturn.setHours(0, 0, 0, 0);
-      
-      if (actualReturn > endDate) {
-        const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
-        penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
-      }
-    }
-  } else {
-    // Jika belum dikembalikan, gunakan hari ini
-    if (today > endDate) {
-      const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
-      penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
-    }
-  }
-}
-        
-        totalOmset += (hargaPaket - nominalDiskon) + penaltyForPkg;
-      });
-      
-      return formatIDR(totalOmset);
-    })()}
-  </span>
-</div>
+                  if (relatedOrder?.status_rent === 'Dikembalikan') {
+                    // Jika sudah dikembalikan, cek actual_return_date
+                    if (relatedOrder.actual_return_date) {
+                      const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+                      actualReturn.setHours(0, 0, 0, 0);
 
-        {/* Garis Total */}
-<div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
-  <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan</span>
-  <div className="text-right">
-    <p className="text-xl font-black text-slate-900">
-      {(() => {
-        const hargaDasar = priceDetails.package_details?.reduce((sum, pkg, idx) => {
-          const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-          return sum + (isCancel ? 0 : Number(pkg.price || 0));
-        }, 0) || 0;
+                      if (actualReturn > endDate) {
+                        const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+                        return sum + (daysLate * (Number(pkg.penalty) || 0));
+                      }
+                    }
+                    // Jika sudah dikembalikan tapi tidak ada actual_return_date, tidak ada denda
+                    return sum;
+                  } else {
+                    // Jika belum dikembalikan, gunakan hari ini
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
 
-        const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
-        const nominalDiskon = (hargaDasar * diskonPersen / 100);
+                    if (today > endDate) {
+                      const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+                      return sum + (daysLate * (Number(pkg.penalty) || 0));
+                    }
+                  }
 
-        const deposit = priceDetails.package_details?.reduce((sum, pkg, idx) => {
-          const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
-          return sum + (isCancel ? 0 : Number(pkg.deposit || 0));
-        }, 0) || 0;
+                  return sum;
+                }, 0) || 0;
 
-        // PERBAIKAN: Hitung penalty dengan logika yang sama
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+                if (totalPenaltyFee > 0) {
+                  return (
+                    <div className="bg-rose-50 p-4 rounded-2xl flex justify-between items-center border border-rose-100">
+                      <span className="text-[14px] font-black uppercase text-rose-600">Penalty Fee</span>
+                      <span className="text-sm font-black text-rose-900">
+                        + {formatIDR(totalPenaltyFee)}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
-       const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
-  const relatedOrder = priceDetails.relatedOrders?.[idx];
-  const isCancel = relatedOrder?.status_rent === 'Cancel';
-  
-  if (isCancel) return sum;
-  if (!pkg.endDate) return sum;
+              {/* Baris Estimasi Omset */}
+              <div className="flex justify-between items-center px-1 mt-10">
+                <span className="text-[10px] font-bold uppercase text-slate-500">Estimasi Total Omset </span>
+                <span className="text-sm font-bold text-slate-700">
+                  {(() => {
+                    let totalOmset = 0;
 
-  const endDate = new Date(pkg.endDate.split('T')[0]);
-  endDate.setHours(0, 0, 0, 0);
-  
-  if (relatedOrder?.status_rent === 'Dikembalikan') {
-    // Jika sudah dikembalikan, cek actual_return_date
-    if (relatedOrder.actual_return_date) {
-      const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
-      actualReturn.setHours(0, 0, 0, 0);
-      
-      if (actualReturn > endDate) {
-        const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
-        return sum + (daysLate * (Number(pkg.penalty) || 0));
-      }
-    }
-    return sum;
-  } else {
-    // Jika belum dikembalikan, gunakan hari ini
-    if (today > endDate) {
-      const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
-      return sum + (daysLate * (Number(pkg.penalty) || 0));
-    }
-  }
-  
-  return sum;
-}, 0) || 0;
+                    priceDetails.package_details?.forEach((pkg, idx) => {
+                      const relatedOrder = priceDetails.relatedOrders?.[idx];
 
-        const totalAkhir = (hargaDasar - nominalDiskon) + deposit + totalPenaltyFee;
-        return formatIDR(totalAkhir);
-      })()}
-    </p>
-  </div>
-</div> 
-      </div>
+                      if (relatedOrder?.status_rent === 'Cancel') {
+                        return;
+                      }
 
-      <button
-        onClick={() => setPriceDetails(null)}
-        className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
-      >
-        Tutup Rincian
-      </button>
-    </div>
-  </div>
-)}
+                      const hargaPaket = Number(pkg.price || 0);
+                      const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+                      const nominalDiskon = (hargaPaket * diskonPersen / 100);
+
+                      // PERBAIKAN: Hitung penalty yang sama dengan display
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+
+                      let penaltyForPkg = 0;
+                      if (pkg.endDate) {
+                        const endDate = new Date(pkg.endDate.split('T')[0]);
+                        endDate.setHours(0, 0, 0, 0);
+
+                        if (relatedOrder?.status_rent === 'Dikembalikan') {
+                          // Jika sudah dikembalikan, cek actual_return_date
+                          if (relatedOrder.actual_return_date) {
+                            const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+                            actualReturn.setHours(0, 0, 0, 0);
+
+                            if (actualReturn > endDate) {
+                              const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+                              penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
+                            }
+                          }
+                        } else {
+                          // Jika belum dikembalikan, gunakan hari ini
+                          if (today > endDate) {
+                            const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+                            penaltyForPkg = daysLate * (Number(pkg.penalty) || 0);
+                          }
+                        }
+                      }
+
+                      totalOmset += (hargaPaket - nominalDiskon) + penaltyForPkg;
+                    });
+
+                    return formatIDR(totalOmset);
+                  })()}
+                </span>
+              </div>
+
+              {/* Garis Total */}
+              <div className="flex justify-between items-center px-1 border-t pt-4 mt-2">
+                <span className="text-[14px] font-black uppercase text-slate-900">Total Tagihan</span>
+                <div className="text-right">
+                  <p className="text-xl font-black text-slate-900">
+                    {(() => {
+                      const hargaDasar = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                        const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
+                        return sum + (isCancel ? 0 : Number(pkg.price || 0));
+                      }, 0) || 0;
+
+                      const diskonPersen = Number(priceDetails.customer_full?.discount || 0);
+                      const nominalDiskon = (hargaDasar * diskonPersen / 100);
+
+                      const deposit = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                        const isCancel = priceDetails.relatedOrders?.[idx]?.status_rent === 'Cancel';
+                        return sum + (isCancel ? 0 : Number(pkg.deposit || 0));
+                      }, 0) || 0;
+
+                      // PERBAIKAN: Hitung penalty dengan logika yang sama
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+
+                      const totalPenaltyFee = priceDetails.package_details?.reduce((sum, pkg, idx) => {
+                        const relatedOrder = priceDetails.relatedOrders?.[idx];
+                        const isCancel = relatedOrder?.status_rent === 'Cancel';
+
+                        if (isCancel) return sum;
+                        if (!pkg.endDate) return sum;
+
+                        const endDate = new Date(pkg.endDate.split('T')[0]);
+                        endDate.setHours(0, 0, 0, 0);
+
+                        if (relatedOrder?.status_rent === 'Dikembalikan') {
+                          // Jika sudah dikembalikan, cek actual_return_date
+                          if (relatedOrder.actual_return_date) {
+                            const actualReturn = new Date(relatedOrder.actual_return_date.split('T')[0]);
+                            actualReturn.setHours(0, 0, 0, 0);
+
+                            if (actualReturn > endDate) {
+                              const daysLate = Math.floor((actualReturn - endDate) / (1000 * 60 * 60 * 24));
+                              return sum + (daysLate * (Number(pkg.penalty) || 0));
+                            }
+                          }
+                          return sum;
+                        } else {
+                          // Jika belum dikembalikan, gunakan hari ini
+                          if (today > endDate) {
+                            const daysLate = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+                            return sum + (daysLate * (Number(pkg.penalty) || 0));
+                          }
+                        }
+
+                        return sum;
+                      }, 0) || 0;
+
+                      const totalAkhir = (hargaDasar - nominalDiskon) + deposit + totalPenaltyFee;
+                      return formatIDR(totalAkhir);
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setPriceDetails(null)}
+              className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+            >
+              Tutup Rincian
+            </button>
+          </div>
+        </div>
+      )}
       {/* MODAL DETAIL OVERLAY */}
       {selectedInfo && (
         <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedInfo(null)}>
@@ -1024,89 +1031,89 @@ if (pkg.endDate) {
               </div>
             )}
 
-          
 
-{/* DETAIL PACKAGE */}
 
-{selectedInfo.type === 'package' && (
-  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-    {selectedInfo.package_details?.map((pkg, idx) => (
-      <div key={idx} className="space-y-3 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Paket {idx + 1}</span>
-            <h3 className="text-lg font-black text-amber-900 uppercase">{pkg.name}</h3>
-          </div>
-        </div>
-        
-        {/* Grid Info Paket */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 bg-white rounded-2xl shadow-sm">
-            <p className="text-[11px] text-gray-400 uppercase font-black">Harga Paket</p>
-            <p className="text-sm font-black text-gray-900">{formatIDR(pkg.price)}</p>
-          </div>
-          
-          <div className="p-4 bg-white rounded-2xl shadow-sm">
-            <p className="text-[11px] text-gray-400 uppercase font-black">Durasi</p>
-            <p className="text-sm font-black text-gray-900">{pkg.duration} Hari</p>
-          </div>
-          
-          <div className="p-4 bg-amber-100 rounded-2xl shadow-sm">
-            <p className="text-[11px] text-amber-600 uppercase font-black">Deposit</p>
-            <p className="text-sm font-black text-amber-900">{formatIDR(pkg.deposit)}</p>
-          </div>
-          
-          <div className="p-4 bg-rose-50 rounded-2xl shadow-sm">
-            <p className="text-[11px] text-rose-600 uppercase font-black">Penalty/Hari</p>
-            <p className="text-sm font-black text-rose-900">{formatIDR(pkg.penalty)}</p>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+            {/* DETAIL PACKAGE */}
 
-{/* DETAIL BOOKED ITEMS */}
+            {selectedInfo.type === 'package' && (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {selectedInfo.package_details?.map((pkg, idx) => (
+                  <div key={idx} className="space-y-3 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Paket {idx + 1}</span>
+                        <h3 className="text-lg font-black text-amber-900 uppercase">{pkg.name}</h3>
+                      </div>
+                    </div>
 
-{selectedInfo.type === 'items' && (
-  <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
-    {selectedInfo.package_details?.map((pkg, idx) => (
-      <div key={idx} className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="px-4 py-1 bg-slate-900 rounded-full">
-            <span className="text-[10px] font-black text-white uppercase tracking-tighter">
-              Paket {idx + 1}: {pkg.name}
-            </span>
-          </div>
-          <div className="h-px flex-1 bg-slate-200"></div>
-        </div>
+                    {/* Grid Info Paket */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-white rounded-2xl shadow-sm">
+                        <p className="text-[11px] text-gray-400 uppercase font-black">Harga Paket</p>
+                        <p className="text-sm font-black text-gray-900">{formatIDR(pkg.price)}</p>
+                      </div>
 
-        {/* Items List */}
-        <div className="space-y-2">
-          {pkg.items && pkg.items.length > 0 ? pkg.items.map((p, i) => (
-            <div key={i} className="p-3 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
-              <div>
-                <p className="text-[15px] font-black text-gray-900 tracking-tighter uppercase">{p.name}</p>
-                <p className="text-[12px] text-gray-600 font-black">{p.category} • {p.color}</p>
+                      <div className="p-4 bg-white rounded-2xl shadow-sm">
+                        <p className="text-[11px] text-gray-400 uppercase font-black">Durasi</p>
+                        <p className="text-sm font-black text-gray-900">{pkg.duration} Hari</p>
+                      </div>
+
+                      <div className="p-4 bg-amber-100 rounded-2xl shadow-sm">
+                        <p className="text-[11px] text-amber-600 uppercase font-black">Deposit</p>
+                        <p className="text-sm font-black text-amber-900">{formatIDR(pkg.deposit)}</p>
+                      </div>
+
+                      <div className="p-4 bg-rose-50 rounded-2xl shadow-sm">
+                        <p className="text-[11px] text-rose-600 uppercase font-black">Penalty/Hari</p>
+                        <p className="text-sm font-black text-rose-900">{formatIDR(pkg.penalty)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <span className="text-[11px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE: {p.size}</span>
-            </div>
-          )) : (
-            <p className="text-center text-xs text-gray-400 py-4 italic">Tidak ada item di paket ini</p>
-          )}
-        </div>
-        
-        {/* Catatan Paket */}
-        <div className="pt-2">
-          <p className="text-[11px] font-black uppercase text-amber-600 mb-1">Catatan Paket:</p>
-          <div className="text-[12px] text-gray-700 bg-amber-50/50 p-3 rounded-xl border border-dashed border-amber-200 leading-relaxed">
-            {pkg.note && pkg.note !== '-' ? pkg.note : 'Tidak ada catatan'}
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+            )}
+
+            {/* DETAIL BOOKED ITEMS */}
+
+            {selectedInfo.type === 'items' && (
+              <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
+                {selectedInfo.package_details?.map((pkg, idx) => (
+                  <div key={idx} className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="px-4 py-1 bg-slate-900 rounded-full">
+                        <span className="text-[10px] font-black text-white uppercase tracking-tighter">
+                          Paket {idx + 1}: {pkg.name}
+                        </span>
+                      </div>
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                    </div>
+
+                    {/* Items List */}
+                    <div className="space-y-2">
+                      {pkg.items && pkg.items.length > 0 ? pkg.items.map((p, i) => (
+                        <div key={i} className="p-3 bg-gray-50 rounded-2xl border flex justify-between items-center group hover:bg-white transition-all">
+                          <div>
+                            <p className="text-[15px] font-black text-gray-900 tracking-tighter uppercase">{p.name}</p>
+                            <p className="text-[12px] text-gray-600 font-black">{p.category} • {p.color}</p>
+                          </div>
+                          <span className="text-[11px] font-black px-3 py-1 bg-white border rounded-lg shadow-sm">SIZE: {p.size}</span>
+                        </div>
+                      )) : (
+                        <p className="text-center text-xs text-gray-400 py-4 italic">Tidak ada item di paket ini</p>
+                      )}
+                    </div>
+
+                    {/* Catatan Paket */}
+                    <div className="pt-2">
+                      <p className="text-[11px] font-black uppercase text-amber-600 mb-1">Catatan Paket:</p>
+                      <div className="text-[12px] text-gray-700 bg-amber-50/50 p-3 rounded-xl border border-dashed border-amber-200 leading-relaxed">
+                        {pkg.note && pkg.note !== '-' ? pkg.note : 'Tidak ada catatan'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

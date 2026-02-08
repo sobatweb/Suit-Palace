@@ -90,7 +90,7 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
   const d = new Date();
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  const [isNewCustomer, setIsNewCustomer] = useState(true);
+  const [isNewCustomer, setIsNewCustomer] = useState(editingItem ? !editingItem.id_customer : true);
   const [openSelectId, setOpenSelectId] = useState(null); // Track which SearchableSelect is open
 
   // Close any open select when clicking outside
@@ -262,30 +262,29 @@ const FormModal = ({ activeTab, editingItem, db, onClose, onSave }) => {
               <div className="space-y-1">
                 <div className="flex justify-between items-center ml-1">
                   <label className="text-[12px] font-black uppercase text-slate-500">Nama Customer</label>
-                  {!editingItem && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsNewCustomer(!isNewCustomer);
-                        setCustomerInfo({ id_customer: null, customer_name: '', customer_phone: '', bank_account: '' });
-                      }}
-                      className="text-[9px] font-black uppercase text-blue-600 hover:underline"
-                    >
-                      {isNewCustomer ? 'Pelanggan Yang Sedang Order' : 'Input Pelanggan Baru'}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextIsNew = !isNewCustomer;
+                      setIsNewCustomer(nextIsNew);
+                      // Sesuai permintaan user: id customer tetap sama seperti sebelumnya, hanya nama yang diubah.
+                      // Jadi kita tidak menghapus id_customer dari state saat toggle.
+                    }}
+                    className="text-[9px] font-black uppercase text-blue-600 hover:underline"
+                  >
+                    {isNewCustomer ? 'Pilih Dari Pelanggan Terdaftar' : 'Ubah Jadi Nama Baru'}
+                  </button>
                 </div>
                 <div className="relative">
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                  {isNewCustomer || editingItem ? (
+                  {isNewCustomer ? (
                     <input
-                      readOnly={!!editingItem}
                       required
                       type="text"
                       placeholder="Ketik Nama..."
                       value={customerInfo.customer_name}
                       onChange={(e) => setCustomerInfo({ ...customerInfo, customer_name: e.target.value })}
-                      className={`w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all ${editingItem ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
+                      className="w-full pl-11 pr-4 py-3 border border-slate-900 rounded-2xl text-sm font-bold outline-none focus:border-black transition-all bg-slate-50"
                     />
                   ) : (
                     <select
