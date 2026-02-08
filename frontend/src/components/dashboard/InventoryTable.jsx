@@ -30,6 +30,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const [selectedInfo, setSelectedInfo] = useState(null);
   const [filterValue, setFilterValue] = useState("all");
   const [sortValue, setSortValue] = useState("all");
+  const [sortOrderDateValue, setSortOrderDateValue] = useState("all"); // State untuk sorting order date
   const [tempDiscount, setTempDiscount] = useState("0"); // State untuk menyimpan pilihan diskon sementara
   const tableRef = useRef(null);
 
@@ -188,6 +189,17 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
     return [...new Set(months)].sort((a, b) => new Date(b) - new Date(a));
   }, [activeTab, data]);
 
+  const monthOptionsOrderDate = React.useMemo(() => {
+    if (activeTab !== 'order_items' || !data) return [];
+    const months = data.map(item => {
+      if (!item.order_date) return null;
+      const d = new Date(item.order_date);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    }).filter(Boolean);
+    return [...new Set(months)].sort((a, b) => new Date(b) - new Date(a));
+  }, [activeTab, data]);
+
   const baseFilteredData = getDisplayData().filter(item => {
     const matchesSearch = isProductTab
       ? (item[`name_${activeTab}`] || item[`kode_${activeTab}`] || item.package_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -221,11 +233,15 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
   const filteredData = activeTab === 'order_items'
     ? (() => {
       let result = [...baseFilteredData];
+
+      // Sorting berdasarkan start_dates
       if (sortValue === "all") {
         // Urutkan berdasarkan Order Date Ascending secara default
         result.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
       } else if (sortValue === "SORT_DATE_ASC") {
         result.sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
+      } else if (sortValue === "SORT_DATE_DESC") {
+        result.sort((a, b) => new Date(b.start_dates) - new Date(a.start_dates));
       } else {
         // Filter berdasarkan bulan (start_dates)
         result = result.filter(item => {
@@ -235,6 +251,22 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
           return itemPeriod === sortValue;
         }).sort((a, b) => new Date(a.start_dates) - new Date(b.start_dates));
       }
+
+      // Sorting berdasarkan order_date (prioritas lebih tinggi jika dipilih)
+      if (sortOrderDateValue === "ORDER_DATE_ASC") {
+        result.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+      } else if (sortOrderDateValue === "ORDER_DATE_DESC") {
+        result.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+      } else if (sortOrderDateValue !== "all") {
+        // Filter berdasarkan bulan (order_date)
+        result = result.filter(item => {
+          if (!item.order_date) return false;
+          const d = new Date(item.order_date);
+          const itemPeriod = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+          return itemPeriod === sortOrderDateValue;
+        }).sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+      }
+
       return result;
     })()
     : activeTab === 'history_orders'
@@ -303,6 +335,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
       setFilterValue("all");
     }
     setSortValue("all");
+    setSortOrderDateValue("all");
   }, [activeTab]);
 
   const handlePrint = () => {
@@ -430,24 +463,48 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
 
                 {/* Dropdown Sort khusus Order Items */}
                 {activeTab === 'order_items' && (
-                  <div className="relative flex-1 sm:flex-none">
-                    <select
-                      value={sortValue}
-                      onChange={(e) => setSortValue(e.target.value)}
-                      className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
-                    >
-                      <option value="all">--- SEMUA ORDER ---</option>
-                      <option value="SORT_DATE_ASC">--- TANGGAL TERDEKAT ---</option>
-                      {monthOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt.toUpperCase()}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
-                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                  <>
+                    <div className="relative flex-1 sm:flex-none">
+                      <select
+                        value={sortValue}
+                        onChange={(e) => setSortValue(e.target.value)}
+                        className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                      >
+                        <option value="all">--- START DATE ---</option>
+                        <option value="SORT_DATE_ASC">--- TERDEKAT ---</option>
+                        <option value="SORT_DATE_DESC">--- TERJAUH ---</option>
+                        {monthOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Dropdown Sort Order Date */}
+                    <div className="relative flex-1 sm:flex-none">
+                      <select
+                        value={sortOrderDateValue}
+                        onChange={(e) => setSortOrderDateValue(e.target.value)}
+                        className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
+                      >
+                        <option value="all">--- ORDER DATE ---</option>
+                        <option value="ORDER_DATE_ASC">--- TERDEKAT ---</option>
+                        <option value="ORDER_DATE_DESC">--- TERBARU ---</option>
+                        {monthOptionsOrderDate.map(opt => (
+                          <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
