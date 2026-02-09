@@ -492,7 +492,7 @@ const InventoryTable = ({ activeTab, data, db, fetchData, setEditingItem, setMod
                         className="w-full sm:min-w-50 px-4 py-2.5 bg-white border rounded-xl text-[11px] font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-slate-900 cursor-pointer appearance-none pr-10"
                       >
                         <option value="all">--- ORDER DATE ---</option>
-                        <option value="ORDER_DATE_ASC">--- TERDEKAT ---</option>
+                        <option value="ORDER_DATE_ASC">--- TERJAUH ---</option>
                         <option value="ORDER_DATE_DESC">--- TERBARU ---</option>
                         {monthOptionsOrderDate.map(opt => (
                           <option key={opt} value={opt}>{opt.toUpperCase()}</option>
