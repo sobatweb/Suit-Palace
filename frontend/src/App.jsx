@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -22,6 +23,15 @@ const RequireAuth = ({ children }) => {
 };
 
 function LandingPage({ onAdminClick }) {
+  useRegisterSW({
+    onRegistered(r) {
+      console.log('SW Registered: ' + r);
+    },
+    onRegisterError(error) {
+      console.log('SW registration error', error);
+    },
+  });
+  
   return (
     <>
       <Navbar />
