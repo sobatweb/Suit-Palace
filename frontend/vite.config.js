@@ -13,7 +13,7 @@ export default defineConfig({
       manifest: {
         name: 'Suit Palace',
         short_name: 'Suit Palace',
-        description: 'Rental Jas dan Changsam',
+        description: 'Rental Jas dan Changsan',
         theme_color: '#ffffff',
        icons: [
           {
